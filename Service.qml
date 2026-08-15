@@ -34,6 +34,8 @@ Item {
   property double componentStartedAt: Date.now()
   property double latestOpenStartedAt: 0
   property bool startupRefreshPending: true
+  property int configChangeRevision: 0
+  property bool configSyncQueued: false
   readonly property int actionNoticeDurationMs: 10000
 
   readonly property string homeDir: Quickshell.env("HOME")
@@ -47,6 +49,7 @@ Item {
     + "/omarchy/plugin-control/channels.yaml"
   readonly property bool actionRunning: actionStarting
     || (actionState && actionState.running === true)
+  readonly property string moduleName: "io.github.ilyazar.plugin-control"
 
   signal actionFinished(var state)
 
@@ -67,6 +70,38 @@ Item {
     var parsed = parseJson(raw, {})
     if (!parsed || !Array.isArray(parsed.plugins)) return
     if (records.length === 0) applyRecords(parsed.plugins)
+  }
+
+  function applyConfigStatus(raw, exitCode, revision) {
+    if (revision !== configChangeRevision || exitCode !== 0) return false
+    var parsed = parseJson(raw, null)
+    if (!parsed || parsed.ok !== true || parsed.usingLastGood === true
+        || !parsed.config || parsed.config.version !== 2) return false
+    var settings = parsed.config.settings
+    var value = settings ? settings["tray-icon-hidden"] : undefined
+    if (typeof value !== "boolean") return false
+    if (!pluginRegistry
+        || typeof pluginRegistry.setBarWidget !== "function") return false
+    var error = String(pluginRegistry.setBarWidget(
+      moduleName, "trayIconHidden", value, {}) || "")
+    if (error) {
+      lastError = "Could not apply tray icon visibility."
+      return false
+    }
+    return true
+  }
+
+  function requestConfigSync() {
+    if (!helperPath) return
+    if (configSyncProcess.running) {
+      configSyncQueued = true
+      return
+    }
+    configSyncQueued = false
+    configSyncProcess.output = ""
+    configSyncProcess.revision = configChangeRevision
+    configSyncProcess.command = [helperPath, "config-status", sourceDir]
+    configSyncProcess.running = true
   }
 
   function applySnapshot(raw, exitCode) {
@@ -226,7 +261,25 @@ Item {
     path: root.channelConfigPath
     watchChanges: true
     printErrors: false
-    onFileChanged: configRefreshDebounce.restart()
+    onFileChanged: {
+      root.configChangeRevision++
+      configRefreshDebounce.restart()
+    }
+  }
+
+  Process {
+    id: configSyncProcess
+    property string output: ""
+    property int revision: -1
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: configSyncProcess.output = text
+    }
+    onExited: function(exitCode) {
+      root.applyConfigStatus(output, exitCode, revision)
+      if (root.configSyncQueued || revision !== root.configChangeRevision)
+        Qt.callLater(root.requestConfigSync)
+    }
   }
 
   Process {
@@ -302,7 +355,10 @@ Item {
     id: configRefreshDebounce
     interval: 300
     repeat: false
-    onTriggered: root.requestRefresh(true)
+    onTriggered: {
+      root.requestConfigSync()
+      root.requestRefresh(true)
+    }
   }
 
   Timer {

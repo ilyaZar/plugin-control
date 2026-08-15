@@ -41,6 +41,7 @@ ShellRoot {
     }
     if ("manifest" in object) object.manifest = manifestData()
     if ("shell" in object) object.shell = mockShell
+    if ("pluginRegistry" in object) object.pluginRegistry = mockPluginRegistry
     createdObjects.push(object)
     console.log("PLUGIN_CONTROL_LOAD_OK " + kind)
     return object
@@ -52,6 +53,22 @@ ShellRoot {
     id: mockBarWidgetRegistry
     function metadataFor(moduleName) {
       return { sourceDir: root.sourceDir }
+    }
+  }
+
+  QtObject {
+    id: mockPluginRegistry
+    property int settingCalls: 0
+    property string lastSettingId: ""
+    property string lastSettingKey: ""
+    property var lastSettingValue: null
+    property string settingError: ""
+    function setBarWidget(id, key, value, selector) {
+      settingCalls++
+      lastSettingId = String(id)
+      lastSettingKey = String(key)
+      lastSettingValue = value
+      return settingError
     }
   }
 
@@ -93,6 +110,76 @@ ShellRoot {
     repeat: false
     onTriggered: {
       root.serviceObject = root.loadEntry("Service.qml", "service")
+      if (root.serviceObject) {
+        mockPluginRegistry.settingCalls = 0
+        var hiddenSnapshot = JSON.stringify({
+          ok: true,
+          records: [],
+          config: { settings: { "tray-icon-hidden": true } }
+        })
+        root.serviceObject.applySnapshot(hiddenSnapshot, 0)
+        if (mockPluginRegistry.settingCalls !== 0) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR startup tray override")
+        }
+        root.serviceObject.configChangeRevision = 2
+        var hiddenConfigStatus = JSON.stringify({
+          ok: true,
+          usingLastGood: false,
+          config: {
+            version: 2,
+            settings: { "tray-icon-hidden": true }
+          }
+        })
+        root.serviceObject.applyConfigStatus(hiddenConfigStatus, 0, 1)
+        if (mockPluginRegistry.settingCalls !== 0) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR stale tray setting")
+        }
+        root.serviceObject.applyConfigStatus(JSON.stringify({
+          ok: false,
+          usingLastGood: true,
+          config: {
+            version: 2,
+            settings: { "tray-icon-hidden": true }
+          }
+        }), 0, 2)
+        if (mockPluginRegistry.settingCalls !== 0) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR invalid tray setting")
+        }
+        root.serviceObject.applyConfigStatus(hiddenConfigStatus, 0, 2)
+        if (mockPluginRegistry.settingCalls !== 1
+            || mockPluginRegistry.lastSettingId
+              !== "io.github.ilyazar.plugin-control"
+            || mockPluginRegistry.lastSettingKey !== "trayIconHidden"
+            || mockPluginRegistry.lastSettingValue !== true) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR live tray setting")
+        }
+        root.serviceObject.configChangeRevision = 3
+        root.serviceObject.applyConfigStatus(JSON.stringify({
+          ok: true,
+          usingLastGood: false,
+          config: {
+            version: 2,
+            settings: { "tray-icon-hidden": false }
+          }
+        }), 0, 3)
+        if (mockPluginRegistry.settingCalls !== 2
+            || mockPluginRegistry.lastSettingValue !== false) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR live tray setting update")
+        }
+        mockPluginRegistry.settingError = "could not find widget"
+        root.serviceObject.configChangeRevision = 4
+        if (root.serviceObject.applyConfigStatus(hiddenConfigStatus, 0, 4)
+            || mockPluginRegistry.settingCalls !== 3) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR tray setting failure")
+        }
+        mockPluginRegistry.settingError = ""
+        root.serviceObject.configChangeRevision = 5
+        if (!root.serviceObject.applyConfigStatus(hiddenConfigStatus, 0, 5)
+            || mockPluginRegistry.settingCalls !== 4
+            || mockPluginRegistry.lastSettingValue !== true) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR tray setting retry")
+        }
+      }
       var overlay = root.loadEntry("PluginControl.qml", "overlay")
       if (overlay && "service" in overlay) {
         overlay.service = root.serviceObject
