@@ -1,0 +1,23 @@
+version: 1
+refresh_minutes: 30
+allow_unlisted_installs: false
+
+channels:
+  - id: marketplace
+    name: Omarchy Plugins Marketplace
+    type: marketplace-catalog
+    enabled: true
+    catalog_url: https://omarchyplugins.com/catalog.json
+    website_url: https://omarchyplugins.com/
+
+  - id: hancore-submissions
+    name: Unlisted marketplace submissions
+    type: github-submissions
+    enabled: false
+    repository: HANCORE-linux/omarchy-plugin-marketplace
+    required_labels:
+      - submission
+      - validated
+    excluded_labels:
+      - listed
+      - needs-fixes

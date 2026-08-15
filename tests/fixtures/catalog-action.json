@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "generatedAt": "2026-08-15T00:00:00Z",
+  "records": [
+    {
+      "id": "io.example.weather",
+      "name": "Weather",
+      "description": "A weather widget",
+      "author": "Example",
+      "version": "1.2.3",
+      "repository": "https://github.com/example/weather",
+      "source": "marketplace",
+      "sourceName": "Omarchy Plugins Marketplace",
+      "sourceRank": 30,
+      "installable": true,
+      "builtIn": false,
+      "installCommand": "touch /tmp/plugin-control-must-not-run"
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,60 @@
+{
+  "stateSchemaVersion": 1,
+  "generatedAt": "2026-08-15T00:00:00Z",
+  "source": "bundled-bootstrap",
+  "plugins": [
+    {
+      "id": "omarchy.clipboard",
+      "name": "Clipboard",
+      "description": "Search and paste clipboard history",
+      "author": "Omarchy",
+      "version": "1.0.0",
+      "kind": "Overlay",
+      "builtIn": true,
+      "source": "builtin",
+      "sourceName": "Omarchy built-in",
+      "sourceRank": 40,
+      "installable": false
+    },
+    {
+      "id": "omarchy.emojis",
+      "name": "Emojis",
+      "description": "Search, copy, and type emojis",
+      "author": "Omarchy",
+      "version": "1.0.0",
+      "kind": "Overlay",
+      "builtIn": true,
+      "source": "builtin",
+      "sourceName": "Omarchy built-in",
+      "sourceRank": 40,
+      "installable": false
+    },
+    {
+      "id": "omarchy.weather",
+      "name": "Weather",
+      "description": "Current weather in the Omarchy bar",
+      "author": "Omarchy",
+      "version": "1.0.0",
+      "kind": "Bar widget",
+      "builtIn": true,
+      "source": "builtin",
+      "sourceName": "Omarchy built-in",
+      "sourceRank": 40,
+      "installable": false
+    },
+    {
+      "id": "b.okomart",
+      "name": "Okomart",
+      "description": "Storefront for browsing and managing Omarchy plugins",
+      "author": "Brian Blakely",
+      "version": "0.0.54",
+      "kind": "Panel",
+      "repository": "https://github.com/brianblakely/omarchy-plugins",
+      "source": "marketplace",
+      "sourceName": "Omarchy Plugins Marketplace",
+      "sourceRank": 30,
+      "installable": true,
+      "upstreamCheckStatus": "unknown"
+    }
+  ]
+}

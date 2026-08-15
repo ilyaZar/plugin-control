@@ -1,0 +1,123 @@
+var SELF_ID = "io.github.ilyazar.plugin-control"
+
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
+function text(value) {
+  return value === undefined || value === null ? "" : String(value)
+}
+
+function cleanText(value) {
+  return text(value).trim()
+}
+
+function searchText(value) {
+  return cleanText(value).toLowerCase().replace(/\s+/g, " ")
+}
+
+function copy(value) {
+  var out = {}
+  if (!isRecord(value)) return out
+  for (var key in value) out[key] = value[key]
+  return out
+}
+
+function sourceRank(record) {
+  if (record && isFinite(Number(record.sourceRank)))
+    return Number(record.sourceRank)
+  var source = cleanText(record && record.source)
+  if (source === "local") return 50
+  if (source === "builtin") return 40
+  if (source === "marketplace") return 30
+  if (source === "submission") return 20
+  return 10
+}
+
+function sourceLabel(record) {
+  var source = cleanText(record && record.source)
+  if (source === "local") return "Local checkout"
+  if (source === "builtin") return "Omarchy built-in"
+  if (source === "marketplace") return "Marketplace listed"
+  if (source === "submission") return "Unlisted submission"
+  return cleanText(record && record.sourceName) || "Custom channel"
+}
+
+function warningState(record) {
+  if (record && record.builtIn === true) return ""
+  var state = cleanText(record && record.upstreamCheckStatus).toLowerCase()
+  if (record && record.unlisted === true) {
+    var security = Array.isArray(record.securityWarnings)
+      ? record.securityWarnings.slice(0, 2).map(cleanText).filter(Boolean) : []
+    return security.length > 0
+      ? "Unlisted - " + security.join(", ") : "Unlisted"
+  }
+  if (!state || state === "unknown") return "Validation unknown"
+  if (state === "passed") {
+    var listed = cleanText(record.listingValidatedCommit)
+    var upstream = cleanText(record.upstreamObservedCommit)
+    return listed && upstream && listed !== upstream ? "Upstream changed" : ""
+  }
+  return "Validation " + state
+}
+
+function stateLabel(record) {
+  if (record.builtIn === true) return record.enabled === false ? "Disabled" : "Built-in"
+  if (record.installed === true)
+    return record.enabled === false ? "Disabled" : "Installed"
+  if (record.installable === true) return "Available"
+  return "Browse only"
+}
+
+function isBarWidget(kind) {
+  return cleanText(kind).toLowerCase().replace(/[-_]+/g, " ")
+    .indexOf("bar widget") >= 0
+}
+
+function normalizeRecord(value) {
+  var record = copy(value)
+  record.id = cleanText(record.id)
+  record.name = cleanText(record.name) || record.id
+  record.description = cleanText(record.description)
+  record.author = cleanText(record.author)
+  record.version = cleanText(record.version)
+  record.releaseTag = cleanText(record.releaseTag)
+  record.repository = cleanText(record.repository)
+  record.category = cleanText(record.category)
+  record.kind = cleanText(record.kind)
+  record.source = cleanText(record.source) || "custom"
+  record.sourceName = cleanText(record.sourceName)
+  record.tags = Array.isArray(record.tags) ? record.tags.map(cleanText) : []
+  record.sourceRank = sourceRank(record)
+  record.sourceLabel = sourceLabel(record)
+  record.warning = warningState(record)
+  record.stateLabel = stateLabel(record)
+  record.installed = record.installed === true
+  record.enabled = record.enabled !== false
+  record.installable = record.installable === true && !record.installed
+  record.removable = record.removable === true
+    && record.id !== SELF_ID && record.builtIn !== true
+  record.searchFields = [record.name, record.id, record.repository,
+    record.author, record.tags.join(" "), record.category, record.kind,
+    record.sourceLabel, record.description].map(searchText)
+  return record
+}
+
+function prepareRecords(records) {
+  var values = Array.isArray(records) ? records : []
+  var out = []
+  for (var i = 0; i < values.length; i++) {
+    var record = normalizeRecord(values[i])
+    if (record.id) out.push(record)
+  }
+  return out
+}
+
+if (typeof module !== "undefined") {
+  module.exports = {
+    SELF_ID: SELF_ID,
+    warningState: warningState,
+    isBarWidget: isBarWidget,
+    prepareRecords: prepareRecords
+  }
+}

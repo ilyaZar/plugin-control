@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -euo pipefail
+
+TEST_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly TEST_DIR
+ROOT="$(cd -- "$TEST_DIR/.." && pwd)"
+readonly ROOT
+
+bash -n "$ROOT/bin/plugin-control" "$ROOT/scripts/open-channels.sh" \
+  "$ROOT/scripts/open-keybindings.sh" "$TEST_DIR"/*.sh
+ruby -c "$ROOT/lib/channel_config.rb"
+node "$TEST_DIR/model.test.js"
+ruby "$TEST_DIR/channel_config.test.rb"
+"$TEST_DIR/catalog.test.sh"
+"$TEST_DIR/issues.test.sh"
+"$TEST_DIR/backend.test.sh"
+"$TEST_DIR/helpers.test.sh"
+"$TEST_DIR/qml.test.sh"
+
+qmltestrunner_bin="$(command -v qmltestrunner)"
+if [[ -x /usr/lib/qt6/bin/qmltestrunner ]]; then
+  qmltestrunner_bin=/usr/lib/qt6/bin/qmltestrunner
+fi
+QT_QPA_PLATFORM=offscreen "$qmltestrunner_bin" \
+  -input "$TEST_DIR/tst_models.qml" -import "$ROOT"
+
+printf 'ok - all Plugin Control tests\n'

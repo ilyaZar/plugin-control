@@ -1,0 +1,38 @@
+[
+  {
+    "number": 1,
+    "html_url": "https://github.com/HANCORE-linux/omarchy-plugin-marketplace/issues/1",
+    "title": "[Plugin]: Valid",
+    "body": "### Repository URL\n\nhttps://github.com/example/valid\n",
+    "labels": [{"name":"submission"},{"name":"validated"},{"name":"security-review-required"}]
+  },
+  {
+    "number": 2,
+    "html_url": "https://example.invalid/2",
+    "title": "Listed",
+    "body": "### Repository URL\nhttps://github.com/example/listed\n",
+    "labels": [{"name":"submission"},{"name":"validated"},{"name":"listed"}]
+  },
+  {
+    "number": 3,
+    "html_url": "https://example.invalid/3",
+    "title": "Needs fixes",
+    "body": "### Repository URL\nhttps://github.com/example/fixes\n",
+    "labels": [{"name":"submission"},{"name":"validated"},{"name":"needs-fixes"}]
+  },
+  {
+    "number": 4,
+    "html_url": "https://example.invalid/4",
+    "title": "Pull request",
+    "body": "### Repository URL\nhttps://github.com/example/pr\n",
+    "pull_request": {"url":"https://api.github.com/pulls/4"},
+    "labels": [{"name":"submission"},{"name":"validated"}]
+  },
+  {
+    "number": 5,
+    "html_url": "https://example.invalid/5",
+    "title": "Malformed",
+    "body": "No repository field",
+    "labels": [{"name":"submission"},{"name":"validated"}]
+  }
+]

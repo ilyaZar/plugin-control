@@ -1,0 +1,40 @@
+{
+  "stateSchemaVersion": 1,
+  "generatedAt": "2026-08-15T00:00:00Z",
+  "plugins": [
+    {
+      "id": "io.example.weather",
+      "name": "Weather",
+      "description": "A weather widget",
+      "author": "Example",
+      "version": "1.2.3",
+      "repo": "https://github.com/example/weather",
+      "sourceType": "community",
+      "manifestPath": "manifest.json",
+      "repositoryLayout": "root-plugin",
+      "installAvailable": true,
+      "category": "Information",
+      "tags": ["weather", "bar"],
+      "kind": "Bar widget",
+      "status": "Available",
+      "listingValidatedCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "upstreamObservedCommit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "upstreamCheckStatus": "passed"
+    },
+    {
+      "id": "suite.example",
+      "name": "Suite",
+      "description": "Manual suite",
+      "author": "Example",
+      "version": "1",
+      "repo": "https://github.com/example/suite",
+      "sourceType": "community",
+      "repositoryLayout": "suite",
+      "installAvailable": false,
+      "category": "Desktop",
+      "tags": [],
+      "kind": "Suite",
+      "status": "Manual setup"
+    }
+  ]
+}
