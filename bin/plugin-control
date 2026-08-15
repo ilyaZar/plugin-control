@@ -61,6 +61,16 @@ require_tool() {
   }
 }
 
+cli_fail() {
+  printf 'plugin-control: %s\n' "$*" >&2
+  return 1
+}
+
+require_cli_tool() {
+  command -v "$1" >/dev/null 2>&1 ||
+    cli_fail "required command not found: $1"
+}
+
 init_paths() {
   local user_home="${HOME:-}"
   [[ -n $user_home && $user_home == /* ]] || {
@@ -156,7 +166,7 @@ parse_config() {
 
 load_config() {
   local root="$1"
-  local result="" fallback=""
+  local result=""
   ensure_config "$root" || {
     json_error "could not create or safely read the channel configuration"
     return 1
@@ -173,20 +183,23 @@ load_config() {
   jq -c '{error:(.error // "invalid channel configuration"),line:(.line // null),at:$at}' \
     --arg at "$(utc_now)" <<<"$result" | atomic_write_stream "$CONFIG_ERROR" || true
   if [[ -f $LAST_GOOD_CONFIG && ! -L $LAST_GOOD_CONFIG ]] \
-    && jq -e 'type == "object" and .version == 1' "$LAST_GOOD_CONFIG" >/dev/null 2>&1; then
+    && jq -e 'type == "object" and .version == 2' "$LAST_GOOD_CONFIG" >/dev/null 2>&1; then
     jq -c . "$LAST_GOOD_CONFIG"
     return
   fi
-
-  fallback="$(ruby "$root/lib/channel_config.rb" "$root/config/channels.yaml")" || return 1
-  jq -c '.config' <<<"$fallback" | atomic_write_stream "$LAST_GOOD_CONFIG"
-  jq -c '.config' <<<"$fallback"
+  return 1
 }
 
 config_status() {
   local root="$1"
   local config
   config="$(load_config "$root")" || {
+    if [[ -f $CONFIG_ERROR && ! -L $CONFIG_ERROR ]]; then
+      jq -c --arg path "$CHANNEL_CONFIG" \
+        '. + {ok:false,path:$path,usingLastGood:false,config:null}' \
+        "$CONFIG_ERROR"
+      return 1
+    fi
     json_error "no valid channel configuration is available"
     return 1
   }
@@ -761,12 +774,22 @@ refresh_command() {
   printf '%s\n' "$snapshot"
 }
 
+snapshot_is_current() {
+  local path="$1"
+  [[ -f $path && ! -L $path ]] && jq -e '
+    .ok == true
+    and (.snapshotId | type == "string" and length > 0)
+    and (.records | type == "array")
+    and .config.version == 2
+    and (.config.settings | type == "object")
+    and (.config.settings | keys == ["tray-icon-hidden"])
+    and (.config.settings["tray-icon-hidden"] | type == "boolean")
+  ' "$path" >/dev/null 2>&1
+}
+
 cached_command() {
   local root="$1"
-  if [[ -f $SNAPSHOT_STATE && ! -L $SNAPSHOT_STATE ]] \
-    && jq -e '.ok == true and (.snapshotId | type == "string" and length > 0)
-      and (.records | type == "array") and (.config | type == "object")' \
-      "$SNAPSHOT_STATE" >/dev/null 2>&1; then
+  if snapshot_is_current "$SNAPSHOT_STATE"; then
     cat "$SNAPSHOT_STATE"
     return
   fi
@@ -1070,15 +1093,12 @@ action_command() {
     json_error "Plugin Control cannot remove itself from its active interface"
     return 1
   }
-  [[ -f $SNAPSHOT_STATE && ! -L $SNAPSHOT_STATE ]] || {
-    json_error "no actionable snapshot is available"
-    return 1
-  }
-  jq -e --arg snapshotId "$confirmed_snapshot_id" \
-    '.snapshotId == $snapshotId' "$SNAPSHOT_STATE" >/dev/null || {
+  if ! snapshot_is_current "$SNAPSHOT_STATE" \
+    || ! jq -e --arg snapshotId "$confirmed_snapshot_id" \
+      '.snapshotId == $snapshotId' "$SNAPSHOT_STATE" >/dev/null; then
     json_error "the catalog changed after confirmation"
     return 1
-  }
+  fi
 
   exec 9>>"$ACTION_LOCK"
   if ! flock -n 9; then
@@ -1109,12 +1129,13 @@ action_command() {
   }
   install -m 0700 -- "$SCRIPT_PATH" "$worker"
   atomic_write_stream "$snapshot_copy" <"$SNAPSHOT_STATE"
-  jq -e --arg snapshotId "$confirmed_snapshot_id" \
-    '.snapshotId == $snapshotId' "$snapshot_copy" >/dev/null || {
+  if ! snapshot_is_current "$snapshot_copy" \
+    || ! jq -e --arg snapshotId "$confirmed_snapshot_id" \
+      '.snapshotId == $snapshotId' "$snapshot_copy" >/dev/null; then
     rm -f -- "$worker" "$snapshot_copy"
     json_error "the catalog changed after confirmation"
     return 1
-  }
+  fi
   queued="$(jq -cn --arg actionId "$action_id" --arg operation "$operation" \
     --arg pluginId "$id" --arg executionMode "$execution_mode" \
     --argjson queuedAtEpoch "$(epoch_now)" \
@@ -1172,11 +1193,124 @@ benchmark_command() {
     '{ok:true,snapshotMs:$snapshotMs,recordCount:$recordCount}'
 }
 
+public_usage() {
+  cat <<'USAGE'
+Usage:
+  plugin-control start [--tray-hidden | --tray-visible]
+  plugin-control stop
+  plugin-control help
+
+With no tray flag, start uses settings.tray-icon-hidden from the Plugin
+Control settings file. The shipped default is a visible tray icon.
+USAGE
+}
+
+start_command() {
+  local root="$1"
+  shift
+
+  local tray_override="" config tray_hidden discovered=0 attempt
+  case "${1:-}" in
+    "") ;;
+    --tray-hidden) tray_override=true ;;
+    --tray-visible) tray_override=false ;;
+    *)
+      public_usage >&2
+      return 2
+      ;;
+  esac
+  (( $# <= 1 )) || {
+    public_usage >&2
+    return 2
+  }
+
+  if ! config="$(load_config "$root")"; then
+    local config_error="invalid Plugin Control settings"
+    if [[ -f $CONFIG_ERROR && ! -L $CONFIG_ERROR ]]; then
+      config_error="$(jq -r '.error // "invalid Plugin Control settings"' \
+        "$CONFIG_ERROR")"
+    fi
+    cli_fail "$config_error"
+  fi
+  tray_hidden="$(jq -r '.settings["tray-icon-hidden"] // false' \
+    <<<"$config")"
+  if [[ -n $tray_override ]]; then
+    tray_hidden="$tray_override"
+  fi
+
+  omarchy-shell shell rescanPlugins >/dev/null ||
+    cli_fail "could not rescan installed plugins"
+  for (( attempt = 0; attempt < 40; attempt++ )); do
+    if omarchy plugin list --json | jq -e --arg id "$SELF_ID" \
+      'any(.[]; .id == $id)' >/dev/null; then
+      discovered=1
+      break
+    fi
+    sleep 0.05
+  done
+  (( discovered )) || cli_fail "plugin is not installed or was not discovered"
+
+  omarchy plugin enable "$SELF_ID" >/dev/null ||
+    cli_fail "could not enable Plugin Control"
+  omarchy bar set "$SELF_ID" trayIconHidden "$tray_hidden" --json \
+    >/dev/null || cli_fail "Plugin Control started, but tray visibility was not applied"
+
+  if [[ $tray_hidden == true ]]; then
+    printf 'Plugin Control started with its tray icon hidden\n'
+  else
+    printf 'Plugin Control started with its tray icon visible\n'
+  fi
+}
+
+stop_command() {
+  (( $# == 0 )) || {
+    public_usage >&2
+    return 2
+  }
+  omarchy plugin disable "$SELF_ID" >/dev/null ||
+    cli_fail "could not disable Plugin Control"
+  printf 'Plugin Control stopped\n'
+}
+
 usage() {
   json_error "usage: plugin-control <cached|refresh|ensure-config|config-status|status|action|ack|benchmark> ..."
 }
 
 main() {
+  local command="${1:-}"
+  shift || true
+  case "$command" in
+    start)
+      require_cli_tool jq
+      require_cli_tool omarchy
+      require_cli_tool omarchy-shell
+      require_cli_tool ruby
+      init_paths
+      local public_root
+      public_root="$(source_root "$(dirname -- "$SCRIPT_PATH")/..")" ||
+        cli_fail "could not find the installed Plugin Control checkout"
+      start_command "$public_root" "$@"
+      return
+      ;;
+    stop)
+      require_cli_tool omarchy
+      stop_command "$@"
+      return
+      ;;
+    help|-h|--help)
+      (( $# == 0 )) || {
+        public_usage >&2
+        return 2
+      }
+      public_usage
+      return
+      ;;
+    "")
+      public_usage >&2
+      return 2
+      ;;
+  esac
+
   require_tool curl
   require_tool flock
   require_tool git
@@ -1189,8 +1323,6 @@ main() {
   require_tool timeout
   init_paths
 
-  local command="${1:-}"
-  shift || true
   case "$command" in
     cached)
       (( $# == 1 )) || { usage; return 2; }

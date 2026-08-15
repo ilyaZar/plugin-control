@@ -1,16 +1,16 @@
 # Plugin Control
 
-Think of Sublime Text's classic Package Control or the VS Code Command
-Palette, but for Omarchy Quattro plugins. Click the package icon in the bar or
-press Ctrl+P, type a few letters, and install or remove a plugin without
-leaving the keyboard.
+Think of Sublime Text's classic Package Control or the VS Code Command Palette,
+but for Omarchy Quattro plugins.
+
+Press Ctrl+P (or click the tray icon), type a few letters to invoke fuzzy find,
+and install or remove a plugin hitting enter.
 
 ![Plugin Control command palette](preview.png)
 
 Plugin Control keeps the full [@HANCORE-linux](https://github.com/HANCORE-linux)
-[community marketplace](https://omarchyplugins.com/) and local plugin state in
-a small cache, then filters it in process on every keypress. Opening the
-palette does not start network or Git work.
+[community marketplace](https://omarchyplugins.com/) and local plugin state in a
+small cache, then filters it in process on every keypress.
 
 ## Install
 
@@ -18,12 +18,8 @@ palette does not start network or Git work.
 omarchy plugin add https://github.com/ilyaZar/plugin-control.git --enable
 ```
 
-Omarchy asks where to place the `󰏖` package icon during an interactive
-install. It defaults to the right section. Click the icon to open the palette,
-or right-click it for Settings.
-
-Plugin manifests cannot add global bindings. For a keyboard-only path, add
-this optional binding to your repo-managed or user-owned `bindings.lua`:
+Plugin manifests cannot add global bindings. For a keyboard-only path, add this
+optional binding to your repo-managed or user-owned `bindings.lua`:
 
 ```lua
 o.bind(
@@ -34,191 +30,102 @@ o.bind(
 ```
 
 Bare Ctrl+P is quick, but it replaces the usual application shortcut while the
-binding is active. Change the first string if that tradeoff does not fit your
-setup.
+binding is active. Change the first string if that disrupts your setup.
 
 ## Use
 
-Open the palette and start typing to browse. Matching is case-insensitive and
-genuinely fuzzy across names, IDs, descriptions, authors, tags, sources, and
-plugin kinds. Repository-backed plugin results include a smaller link on the
-third line without making the row taller.
+Start typing to search plugin names, IDs, descriptions, authors, and tags.
+Enter opens the selected plugin's available action; Ctrl+Shift+I shows details
+without changing anything.
 
-Two prefixes make changes explicit:
+Use either command to narrow the action first:
 
 - `plug-install:` shows available installable plugins
 - `plug-remove:` shows removable local plugins
 
-The two prefixes are command results too. Type `plug-in`, `plg-in`, or `rem`,
-then press Tab or Enter to complete the matching command through the colon.
-Plugin search restarts immediately in that mode. Ordinary Backspace can edit
-or remove the prefix. A malformed colon command is inert until edited.
-
-For example:
-
-```text
-plug-install: btp
-plug-remove: keylay
-```
-
-Name and ID matches rank ahead of metadata-only matches. Results are stable by
-name and then ID.
-
-Enter opens a cancel-first confirmation. It shows the plugin identity,
-repository, source, version, reviewed commit when present, and the exact native
-operation before anything changes.
+Commands are not pinned. Type `install`, `remove`, `plug-in`, or `plg-in` to
+bring one forward, then press Tab or Enter to complete it. Search restarts
+after the colon. Backspace edits a plugin name normally; at an empty completed
+prefix, one press removes the trailing space and the next clears the command.
 
 Useful keys:
 
-- Ctrl+P or Escape closes the palette
-- Up, Down, Page Up, Page Down, Home, and End move the selection
-- Enter completes a selected command or opens the plugin confirmation
-- Tab completes a selected command
-- Ctrl+Backspace removes the previous word
-- Ctrl+U clears the query
-- Ctrl+R refreshes the catalog
-- Ctrl+Shift+O opens the selected plugin page, or the marketplace
-- Ctrl+Shift+G opens the selected plugin repository, or the marketplace
-  repository
-- Ctrl+Shift+S opens Plugin Control settings
+| Keys                                 | Action                                       |
+| ------------------------------------ | -------------------------------------------- |
+| `Ctrl+P`, `Escape`                   | Close palette from plugin list               |
+| `Up`, `Down`, `Page Up`, `Page Down` | Move selection                               |
+| `Home`, `End`                        | Jump to first or last result                 |
+| `Enter`                              | Complete command or confirm available action |
+| `Tab`                                | Complete selected command                    |
+| `Ctrl+Backspace`                     | Remove previous word                         |
+| `Ctrl+U`                             | Clear query                                  |
+| `Ctrl+R`                             | Refresh catalog                              |
+| `Ctrl+Shift+I`                       | Open selected plugin information             |
+| `Ctrl+Shift+O`                       | Open selected plugin or marketplace page     |
+| `Ctrl+Shift+G`                       | Open selected or marketplace repository      |
+| `Ctrl+Shift+S`                       | Open settings; Escape returns to list        |
 
-## Install output and bar placement
+## Install behavior
 
-The install confirmation has a small `Run in Omarchy terminal` switch. Its
-choice is remembered in:
+Installs run in the background by default and report their result in the
+palette and a notification. The confirmation's `Run in Omarchy terminal`
+switch streams native prompts instead. Both paths use the confirmed catalog
+snapshot.
 
-```text
-~/.config/omarchy/plugin-control/settings.json
+## Start and stop
+
+```bash
+~/.config/omarchy/plugins/io.github.ilyazar.plugin-control/bin/plugin-control start
+~/.config/omarchy/plugins/io.github.ilyazar.plugin-control/bin/plugin-control start --tray-hidden
+~/.config/omarchy/plugins/io.github.ilyazar.plugin-control/bin/plugin-control stop
 ```
 
-With the switch off, Plugin Control runs the native installer in the
-background and reports its result in the palette and a desktop notification.
-This is the fastest path. Bounded, sanitized output is retained for a failed
-action.
-
-With the switch on, the same guarded action opens in an Omarchy terminal and
-runs:
-
-```text
-omarchy plugin add <repository> --enable
-```
-
-Output is live. Omarchy performs its normal trust confirmation and, for a bar
-widget, asks whether it belongs in the left, center, or right section. Center
-is Omarchy's name for the middle section. The terminal shows the final result
-and waits for Enter before closing.
-
-Both modes use the same confirmed catalog snapshot, action lock, repository
-checks, durable result, and installed-state rebuild. The terminal switch is
-not offered for unlisted submissions because those require an immediate
-reviewed-commit recheck in the background path.
-
-## Catalog and speed
-
-Plugin Control combines:
-
-- the live catalog at `https://omarchyplugins.com/catalog.json`
-- Omarchy's built-in plugins and bar widgets
-- locally installed third-party plugins
-- optional validated submission or custom catalog channels
-
-Every valid catalog record remains searchable, including browse-only entries.
-Install mode only includes records with a supported installation path.
-
-A bundled bootstrap appears first, followed by the last validated disk
-snapshot. Network channels refresh in the background when their 30-minute TTL
-expires and use HTTP validators when available. Offline, malformed, oversized,
-or failed responses leave the previous valid cache in place.
-
-The matcher is deliberately small JavaScript rather than an `fzf` subprocess.
-At marketplace scale it filters faster than the process startup and IPC needed
-for an external picker, while keeping the palette responsive into thousands of
-records.
-
-## How it differs
-
-[Okomart](https://github.com/brianblakely/omarchy-plugins) is a visual
-storefront with screenshots and updates over its own curated catalog. Other
-plugin managers focus on enabling or removing plugins already on the machine.
-[Omni](https://github.com/bjarneo/omarchy-shell-plugins/tree/main/omni) is a
-general command palette for apps, files, themes, and external searches.
-
-Plugin Control is the narrower command-palette interaction: one field, the
-full HANCORE catalog, true fuzzy matching, and explicit install and remove
-modes. It borrows the feel of Package Control and the VS Code Command Palette;
-it is not affiliated with Sublime HQ, Microsoft, Basecamp, or HANCORE.
+`start` uses the configured tray default. `--tray-hidden` and
+`--tray-visible` override it; `stop` disables the plugin. Omarchy does not add
+plugin `bin` directories to `PATH`, so use the full path unless you add an
+alias.
 
 ## Safety
 
-Omarchy plugins run unsandboxed inside the long-running shell. Marketplace
-validation is not a security review.
+Omarchy plugins run unsandboxed; marketplace validation is not a security
+review. Plugin Control ignores remote command strings, validates repository
+roots, uses separate process arguments, and serializes confirmed actions.
 
-Plugin Control never executes command strings from a catalog, issue, or
-README. It accepts public HTTPS GitHub repository roots, passes validated
-values as separate process arguments, and confirms actions against an
-immutable snapshot. Actions are serialized.
-
-Removal is refused for Plugin Control itself, for an unexpected path or
-manifest identity, and for a Git checkout with local changes. Commit, stash,
-or discard those changes before removing that plugin.
-
-The footer follows the selection. Command rows keep the two global links;
-selecting a marketplace plugin changes them to its detail page and GitHub
-repository.
+It refuses to remove itself, an unexpected checkout, or a checkout with local
+changes.
 
 ## Settings
 
-Ctrl+Shift+S opens the plugin-owned settings file. Its top header points to
-the Ctrl+P command-palette binding in `~/.config/hypr/bindings.lua`; the
-catalog-channel list is the only plugin setting today:
+Ctrl+Shift+S opens Plugin settings, Keybindings, and Cancel. Use `j`/`k`,
+arrows, mouse, or Enter; Escape returns to the plugin list.
 
 ```text
 ~/.config/omarchy/plugin-control/channels.yaml
+~/.config/hypr/bindings.lua
 ```
 
-The listed marketplace is enabled by default. The included HANCORE submission
-channel is disabled, and unlisted installation has a separate disabled gate.
-The parser rejects unknown fields, duplicate IDs, credentials in URLs,
-non-HTTPS catalogs, arbitrary command fields, aliases, object tags, and
-unsupported schema versions. An invalid edit leaves the last good
-configuration active.
+```yaml
+settings:
+  tray-icon-hidden: false
+```
 
-Enabling unlisted browsing does not enable unlisted installation. When both
-are explicitly enabled, Plugin Control validates the issue labels, root
-manifest, regular entry-point files, and exact default-branch commit. It
-rechecks that commit immediately before installation.
+Plugin Control never rewrites the user-owned Ctrl+P binding. Its other
+shortcuts work only while the palette is focused. Tray visibility changes on
+the next `start` unless a CLI flag overrides it.
+
+Settings use strict schema 2. Invalid edits keep the last valid schema-2 file;
+version 1 is not migrated.
 
 ## Dependencies
 
-Runtime dependencies are Omarchy Quattro and its shell, Bash, curl, Git, jq,
-Ruby with Psych, util-linux (`flock` and `setsid`), GNU coreutils, and
-`timeout`. Terminal installs use Omarchy's `omarchy-launch-terminal`. The
-plugin does not install packages or request elevated privileges.
+- Omarchy Quattro and its shell
+- Bash, curl, Git, and jq
+- Ruby with Psych
+- util-linux (`flock` and `setsid`)
+- GNU coreutils (`timeout`)
+- `omarchy-launch-terminal` for terminal installs
 
-## State
-
-- settings: `~/.config/omarchy/plugin-control/`
-- catalog cache: `~/.cache/omarchy/plugin-control/channels/`
-- snapshots and action results: `~/.local/state/omarchy/plugin-control/`
-- runtime locks: `${XDG_RUNTIME_DIR}/omarchy-plugin-control/`
-
-GitHub tokens are neither required nor stored.
-
-## Troubleshooting
-
-Rescan and enable the plugin if it is installed but not discovered:
-
-```bash
-omarchy-shell shell rescanPlugins
-omarchy plugin enable io.github.ilyazar.plugin-control
-```
-
-Force a catalog refresh or inspect a warm-cache benchmark:
-
-```bash
-bin/plugin-control refresh "$PWD" --force
-bin/plugin-control benchmark "$PWD"
-```
+Plugin Control installs no packages and requests no elevated privileges.
 
 ## Remove
 
@@ -226,9 +133,11 @@ bin/plugin-control benchmark "$PWD"
 omarchy plugin remove io.github.ilyazar.plugin-control
 ```
 
-Remove the optional Ctrl+P binding separately. Native removal retains
-user-owned settings, cache, and action history. After reviewing the paths
-above, remove them explicitly if they are no longer wanted.
+Remove the optional Ctrl+P binding separately. Native removal keeps:
+
+- settings: `~/.config/omarchy/plugin-control/`
+- cache: `~/.cache/omarchy/plugin-control/`
+- action history: `~/.local/state/omarchy/plugin-control/`
 
 ## Development
 
@@ -237,11 +146,6 @@ tests/all.sh
 shellcheck bin/plugin-control scripts/*.sh tests/*.sh
 omarchy plugin validate .
 ```
-
-The tests cover fuzzy ranking, catalog failures, strict channel parsing,
-snapshot confirmation, native argv boundaries, interactive terminal handoff,
-locking, removal guards, durable results, QML models, and real Quickshell
-instantiation.
 
 ## License
 

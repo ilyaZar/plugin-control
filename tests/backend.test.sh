@@ -17,6 +17,7 @@ export XDG_STATE_HOME="$TEMP_ROOT/state"
 export XDG_RUNTIME_DIR="$TEMP_ROOT/runtime"
 export MOCK_BIN="$TEMP_ROOT/bin"
 export MOCK_LOG="$TEMP_ROOT/omarchy.log"
+export MOCK_SHELL_LOG="$TEMP_ROOT/omarchy-shell.log"
 export MOCK_TERMINAL_LOG="$TEMP_ROOT/terminal-omarchy.log"
 export MOCK_RUNTIME="$TEMP_ROOT/runtime-plugins.json"
 export PATH="$MOCK_BIN:/usr/bin:/bin"
@@ -24,6 +25,7 @@ mkdir -p "$MOCK_BIN" "$HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" \
   "$XDG_STATE_HOME" "$XDG_RUNTIME_DIR"
 printf '[]\n' >"$MOCK_RUNTIME"
 : >"$MOCK_LOG"
+: >"$MOCK_SHELL_LOG"
 : >"$MOCK_TERMINAL_LOG"
 
 cat >"$MOCK_BIN/omarchy" <<'MOCK'
@@ -52,6 +54,13 @@ fi
 exit "${MOCK_EXIT:-0}"
 MOCK
 chmod 0755 "$MOCK_BIN/omarchy"
+
+cat >"$MOCK_BIN/omarchy-shell" <<'MOCK'
+#!/bin/bash
+set -euo pipefail
+printf '%s\n' "$*" >>"$MOCK_SHELL_LOG"
+MOCK
+chmod 0755 "$MOCK_BIN/omarchy-shell"
 
 cat >"$MOCK_BIN/omarchy-launch-terminal" <<'MOCK'
 #!/bin/bash
@@ -89,6 +98,49 @@ wait_worker_release() {
   flock -w 5 "$XDG_RUNTIME_DIR/omarchy-plugin-control/action.lock" true
 }
 
+helper help | grep -Fq \
+  'plugin-control start [--tray-hidden | --tray-visible]'
+jq -cn '
+  {
+    id: "io.github.ilyazar.plugin-control",
+    name: "Plugin Control",
+    kinds: ["service", "overlay", "bar-widget"],
+    enabled: false
+  } | [.]
+' >"$MOCK_RUNTIME"
+
+helper start --tray-hidden | grep -Fq 'tray icon hidden'
+grep -Fqx 'shell rescanPlugins' "$MOCK_SHELL_LOG"
+grep -Fqx 'plugin enable io.github.ilyazar.plugin-control' "$MOCK_LOG"
+grep -Fqx 'bar set io.github.ilyazar.plugin-control trayIconHidden true --json' \
+  "$MOCK_LOG"
+
+helper start | grep -Fq 'tray icon visible'
+grep -Fqx 'bar set io.github.ilyazar.plugin-control trayIconHidden false --json' \
+  "$MOCK_LOG"
+
+sed -i 's/tray-icon-hidden: false/tray-icon-hidden: true/' \
+  "$XDG_CONFIG_HOME/omarchy/plugin-control/channels.yaml"
+helper start | grep -Fq 'tray icon hidden'
+helper start --tray-visible | grep -Fq 'tray icon visible'
+
+before_invalid_start="$(wc -l <"$MOCK_LOG")"
+if helper start --tray-hidden --tray-visible >/dev/null 2>&1; then
+  printf 'not ok - conflicting tray flags were accepted\n' >&2
+  exit 1
+fi
+[[ $(wc -l <"$MOCK_LOG") == "$before_invalid_start" ]]
+
+helper stop | grep -Fq 'Plugin Control stopped'
+grep -Fqx 'plugin disable io.github.ilyazar.plugin-control' "$MOCK_LOG"
+if helper stop --tray-hidden >/dev/null 2>&1; then
+  printf 'not ok - stop accepted a tray flag\n' >&2
+  exit 1
+fi
+printf 'ok - public lifecycle CLI follows native flags and tray defaults\n'
+
+printf '[]\n' >"$MOCK_RUNTIME"
+
 cache_dir="$XDG_CACHE_HOME/omarchy/plugin-control/channels"
 mkdir -p "$cache_dir"
 cp "$TEST_DIR/fixtures/catalog-action.json" "$cache_dir/marketplace.json"
@@ -119,6 +171,20 @@ jq -e '.ok == true' "$TEMP_ROOT/snapshot-one.json" >/dev/null
 jq -e '.ok == true' "$TEMP_ROOT/snapshot-two.json" >/dev/null
 unset MOCK_LIST_SLEEP
 printf 'ok - concurrent snapshot builds are serialized\n'
+
+snapshot_state="$XDG_STATE_HOME/omarchy/plugin-control/snapshot.json"
+cp "$snapshot_state" "$TEMP_ROOT/current-snapshot.json"
+jq '.config.version = 1' "$snapshot_state" >"$snapshot_state.tmp"
+mv "$snapshot_state.tmp" "$snapshot_state"
+if helper action "$ROOT" install io.example.weather "$snapshot_id" background \
+  >"$TEMP_ROOT/legacy-action.json" 2>/dev/null; then
+  printf 'not ok - legacy snapshot reached an action\n' >&2
+  exit 1
+fi
+jq -e '.ok == false and (.error | contains("changed"))' \
+  "$TEMP_ROOT/legacy-action.json" >/dev/null
+mv "$TEMP_ROOT/current-snapshot.json" "$snapshot_state"
+printf 'ok - legacy snapshots cannot authorize actions\n'
 
 before_list_calls="$(grep -c '^plugin list --json$' "$MOCK_LOG" || true)"
 helper action "$ROOT" install io.example.weather "$snapshot_id" background \

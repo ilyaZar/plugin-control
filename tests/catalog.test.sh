@@ -74,6 +74,30 @@ jq -e '.error | length > 0' "$CONFIG_ERROR" >/dev/null
 cp "$ROOT/config/channels.yaml" "$CHANNEL_CONFIG"
 printf 'ok - malformed YAML preserves the last good configuration\n'
 
+rm -f -- "$LAST_GOOD_CONFIG"
+sed 's/^version: 2$/version: 1/' "$ROOT/config/channels.yaml" \
+  >"$CHANNEL_CONFIG"
+cp "$CHANNEL_CONFIG" "$TEMP_ROOT/legacy-config.yaml"
+if load_config "$ROOT" >"$TEMP_ROOT/legacy-output.json"; then
+  printf 'not ok - unsupported config fell back to defaults\n' >&2
+  exit 1
+fi
+cmp "$CHANNEL_CONFIG" "$TEMP_ROOT/legacy-config.yaml"
+legacy_status="$(config_status "$ROOT" || true)"
+jq -e '.ok == false and .usingLastGood == false and .config == null
+  and (.error | contains("unsupported"))' <<<"$legacy_status" >/dev/null
+mkdir -p -- "$(dirname -- "$SNAPSHOT_STATE")"
+jq -cn '{ok:true,snapshotId:"legacy",records:[],config:{version:1}}' \
+  >"$SNAPSHOT_STATE"
+if cached_command "$ROOT" >"$TEMP_ROOT/legacy-snapshot.json"; then
+  printf 'not ok - cached command returned a legacy snapshot\n' >&2
+  exit 1
+fi
+[[ ! -s $TEMP_ROOT/legacy-snapshot.json ]]
+cp "$ROOT/config/channels.yaml" "$CHANNEL_CONFIG"
+load_config "$ROOT" >/dev/null
+printf 'ok - unsupported config and snapshot fail without replacement\n'
+
 target="$CACHE_ROOT/atomic.json"
 printf '{"value":1}\n' | atomic_write_stream "$target"
 jq -e '.value == 1' "$target" >/dev/null

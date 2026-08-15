@@ -103,11 +103,34 @@ ShellRoot {
           console.error("PLUGIN_CONTROL_LOAD_ERROR install completion stage")
         }
         var tabEvent = { modifiers: 0, key: Qt.Key_Tab }
+        var backspaceEvent = { modifiers: 0, key: Qt.Key_Backspace }
+        var installPrefix = "plug-install:"
+        if (!overlay.isCompletedCommandPrefix(installPrefix,
+              installPrefix.length, installPrefix.length,
+              installPrefix.length)
+            || overlay.isCompletedCommandPrefix(installPrefix,
+              installPrefix.length - 1, installPrefix.length - 1,
+              installPrefix.length - 1)
+            || overlay.isCompletedCommandPrefix(installPrefix,
+              installPrefix.length, 0, installPrefix.length)
+            || overlay.isCompletedCommandPrefix("PLUG-INSTALL:",
+              installPrefix.length, installPrefix.length,
+              installPrefix.length)) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR backspace boundary")
+        }
         if (!overlay.handleKey(tabEvent))
           console.error("PLUGIN_CONTROL_LOAD_ERROR tab dispatch")
         if (overlay.query !== "plug-install: " || overlay.mode !== "install"
             || overlay.selectedRecord !== null) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR install completion")
+        }
+        if (overlay.handleKey(backspaceEvent)
+            || overlay.query !== "plug-install: ") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR completion space backspace")
+        }
+        overlay.query = "plug-install:"
+        if (!overlay.handleKey(backspaceEvent) || overlay.query !== "") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR install prefix backspace")
         }
         overlay.query = "plug-rm"
         var enterEvent = { modifiers: 0, key: Qt.Key_Return }
@@ -115,6 +138,20 @@ ShellRoot {
             || overlay.query !== "plug-remove: "
             || overlay.mode !== "remove") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR remove completion")
+        }
+        overlay.query = "plug-remove: notes"
+        if (overlay.handleKey(backspaceEvent)
+            || overlay.query !== "plug-remove: notes") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR suffix backspace ownership")
+        }
+        overlay.query = "plug-remove: "
+        if (overlay.handleKey(backspaceEvent)
+            || overlay.query !== "plug-remove: ") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR remove space backspace")
+        }
+        overlay.query = "plug-remove:"
+        if (!overlay.handleKey(backspaceEvent) || overlay.query !== "") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR remove prefix backspace")
         }
         overlay.query = "weather:"
         if (overlay.filteredRecords.length !== 0
@@ -124,7 +161,6 @@ ShellRoot {
             || overlay.selectedRecord !== null) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR invalid colon dispatch")
         }
-        var backspaceEvent = { modifiers: 0, key: Qt.Key_Backspace }
         if (overlay.handleKey(backspaceEvent))
           console.error("PLUGIN_CONTROL_LOAD_ERROR backspace ownership")
         var shiftEvent = { modifiers: Qt.ShiftModifier, key: Qt.Key_O }
@@ -136,6 +172,57 @@ ShellRoot {
             || !overlay.isContextShortcut(contextEvent, Qt.Key_O)) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR context shortcut modifiers")
         }
+        var infoEvent = {
+          modifiers: Qt.ControlModifier | Qt.ShiftModifier,
+          key: Qt.Key_I
+        }
+        var shiftInfoEvent = { modifiers: Qt.ShiftModifier, key: Qt.Key_I }
+        overlay.mode = "browse"
+        overlay.filteredRecords = [{
+          id: "io.example.docs",
+          name: "Docs",
+          description: "Browse-only plugin details",
+          installable: false,
+          installed: false
+        }]
+        overlay.selectedIndex = 0
+        overlay.selectedRecord = null
+        if (overlay.handleKey(shiftInfoEvent)
+            || !overlay.handleKey(infoEvent)
+            || overlay.pendingOperation !== "browse"
+            || overlay.pendingSnapshotId !== ""
+            || !overlay.selectedRecord
+            || overlay.selectedRecord.id !== "io.example.docs") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR info shortcut")
+        }
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
+          console.error("PLUGIN_CONTROL_LOAD_ERROR info dialog close")
+        overlay.selectedRecord = null
+        if (!overlay.handleKey(enterEvent) || overlay.selectedRecord !== null)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR browse enter mutated")
+
+        root.serviceObject.snapshot = { snapshotId: "snapshot-test" }
+        overlay.filteredRecords = [{
+          id: "io.example.installable",
+          name: "Installable",
+          installable: true,
+          installed: false
+        }]
+        overlay.selectedIndex = 0
+        if (!overlay.handleKey(enterEvent)
+            || overlay.pendingOperation !== "install"
+            || overlay.pendingSnapshotId !== "snapshot-test"
+            || !overlay.selectedRecord
+            || overlay.selectedRecord.id !== "io.example.installable") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR actionable enter")
+        }
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
+          console.error("PLUGIN_CONTROL_LOAD_ERROR action dialog close")
+        overlay.selectedRecord = null
+        overlay.filteredRecords = [{ commandCompletion: "plug-install: " }]
+        overlay.selectedIndex = 0
+        if (!overlay.handleKey(infoEvent) || overlay.selectedRecord !== null)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR command info boundary")
         overlay.loadShortcutColor('yellow = "#A1B2C3"')
         if (String(overlay.shortcutColor).toLowerCase() !== "#a1b2c3")
           console.error("PLUGIN_CONTROL_LOAD_ERROR theme yellow")
@@ -161,6 +248,35 @@ ShellRoot {
               !== "https://github.com/HANCORE-linux/omarchy-plugin-marketplace") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR global links")
         }
+        overlay.open('{"settings":true}')
+        if (!overlay.settingsMenuOpen || !overlay.opened
+            || !overlay.surfaceVisible || overlay.mode !== "settings"
+            || overlay.filteredRecords.length !== 3 || overlay.query !== "") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR settings payload")
+        }
+        var plainJ = { modifiers: Qt.NoModifier, key: Qt.Key_J, text: "j" }
+        var plainK = { modifiers: Qt.NoModifier, key: Qt.Key_K, text: "k" }
+        var plainA = { modifiers: Qt.NoModifier, key: Qt.Key_A, text: "a" }
+        if (!overlay.handleKey(plainJ) || overlay.selectedIndex !== 1
+            || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Down })
+            || overlay.selectedIndex !== 2
+            || !overlay.handleKey(plainK) || overlay.selectedIndex !== 1
+            || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Up })
+            || overlay.selectedIndex !== 0
+            || !overlay.handleKey(plainA) || overlay.query !== ""
+            || overlay.selectedIndex !== 0) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR settings navigation")
+        }
+        overlay.selectedIndex = 2
+        if (!overlay.handleKey(enterEvent) || overlay.settingsMenuOpen
+            || !overlay.opened || !overlay.surfaceVisible) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR settings cancel back")
+        }
+        overlay.showSettingsMenu()
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
+            || overlay.settingsMenuOpen || !overlay.opened) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR settings escape back")
+        }
         console.log("PLUGIN_CONTROL_INTERACTION_OK palette interactions")
         root.serviceObject.acceptActionStart('{"error":"Install failed."}', 1)
         if (root.serviceObject.actionNoticeDurationMs !== 10000
@@ -185,12 +301,18 @@ ShellRoot {
       var dialog = root.loadEntry("ActionDialog.qml", "dialog")
       if (dialog) {
         dialog.plugin = {
+          id: "io.example.info",
+          description: "Plugin information",
           listingValidatedCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
+        dialog.operation = "browse"
         if (dialog.reviewedCommit
             !== "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR reviewed commit")
         }
+        if (dialog.mutating || dialog.canConfirm
+            || dialog.operationText !== "No system change")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR info dialog boundary")
       }
       var barWidget = root.loadEntry("PluginControlBar.qml", "bar-widget")
       if (barWidget) {
@@ -205,6 +327,13 @@ ShellRoot {
         root.serviceObject.acknowledgeAction()
         if (barWidget.actionFailed)
           console.error("PLUGIN_CONTROL_LOAD_ERROR bar failure dismissal")
+        barWidget.settings = { trayIconHidden: true }
+        if (barWidget.visible || barWidget.implicitWidth !== 0
+            || barWidget.implicitHeight !== 0)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR hidden tray icon")
+        barWidget.settings = { trayIconHidden: false }
+        if (!barWidget.visible)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR visible tray icon")
         barWidget.openPalette()
         if (mockShell.lastToggleId
             !== "io.github.ilyazar.plugin-control"
@@ -215,6 +344,9 @@ ShellRoot {
         barWidget.close()
         if (barWidget.settingsMenuOpen)
           console.error("PLUGIN_CONTROL_LOAD_ERROR bar settings menu")
+        barWidget.openSettings()
+        if (mockShell.lastTogglePayload !== '{"settings":true}')
+          console.error("PLUGIN_CONTROL_LOAD_ERROR bar settings payload")
       }
       Qt.callLater(Qt.quit)
     }
