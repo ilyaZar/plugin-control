@@ -88,10 +88,10 @@ Item {
     if (service && service.actionState
         && service.actionState.acknowledged === false)
       return String(service.actionState.message || "Action finished.")
+    if (service && service.refreshing) return "Refreshing catalog..."
     if (service && service.lastError) return service.lastError
     if (service && service.lastRefreshError)
       return "Offline/stale: " + service.lastRefreshError
-    if (service && service.refreshing) return "Refreshing catalog..."
     if (service && service.lastSuccessfulRefresh)
       return "Cached catalog - refreshed " + service.lastSuccessfulRefresh
     return service && service.ready ? "Cached catalog ready" : "Loading local cache..."
@@ -422,11 +422,8 @@ Item {
     return sourceDir() + "/" + relative
   }
 
-  function isContextShortcut(event, key) {
-    var control = (event.modifiers & Qt.ControlModifier) !== 0
-    var shift = (event.modifiers & Qt.ShiftModifier) !== 0
-    var alt = (event.modifiers & Qt.AltModifier) !== 0
-    return control && shift && !alt && event.key === key
+  function isControlShortcut(event, key) {
+    return event.modifiers === Qt.ControlModifier && event.key === key
   }
 
   function isCompletedCommandPrefix(value, cursor, selectionStart,
@@ -462,24 +459,24 @@ Item {
       return true
     }
 
-    if (control && event.key === Qt.Key_P) {
+    if (isControlShortcut(event, Qt.Key_P)) {
       dismiss()
     } else if (event.key === Qt.Key_Escape) {
       dismiss()
-    } else if (isContextShortcut(event, Qt.Key_I)) {
+    } else if (isControlShortcut(event, Qt.Key_D)) {
       openSelectedInfo()
-    } else if (isContextShortcut(event, Qt.Key_O)) {
+    } else if (isControlShortcut(event, Qt.Key_O)) {
       openMarketplaceShortcut()
-    } else if (isContextShortcut(event, Qt.Key_G)) {
+    } else if (isControlShortcut(event, Qt.Key_G)) {
       openGithubShortcut()
-    } else if (isContextShortcut(event, Qt.Key_S)) {
+    } else if (isControlShortcut(event, Qt.Key_S)) {
       openSettings()
-    } else if (control && event.key === Qt.Key_R) {
-      transientMessage = "Refreshing catalog..."
+    } else if (isControlShortcut(event, Qt.Key_R)) {
+      transientMessage = ""
       if (service) service.requestRefresh(true)
-    } else if (control && event.key === Qt.Key_U) {
+    } else if (isControlShortcut(event, Qt.Key_U)) {
       queryInput.text = ""
-    } else if (control && event.key === Qt.Key_Backspace) {
+    } else if (isControlShortcut(event, Qt.Key_Backspace)) {
       queryInput.text = deletePreviousWord(queryInput.text)
     } else if (event.modifiers === Qt.NoModifier
         && event.key === Qt.Key_Backspace) {
@@ -920,16 +917,17 @@ Item {
 
             Repeater {
               model: [
-                { keyLabel: "[Ctrl+Shift+I]", label: "Info" },
-                { keyLabel: "[Ctrl+Shift+O]",
+                { keyLabel: "[Ctrl+D]", label: "Details" },
+                { keyLabel: "[Ctrl+O]",
                   label: root.marketplaceShortcutLabel },
-                { keyLabel: "[Ctrl+Shift+G]", label: "GitHub source" },
-                { keyLabel: "[Ctrl+Shift+S]", label: "Settings" }
+                { keyLabel: "[Ctrl+G]", label: "GitHub source" },
+                { keyLabel: "[Ctrl+R]", label: "Refresh" },
+                { keyLabel: "[Ctrl+S]", label: "Settings" }
               ]
 
               delegate: Item {
                 required property var modelData
-                width: footerRow.width / 4
+                width: footerRow.width / 5
                 height: footerRow.height
 
                 Column {

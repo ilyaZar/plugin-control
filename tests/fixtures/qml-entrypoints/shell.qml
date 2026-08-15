@@ -163,20 +163,25 @@ ShellRoot {
         }
         if (overlay.handleKey(backspaceEvent))
           console.error("PLUGIN_CONTROL_LOAD_ERROR backspace ownership")
-        var shiftEvent = { modifiers: Qt.ShiftModifier, key: Qt.Key_O }
-        var contextEvent = {
-          modifiers: Qt.ControlModifier | Qt.ShiftModifier,
-          key: Qt.Key_O
+        var controlEvent = { modifiers: Qt.ControlModifier, key: Qt.Key_O }
+        var shiftedControlEvent = {
+          modifiers: Qt.ControlModifier | Qt.ShiftModifier, key: Qt.Key_O
         }
-        if (overlay.isContextShortcut(shiftEvent, Qt.Key_O)
-            || !overlay.isContextShortcut(contextEvent, Qt.Key_O)) {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR context shortcut modifiers")
+        if (!overlay.isControlShortcut(controlEvent, Qt.Key_O)
+            || overlay.isControlShortcut(shiftedControlEvent, Qt.Key_O)
+            || overlay.isControlShortcut(
+              { modifiers: Qt.ShiftModifier, key: Qt.Key_O }, Qt.Key_O)) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR control shortcut modifiers")
         }
         var infoEvent = {
-          modifiers: Qt.ControlModifier | Qt.ShiftModifier,
-          key: Qt.Key_I
+          modifiers: Qt.ControlModifier,
+          key: Qt.Key_D
         }
-        var shiftInfoEvent = { modifiers: Qt.ShiftModifier, key: Qt.Key_I }
+        var shiftInfoEvent = { modifiers: Qt.ShiftModifier, key: Qt.Key_D }
+        var shiftedControlInfoEvent = {
+          modifiers: Qt.ControlModifier | Qt.ShiftModifier,
+          key: Qt.Key_D
+        }
         overlay.mode = "browse"
         overlay.filteredRecords = [{
           id: "io.example.docs",
@@ -188,6 +193,7 @@ ShellRoot {
         overlay.selectedIndex = 0
         overlay.selectedRecord = null
         if (overlay.handleKey(shiftInfoEvent)
+            || overlay.handleKey(shiftedControlInfoEvent)
             || !overlay.handleKey(infoEvent)
             || overlay.pendingOperation !== "browse"
             || overlay.pendingSnapshotId !== ""
@@ -197,6 +203,24 @@ ShellRoot {
         }
         if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
           console.error("PLUGIN_CONTROL_LOAD_ERROR info dialog close")
+        var savedService = overlay.service
+        overlay.service = null
+        overlay.transientMessage = "Old message"
+        if (!overlay.handleKey({
+              modifiers: Qt.ControlModifier, key: Qt.Key_R
+            }) || overlay.transientMessage !== "") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR refresh shortcut")
+        }
+        overlay.service = savedService
+        root.serviceObject.lastError = "Old catalog error"
+        root.serviceObject.refreshing = true
+        if (overlay.statusText !== "Refreshing catalog...")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR refresh status")
+        root.serviceObject.refreshing = false
+        root.serviceObject.lastError = ""
+        root.serviceObject.lastSuccessfulRefresh = "just now"
+        if (overlay.statusText.indexOf("Refreshing catalog...") >= 0)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR refresh status completion")
         overlay.selectedRecord = null
         if (!overlay.handleKey(enterEvent) || overlay.selectedRecord !== null)
           console.error("PLUGIN_CONTROL_LOAD_ERROR browse enter mutated")

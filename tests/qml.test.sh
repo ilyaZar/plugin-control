@@ -23,14 +23,20 @@ rg -q 'function toggle\(\)' "$ROOT/PluginControl.qml"
 rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Escape' "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Ctrl+Shift+I]", label: "Info" }' \
+rg -Fq '{ keyLabel: "[Ctrl+D]", label: "Details" }' \
   "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Ctrl+Shift+O]",' \
+rg -Fq '{ keyLabel: "[Ctrl+O]",' \
   "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Ctrl+Shift+G]", label: "GitHub source" }' \
+rg -Fq '{ keyLabel: "[Ctrl+G]", label: "GitHub source" }' \
   "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Ctrl+Shift+S]", label: "Settings" }' \
+rg -Fq '{ keyLabel: "[Ctrl+R]", label: "Refresh" }' \
   "$ROOT/PluginControl.qml"
+rg -Fq '{ keyLabel: "[Ctrl+S]", label: "Settings" }' \
+  "$ROOT/PluginControl.qml"
+if rg -q 'Ctrl\+Shift|isContextShortcut' "$ROOT/PluginControl.qml"; then
+  printf 'not ok - shifted palette shortcuts remain\n' >&2
+  exit 1
+fi
 rg -Fq 'sourcePath("scripts/open-settings.sh")' "$ROOT/PluginControl.qml"
 rg -Fq 'openMarketplaceShortcut()' "$ROOT/PluginControl.qml"
 rg -Fq 'openGithubShortcut()' "$ROOT/PluginControl.qml"
