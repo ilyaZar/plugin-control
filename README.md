@@ -1,22 +1,21 @@
 # Plugin Control
 
-![Plugin Control command palette](preview.png)
-
 Think of Sublime Text's classic Package Control or the VS Code Command
 Palette, but for Omarchy Quattro plugins. Click the package icon in the bar or
 press Ctrl+P, type a few letters, and install or remove a plugin without
 leaving the keyboard.
 
-Plugin Control keeps the full HANCORE marketplace and local plugin state in a
-small cache, then filters it in process on every keypress. Opening the palette
-does not start network or Git work.
+![Plugin Control command palette](preview.png)
+
+Plugin Control keeps the full [@HANCORE-linux](https://github.com/HANCORE-linux)
+[community marketplace](https://omarchyplugins.com/) and local plugin state in
+a small cache, then filters it in process on every keypress. Opening the
+palette does not start network or Git work.
 
 ## Install
 
 ```bash
-omarchy plugin add \
-  https://github.com/ilyaZar/plugin-control.git \
-  --enable
+omarchy plugin add https://github.com/ilyaZar/plugin-control.git --enable
 ```
 
 Omarchy asks where to place the `󰏖` package icon during an interactive
@@ -41,12 +40,18 @@ setup.
 
 Open the palette and start typing to browse. Matching is case-insensitive and
 genuinely fuzzy across names, IDs, descriptions, authors, tags, sources, and
-plugin kinds.
+plugin kinds. Repository-backed plugin results include a smaller link on the
+third line without making the row taller.
 
 Two prefixes make changes explicit:
 
 - `plug-install:` shows available installable plugins
 - `plug-remove:` shows removable local plugins
+
+The two prefixes are command results too. Type `plug-in`, `plg-in`, or `rem`,
+then press Tab or Enter to complete the matching command through the colon.
+Plugin search restarts immediately in that mode. Ordinary Backspace can edit
+or remove the prefix. A malformed colon command is inert until edited.
 
 For example:
 
@@ -66,13 +71,14 @@ Useful keys:
 
 - Ctrl+P or Escape closes the palette
 - Up, Down, Page Up, Page Down, Home, and End move the selection
-- Enter opens the confirmation
+- Enter completes a selected command or opens the plugin confirmation
+- Tab completes a selected command
 - Ctrl+Backspace removes the previous word
 - Ctrl+U clears the query
 - Ctrl+R refreshes the catalog
-- Shift+O opens the marketplace
-- Shift+G opens the HANCORE marketplace repository
-- Shift+S opens channel settings
+- Shift+O opens the selected plugin page, or the marketplace
+- Shift+G opens the selected plugin repository, or the marketplace repository
+- Shift+S opens Plugin Control settings
 
 ## Install output and bar placement
 
@@ -154,9 +160,14 @@ Removal is refused for Plugin Control itself, for an unexpected path or
 manifest identity, and for a Git checkout with local changes. Commit, stash,
 or discard those changes before removing that plugin.
 
-## Optional channels
+The footer follows the selection. Command rows keep the two global links;
+selecting a marketplace plugin changes them to its detail page and GitHub
+repository.
 
-Shift+S opens:
+## Settings
+
+Shift+S opens the plugin-owned settings file. The catalog-channel list is the
+only manually editable setting today:
 
 ```text
 ~/.config/omarchy/plugin-control/channels.yaml

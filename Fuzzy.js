@@ -6,6 +6,26 @@ function normalize(value) {
   return text(value).toLowerCase().replace(/\s+/g, " ").trim()
 }
 
+function commandRecord(name, operation, description) {
+  return {
+    name: name + ":",
+    description: description,
+    author: "Plugin Control",
+    kind: "Command",
+    stateLabel: "TAB / ENTER",
+    sourceLabel: "Command",
+    commandCompletion: name + ": ",
+    commandName: name + ":",
+    operation: operation
+  }
+}
+
+var COMMANDS = [
+  commandRecord("plug-install", "install",
+    "Search available plugins to install"),
+  commandRecord("plug-remove", "remove", "Search removable local plugins")
+]
+
 function parseQuery(value) {
   var raw = text(value)
   var match = /^\s*plug-(install|remove)\s*:\s*([\s\S]*)$/i.exec(raw)
@@ -95,6 +115,28 @@ function compareRows(left, right) {
   return leftId < rightId ? -1 : (leftId > rightId ? 1 : 0)
 }
 
+function commandIntent(value) {
+  var query = normalize(value)
+  if (query.length < 3 || query.indexOf(":") >= 0) return false
+  return "plug-".indexOf(query) === 0
+    || query.indexOf("plug-") === 0
+    || query.indexOf("plg-") === 0
+}
+
+function commandSuggestions(value) {
+  if (!commandIntent(value)) return null
+  var query = normalize(value)
+  var results = []
+  for (var i = 0; i < COMMANDS.length; i++) {
+    var command = COMMANDS[i]
+    var canonicalScore = fieldScore(command.commandName, query, 900, true)
+    var operationScore = fieldScore(command.operation, query, 850, true)
+    if (Math.max(canonicalScore, operationScore) >= 0)
+      results.push(command)
+  }
+  return results
+}
+
 function eligible(record, mode, selfId) {
   if (!record || !record.id) return false
   if (mode === "install")
@@ -110,6 +152,12 @@ function search(records, input, limit, selfId) {
   var maximum = Number(limit)
   if (!isFinite(maximum)) maximum = 50
   maximum = Math.max(0, Math.min(100, Math.floor(maximum)))
+  if (parsed.mode === "browse" && normalize(input).indexOf(":") >= 0)
+    return { mode: "command", results: [] }
+  var commands = parsed.mode === "browse" ? commandSuggestions(input) : null
+  if (commands !== null) {
+    return { mode: "command", results: commands.slice(0, maximum) }
+  }
   var rows = []
 
   for (var i = 0; i < values.length; i++) {
@@ -122,6 +170,18 @@ function search(records, input, limit, selfId) {
 
   rows.sort(compareRows)
   var results = []
+  var rawQuery = normalize(input)
+  if (parsed.mode === "browse"
+      && (!rawQuery || (rawQuery.length < 3
+        && "plug-".indexOf(rawQuery) === 0))) {
+    for (var k = 0; k < COMMANDS.length && results.length < maximum; k++)
+      results.push(COMMANDS[k])
+  } else if (parsed.mode === "browse") {
+    for (var m = 0; m < COMMANDS.length && results.length < maximum; m++) {
+      if (fieldScore(COMMANDS[m].operation, rawQuery, 850, true) >= 0)
+        results.push(COMMANDS[m])
+    }
+  }
   for (var j = 0; j < rows.length && results.length < maximum; j++)
     results.push(rows[j].record)
   return { mode: parsed.mode, results: results }

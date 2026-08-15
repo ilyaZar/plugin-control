@@ -32,6 +32,7 @@ Item {
   property double filterStartedAt: 0
   property bool installInTerminal: false
   property var savedSettings: ({})
+  property color shortcutColor: "#e5c07b"
 
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.ilyazar.plugin-control"
@@ -39,6 +40,8 @@ Item {
     || Quickshell.env("HOME") + "/.config"
   readonly property string settingsPath: configHome
     + "/omarchy/plugin-control/settings.json"
+  readonly property string themeColorsPath: Color.currentThemePath
+    + "/colors.toml"
   readonly property color background: Color.menu.background
   readonly property color foreground: Color.menu.text
   readonly property color borderColor: Color.menu.border
@@ -52,13 +55,12 @@ Item {
     Math.max(Style.space(320), panel.width - Style.gapsOut * 2))
   readonly property int rowHeight: Style.space(60)
   readonly property int headerHeight: Style.space(52)
-  readonly property int modeHeight: Style.space(24)
   readonly property int footerHeight: Style.space(42)
   readonly property int statusHeight: statusText.length > 0 ? Style.space(28) : 0
   readonly property int visibleRows: Math.max(1,
     Math.min(6, filteredRecords.length || 1))
   readonly property int desiredCardHeight: Style.spacing.panelPadding * 2
-    + headerHeight + modeHeight + visibleRows * rowHeight
+    + headerHeight + visibleRows * rowHeight
     + footerHeight + statusHeight + Style.spacing.sm * 3
   readonly property int cardHeight: Math.min(Style.space(500),
     Math.max(Style.space(220), Math.min(desiredCardHeight,
@@ -67,6 +69,16 @@ Item {
     && shell.bar.position === "top" && shell.bar.barHidden !== true
     ? Number(shell.bar.barSize || 0) : 0
   readonly property int restingY: topBarOffset + Style.gapsOut
+  readonly property var shortcutRecord: {
+    if (selectedIndex < 0 || selectedIndex >= filteredRecords.length)
+      return null
+    var record = filteredRecords[selectedIndex]
+    return record && record.id && !record.commandCompletion ? record : null
+  }
+  readonly property bool shortcutHasPluginPage: shortcutRecord
+    && shortcutRecord.marketplaceListed === true
+  readonly property string marketplaceShortcutLabel: shortcutHasPluginPage
+    ? "Plugin page" : "Marketplace"
   readonly property string statusText: {
     if (transientMessage) return transientMessage
     if (service && service.actionRunning)
@@ -170,7 +182,8 @@ Item {
         sourceLabel: String(record.sourceLabel || record.sourceName || "Unknown"),
         warning: String(record.warning || ""),
         version: String(record.version || ""),
-        releaseTag: String(record.releaseTag || "")
+        releaseTag: String(record.releaseTag || ""),
+        repository: String(record.repository || "")
       })
     }
     selectedIndex = displayModel.count > 0
@@ -206,8 +219,19 @@ Item {
     return "browse"
   }
 
+  function completeCommand(index) {
+    if (index < 0 || index >= filteredRecords.length) return false
+    var completion = String(filteredRecords[index].commandCompletion || "")
+    if (!completion) return false
+    queryInput.text = completion
+    queryInput.cursorPosition = queryInput.text.length
+    queryInput.forceActiveFocus()
+    return true
+  }
+
   function activateIndex(index) {
     if (index < 0 || index >= filteredRecords.length) return
+    if (completeCommand(index)) return
     selectedRecord = JSON.parse(JSON.stringify(filteredRecords[index]))
     pendingOperation = availableOperation(selectedRecord)
     pendingSnapshotId = service && service.snapshot
@@ -258,15 +282,46 @@ Item {
     settingsFile.setText(JSON.stringify(next, null, 2) + "\n")
   }
 
+  function loadShortcutColor(raw) {
+    var match = String(raw || "").match(
+      /^\s*(?:yellow|color3)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
+    shortcutColor = match ? match[1] : "#e5c07b"
+  }
+
   function openWebsite(url) {
     dismiss()
     Quickshell.execDetached([omarchyPath + "/bin/omarchy", "launch",
       "browser", url])
   }
 
-  function openChannels() {
+  function validGithubRepository(value) {
+    return /^https:\/\/github\.com\/[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}\/?$/
+      .test(String(value || ""))
+  }
+
+  function marketplaceShortcutUrl() {
+    if (!shortcutHasPluginPage) return "https://omarchyplugins.com/"
+    return "https://omarchyplugins.com/plugin.html?id="
+      + encodeURIComponent(String(shortcutRecord.id))
+  }
+
+  function githubShortcutUrl() {
+    if (shortcutRecord && validGithubRepository(shortcutRecord.repository))
+      return String(shortcutRecord.repository).replace(/\/$/, "")
+    return "https://github.com/HANCORE-linux/omarchy-plugin-marketplace"
+  }
+
+  function openMarketplaceShortcut() {
+    openWebsite(marketplaceShortcutUrl())
+  }
+
+  function openGithubShortcut() {
+    openWebsite(githubShortcutUrl())
+  }
+
+  function openSettings() {
     dismiss()
-    Quickshell.execDetached([sourcePath("scripts/open-channels.sh"),
+    Quickshell.execDetached([sourcePath("scripts/open-settings.sh"),
       sourceDir()])
   }
 
@@ -290,11 +345,11 @@ Item {
     } else if (event.key === Qt.Key_Escape) {
       dismiss()
     } else if (shift && !control && !alt && event.key === Qt.Key_O) {
-      openWebsite("https://omarchyplugins.com/")
+      openMarketplaceShortcut()
     } else if (shift && !control && !alt && event.key === Qt.Key_G) {
-      openWebsite("https://github.com/HANCORE-linux/omarchy-plugin-marketplace")
+      openGithubShortcut()
     } else if (shift && !control && !alt && event.key === Qt.Key_S) {
-      openChannels()
+      openSettings()
     } else if (control && event.key === Qt.Key_R) {
       transientMessage = "Refreshing catalog..."
       if (service) service.requestRefresh(true)
@@ -314,6 +369,8 @@ Item {
       select(0)
     } else if (event.key === Qt.Key_End) {
       select(displayModel.count - 1)
+    } else if (!control && !alt && event.key === Qt.Key_Tab) {
+      completeCommand(selectedIndex)
     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
       activateIndex(selectedIndex)
     } else {
@@ -333,6 +390,19 @@ Item {
     onLoaded: root.loadSettings(text())
     onLoadFailed: root.loadSettings("")
     onFileChanged: reload()
+  }
+
+  FileView {
+    id: themeColorsFile
+    path: root.themeColorsPath
+    watchChanges: false
+    printErrors: false
+    onLoaded: root.loadShortcutColor(text())
+  }
+
+  Connections {
+    target: Color
+    function onShellValuesChanged() { themeColorsFile.reload() }
   }
 
   Shortcuts.HyprlandBinding {
@@ -502,41 +572,12 @@ Item {
           }
         }
 
-        Row {
-          width: parent.width
-          height: root.modeHeight
-          spacing: Style.spacing.sm
-
-          Text {
-            text: root.mode === "install" ? "INSTALL"
-              : (root.mode === "remove" ? "REMOVE" : "BROWSE")
-            color: root.mode === "remove" ? root.urgent : root.foreground
-            font.family: Style.font.menuFamily
-            font.pixelSize: Style.font.body
-            font.bold: true
-          }
-          Text {
-            width: parent.width - x
-            text: root.mode === "install"
-              ? "available plugins not already installed"
-              : (root.mode === "remove"
-                ? "removable local third-party checkouts"
-                : "browse without changing the system")
-            textFormat: Text.PlainText
-            color: root.foreground
-            opacity: 0.55
-            font.family: Style.font.menuFamily
-            font.pixelSize: Style.font.body
-            elide: Text.ElideRight
-          }
-        }
-
         Item {
           width: parent.width
           height: Math.max(root.rowHeight,
-            parent.height - root.headerHeight - root.modeHeight
-              - root.footerHeight - root.statusHeight
-              - parent.spacing * (root.statusHeight > 0 ? 4 : 3))
+            parent.height - root.headerHeight - root.footerHeight
+              - root.statusHeight
+              - parent.spacing * (root.statusHeight > 0 ? 3 : 2))
           clip: true
 
           ListView {
@@ -561,12 +602,24 @@ Item {
               required property string warning
               required property string version
               required property string releaseTag
+              required property string repository
 
               readonly property bool selected: index === root.selectedIndex
               width: ListView.view.width
               height: root.rowHeight
               radius: Style.cornerRadius
               color: selected ? root.selectedBackground : "transparent"
+
+              MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onEntered: root.select(resultRow.index)
+                onClicked: {
+                  root.select(resultRow.index)
+                  root.activateIndex(resultRow.index)
+                }
+              }
 
               Column {
                 anchors.left: parent.left
@@ -613,6 +666,31 @@ Item {
                   elide: Text.ElideRight
                   horizontalAlignment: Text.AlignLeft
                 }
+
+                Text {
+                  id: repositoryText
+                  z: 2
+                  visible: resultRow.repository !== ""
+                  width: parent.width
+                  text: resultRow.repository
+                  textFormat: Text.PlainText
+                  color: resultRow.selected ? root.selectedText : root.foreground
+                  opacity: repositoryMouse.containsMouse ? 0.90 : 0.48
+                  font.family: Style.font.family
+                  font.pixelSize: Style.font.caption
+                  font.underline: repositoryMouse.containsMouse
+                  elide: Text.ElideRight
+                  horizontalAlignment: Text.AlignLeft
+
+                  MouseArea {
+                    id: repositoryMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onEntered: root.select(resultRow.index)
+                    onClicked: root.openWebsite(resultRow.repository)
+                  }
+                }
               }
 
               Column {
@@ -650,16 +728,6 @@ Item {
                 }
               }
 
-              MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onEntered: root.select(resultRow.index)
-                onClicked: {
-                  root.select(resultRow.index)
-                  root.activateIndex(resultRow.index)
-                }
-              }
             }
           }
 
@@ -670,7 +738,9 @@ Item {
               ? "No installable plugins match this query"
               : (root.mode === "remove"
                 ? "No removable local plugins match this query"
-                : "No plugins match this query")
+                : (root.mode === "command"
+                  ? "No command matches this query"
+                  : "No plugins match this query"))
             textFormat: Text.PlainText
             color: root.foreground
             opacity: 0.62
@@ -703,34 +773,71 @@ Item {
           }
         }
 
-        Row {
+        Item {
           width: parent.width
           height: root.footerHeight
-          spacing: Style.spacing.lg
 
-          Text {
-            text: "Shift+O  Marketplace"
-            color: root.foreground
-            opacity: 0.66
-            font.family: Style.font.menuFamily
-            font.pixelSize: Style.font.body
-            verticalAlignment: Text.AlignVCenter
+          Rectangle {
+            anchors.top: parent.top
+            width: parent.width
+            height: 1
+            color: Util.alpha(root.foreground, 0.16)
           }
-          Text {
-            text: "Shift+G  GitHub"
-            color: root.foreground
-            opacity: 0.66
-            font.family: Style.font.menuFamily
-            font.pixelSize: Style.font.body
-            verticalAlignment: Text.AlignVCenter
-          }
-          Text {
-            text: "Shift+S  Channels"
-            color: root.foreground
-            opacity: 0.66
-            font.family: Style.font.menuFamily
-            font.pixelSize: Style.font.body
-            verticalAlignment: Text.AlignVCenter
+
+          Row {
+            id: footerRow
+            anchors.fill: parent
+            anchors.topMargin: Style.space(6)
+
+            Repeater {
+              model: [
+                { keyLabel: "[Shift+O]",
+                  label: root.marketplaceShortcutLabel },
+                { keyLabel: "[Shift+G]", label: "GitHub" },
+                { keyLabel: "[Shift+S]", label: "Settings" }
+              ]
+
+              delegate: Item {
+                required property var modelData
+                width: footerRow.width / 3
+                height: footerRow.height
+
+                Row {
+                  anchors.centerIn: parent
+                  spacing: Style.spacing.sm
+
+                  Rectangle {
+                    width: keyText.implicitWidth + Style.spacing.sm
+                    height: Style.space(22)
+                    radius: Style.space(4)
+                    color: Util.alpha(root.shortcutColor, 0.10)
+                    border.width: 1
+                    border.color: Util.alpha(root.shortcutColor, 0.70)
+
+                    Text {
+                      id: keyText
+                      anchors.centerIn: parent
+                      text: modelData.keyLabel
+                      textFormat: Text.PlainText
+                      color: root.shortcutColor
+                      font.family: Style.font.family
+                      font.pixelSize: Style.font.caption
+                      font.bold: true
+                    }
+                  }
+
+                  Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: modelData.label
+                    textFormat: Text.PlainText
+                    color: root.foreground
+                    opacity: 0.72
+                    font.family: Style.font.menuFamily
+                    font.pixelSize: Style.font.body
+                  }
+                }
+              }
+            }
           }
         }
       }

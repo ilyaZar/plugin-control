@@ -80,6 +80,83 @@ test("whitespace around a colon is accepted", () => {
   assert.equal(parsed.query, "local");
 });
 
+test("empty browse includes commands before plugins", () => {
+  const result = Fuzzy.search(records, "", 50, Catalog.SELF_ID);
+  assert.deepEqual(result.results.slice(0, 2).map((row) => row.name),
+    ["plug-install:", "plug-remove:"]);
+  assert.equal(result.mode, "browse");
+});
+
+test("short command prefixes keep commands in browse results", () => {
+  const result = Fuzzy.search(records, "pl", 50, Catalog.SELF_ID);
+  assert.equal(result.mode, "browse");
+  assert.deepEqual(result.results.slice(0, 2).map((row) => row.name),
+    ["plug-install:", "plug-remove:"]);
+});
+
+test("partial command input hides plugin rows", () => {
+  const install = Fuzzy.search(records, "plug-in", 50, Catalog.SELF_ID);
+  assert.equal(install.mode, "command");
+  assert.deepEqual(install.results.map((row) => row.commandCompletion),
+    ["plug-install: "]);
+
+  const remove = Fuzzy.search(records, "plug-rm", 50, Catalog.SELF_ID);
+  assert.equal(remove.mode, "command");
+  assert.deepEqual(remove.results.map((row) => row.commandCompletion),
+    ["plug-remove: "]);
+});
+
+test("command-shaped selection is fuzzy and keeps install first", () => {
+  for (const query of ["plg-in"]) {
+    const result = Fuzzy.search(records, query, 50, Catalog.SELF_ID);
+    assert.equal(result.mode, "command");
+    assert.deepEqual(result.results.map((row) => row.commandCompletion),
+      ["plug-install: "]);
+  }
+  assert.deepEqual(Fuzzy.search(records, "plug", 50, Catalog.SELF_ID)
+    .results.map((row) => row.commandCompletion),
+    ["plug-install: ", "plug-remove: "]);
+  assert.deepEqual(Fuzzy.search(records, "plug", 1, Catalog.SELF_ID)
+    .results.map((row) => row.commandCompletion), ["plug-install: "]);
+});
+
+test("bare operation matches keep ordinary browse results", () => {
+  for (const query of ["inst", "istl"]) {
+    const result = Fuzzy.search(records, query, 50, Catalog.SELF_ID);
+    assert.equal(result.mode, "browse");
+    assert.equal(result.results[0].commandCompletion, "plug-install: ");
+  }
+  const remove = Fuzzy.search(records, "rem", 50, Catalog.SELF_ID);
+  assert.equal(remove.mode, "browse");
+  assert.equal(remove.results[0].commandCompletion, "plug-remove: ");
+
+  const station = Fuzzy.search(records, "sta", 50, Catalog.SELF_ID);
+  assert.equal(station.mode, "browse");
+  assert.ok(station.results.some((row) => row.id === "io.example.weather"));
+});
+
+test("ordinary plugin text does not become a command", () => {
+  const result = Fuzzy.search(records, "plugin", 50, Catalog.SELF_ID);
+  assert.equal(result.mode, "browse");
+  assert.deepEqual(result.results.map((row) => row.id),
+    [Catalog.SELF_ID]);
+});
+
+test("deleting the colon returns to command completion", () => {
+  const result = Fuzzy.search(records, "plug-install", 50,
+    Catalog.SELF_ID);
+  assert.equal(result.mode, "command");
+  assert.equal(result.results[0].commandCompletion, "plug-install: ");
+});
+
+test("malformed colon input is inert", () => {
+  for (const query of ["plug-instll:", "plug-unknown:", "weather:"]) {
+    const result = Fuzzy.search(records, query, 50, Catalog.SELF_ID);
+    assert.equal(result.mode, "command");
+    assert.deepEqual(result.results, []);
+  }
+});
+
 test("install mode limits candidates", () => {
   const result = Fuzzy.search(records, "plug-install: weather", 50,
     Catalog.SELF_ID);
@@ -159,6 +236,25 @@ test("browse-only and installed-only entries remain discoverable", () => {
     "io.example.power");
   assert.equal(Fuzzy.search(records, "notes", 10, "self").results[0].id,
     "local.notes");
+});
+
+test("marketplace provenance survives local presentation", () => {
+  const listedLocal = Catalog.prepareRecords([{
+    id: "x.listed",
+    name: "Listed local",
+    source: "local",
+    marketplaceListed: true,
+    installed: true
+  }])[0];
+  assert.equal(listedLocal.source, "local");
+  assert.equal(listedLocal.marketplaceListed, true);
+  const localBuiltin = Catalog.prepareRecords([{
+    id: "omarchy.local",
+    name: "Local built-in",
+    source: "builtin",
+    builtIn: true
+  }])[0];
+  assert.equal(localBuiltin.marketplaceListed, false);
 });
 
 test("validation drift creates a warning", () => {

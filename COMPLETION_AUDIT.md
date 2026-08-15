@@ -1,6 +1,6 @@
 # Plugin Control completion audit
 
-This audit records evidence for version 0.1.1 of
+This audit records evidence for version 0.1.2 of
 `io.github.ilyazar.plugin-control` on 15 August 2026.
 
 ## Product and repository
@@ -44,7 +44,8 @@ This audit records evidence for version 0.1.1 of
   substring and subsequence ranking, stable ties, case-insensitivity,
   ID/name/author/tag matching, result caps, and browse-only records.
 - [x] Command grammar. Tests cover `plug-install:`, `plug-remove:`, case
-  differences, and whitespace around the colon.
+  differences, whitespace around the colon, fuzzy command-only completion,
+  exact Tab/Enter completion data, and the Backspace transition.
 - [x] Source merging. Tests prove local-over-marketplace and
   built-in-over-marketplace precedence plus repository-collision diagnostics.
 - [x] Listed marketplace. The live normalized cache held 172 records: 125
@@ -56,11 +57,11 @@ This audit records evidence for version 0.1.1 of
   records, while an unverifiable submission candidate preserves the complete
   previous issue cache and metadata.
 
-## Channels and settings
+## Settings and channels
 
-- [x] YAML editor. Shift+S dispatches `scripts/open-channels.sh`, which creates
-  the config safely, reports the parser line, and opens it with the configured
-  Omarchy editor.
+- [x] Settings editor. Shift+S dispatches `scripts/open-settings.sh`, which
+  creates the plugin-owned settings safely, reports the parser line, and opens
+  them with the configured Omarchy editor.
 - [x] Strict YAML. Tests cover schema version, booleans, duplicate IDs, unsafe
   tags, aliases, non-HTTPS URLs, embedded credentials, repository slugs,
   arbitrary command fields and last-good fallback.
@@ -117,18 +118,22 @@ This audit records evidence for version 0.1.1 of
   `toggle`, and is summoned through the existing shell endpoint. No competing
   Quickshell process is used in production.
 - [x] Keyboard and mouse input. The overlay has a real focused `TextInput`, all
-  specified navigation and editing keys, Ctrl+R, hover, click, and selection
-  scrolling.
+  specified navigation and editing keys, command completion on Tab or Enter,
+  Ctrl+R, hover, click, and selection scrolling.
+- [x] Compact result metadata. Repository links use a smaller third line while
+  rows remain 60 logical pixels. The redundant mode-explanation row is gone.
 - [x] Ctrl+P toggle. The effective Hyprland binding description is `Plugin
   Control`, key P, modifier mask 4. The focused field also handles Ctrl+P as a
   defensive close path.
-- [x] Footer shortcuts. Shift+O opens the marketplace, Shift+G opens its HANCORE
-  repository, and Shift+S opens channel settings.
+- [x] Footer shortcuts. A top rule separates three equal-width shortcut cells;
+  their bracketed keys use the active theme's yellow. Shift+O and Shift+G
+  follow the selected plugin or fall back to the marketplace; Shift+S opens
+  settings.
 - [x] Visual smoke test. The live panel appeared top-centered below the bar on
   focused monitor DP-3, with immediate cursor focus, five compact left-aligned
   rows, theme tokens, source/status metadata, and a short dropdown animation.
   Repeated toggling produced one overlay and left it closed.
-- [x] Preview. `preview.png` is a 722 by 502 crop containing only the palette.
+- [x] Preview. `preview.png` is a 722 by 492 crop containing only the palette.
   It was inspected at original resolution for layout and privacy.
 - [x] QML loading. The real Quickshell instantiation harness created the
   service, overlay, and bar-widget entry points. Qt 6 model tests passed 4 of
@@ -160,7 +165,7 @@ ShellCheck reported no findings. The publishing preflight reported 0 errors.
 
 - [x] Existing user config was preserved. Plugin-owned config, cache, state,
   and runtime paths are separate and documented.
-- [x] Native removal intentionally retains user-owned channel settings and
+- [x] Native removal intentionally retains user-owned settings and
   cache; the README gives explicit optional cleanup commands.
 - [x] No task-owned command wrote under `/usr/share/omarchy`. This is a
   task-scoped statement because the shared tree had unrelated concurrent

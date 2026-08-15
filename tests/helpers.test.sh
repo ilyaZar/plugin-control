@@ -34,13 +34,13 @@ ln -s editor-mock "$TEMP_ROOT/bin/omarchy-launch-config-editor"
 ln -s /usr/bin/true "$TEMP_ROOT/bin/omarchy"
 
 printf 'nvim\n' >"$XDG_STATE_HOME/omarchy/defaults/editor"
-"$ROOT/scripts/open-channels.sh" "$ROOT"
+"$ROOT/scripts/open-settings.sh" "$ROOT"
 mapfile -t editor_call <"$MOCK_EDITOR_LOG"
 [[ ${editor_call[0]} == omarchy-launch-editor ]]
 [[ ${editor_call[1]} =~ ^\+[0-9]+$ ]]
 [[ ${editor_call[2]} == '+normal! zz' ]]
 [[ ${editor_call[3]} == "$XDG_CONFIG_HOME/omarchy/plugin-control/channels.yaml" ]]
-printf 'ok - channel helper uses fixed editor argv and the validated line\n'
+printf 'ok - settings helper uses fixed editor argv and the validated line\n'
 
 bindings="$TEMP_ROOT/bindings.lua"
 printf '%s\n' '-- bindings' 'o.bind(' '  "CTRL + P",' \

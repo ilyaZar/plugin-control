@@ -27,6 +27,8 @@ FocusScope {
   readonly property bool mutating: ["install", "remove", "enable", "disable",
     "add-bar"].indexOf(operation) >= 0
   readonly property bool canConfirm: mutating && !busy && !dirtyBlocked
+  readonly property string reviewedCommit: String(plugin
+    && (plugin.commit || plugin.listingValidatedCommit) || "")
   readonly property string title: {
     if (operation === "install") return "Install and enable plugin?"
     if (operation === "remove") return "Remove plugin?"
@@ -173,9 +175,9 @@ FocusScope {
       }
 
       Text {
-        visible: String(root.plugin && root.plugin.commit || "").length > 0
+        visible: root.reviewedCommit.length > 0
         width: parent.width
-        text: "Reviewed commit: " + String(root.plugin && root.plugin.commit || "")
+        text: "Reviewed commit: " + root.reviewedCommit
         textFormat: Text.PlainText
         color: root.foreground
         opacity: 0.72

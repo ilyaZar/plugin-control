@@ -22,5 +22,12 @@ TestCase {
       .results[0].id, "x.weather")
     compare(Fuzzy.search(records, "plug-remove: local", 50, "self")
       .results[0].id, "x.local")
+    compare(Fuzzy.search(records, "plug-in", 50, "self")
+      .results[0].commandCompletion, "plug-install: ")
+    compare(Fuzzy.search(records, "plg-in", 50, "self")
+      .results[0].commandCompletion, "plug-install: ")
+    compare(Fuzzy.search(records, "rem", 50, "self")
+      .results[0].commandCompletion, "plug-remove: ")
+    compare(Fuzzy.search(records, "weather:", 50, "self").results.length, 0)
   }
 }

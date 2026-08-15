@@ -241,6 +241,7 @@ printf '[{"id":"io.example.weather","name":"Local Weather",
 snapshot="$(rebuild_snapshot)"
 jq -e '.records[] | select(.id == "io.example.weather")
   | .source == "local" and .installed == true and .installable == false
+    and .marketplaceListed == true
     and .repository == "https://github.com/local/weather"' \
   <<<"$snapshot" >/dev/null
 jq -e '.diagnostics[] | select(.type == "repository-collision"

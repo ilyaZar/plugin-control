@@ -23,9 +23,15 @@ rg -q 'function toggle\(\)' "$ROOT/PluginControl.qml"
 rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Escape' "$ROOT/PluginControl.qml"
-rg -q 'Shift\+O  Marketplace' "$ROOT/PluginControl.qml"
-rg -q 'Shift\+G  GitHub' "$ROOT/PluginControl.qml"
-rg -q 'Shift\+S  Channels' "$ROOT/PluginControl.qml"
+rg -Fq '{ keyLabel: "[Shift+O]",' \
+  "$ROOT/PluginControl.qml"
+rg -Fq '{ keyLabel: "[Shift+G]", label: "GitHub" }' \
+  "$ROOT/PluginControl.qml"
+rg -Fq '{ keyLabel: "[Shift+S]", label: "Settings" }' \
+  "$ROOT/PluginControl.qml"
+rg -Fq 'sourcePath("scripts/open-settings.sh")' "$ROOT/PluginControl.qml"
+rg -Fq 'openMarketplaceShortcut()' "$ROOT/PluginControl.qml"
+rg -Fq 'openGithubShortcut()' "$ROOT/PluginControl.qml"
 rg -q 'ListView \{' "$ROOT/PluginControl.qml"
 rg -q 'textFormat: Text.PlainText' "$ROOT/PluginControl.qml"
 rg -q 'queryInput.forceActiveFocus\(\)' "$ROOT/PluginControl.qml"
@@ -38,6 +44,10 @@ rg -q '"browser", url\]' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Up' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_PageDown' "$ROOT/PluginControl.qml"
 rg -q 'activateIndex\(selectedIndex\)' "$ROOT/PluginControl.qml"
+rg -q 'Qt.Key_Tab' "$ROOT/PluginControl.qml"
+rg -q 'commandCompletion' "$ROOT/PluginControl.qml"
+rg -Fq 'repository: String(record.repository' "$ROOT/PluginControl.qml"
+rg -Fq 'font.pixelSize: Style.font.caption' "$ROOT/PluginControl.qml"
 rg -q 'pendingSnapshotId = service && service.snapshot' "$ROOT/PluginControl.qml"
 rg -q 'String\(selectedRecord.id || ""\), pendingSnapshotId' \
   "$ROOT/PluginControl.qml"
@@ -53,15 +63,17 @@ rg -Fq 'Qt.LeftButton' "$ROOT/PluginControlBar.qml"
 rg -Fq 'root.bar.shell.toggle' "$ROOT/PluginControlBar.qml"
 printf 'ok - bar launcher uses the native package button\n'
 
-rg -q 'Shift\+O  Marketplace' "$ROOT/PluginControl.qml"
-rg -q 'Shift\+G  GitHub' "$ROOT/PluginControl.qml"
-rg -q 'Shift\+S  Channels' "$ROOT/PluginControl.qml"
+rg -Fq 'color: root.shortcutColor' "$ROOT/PluginControl.qml"
+rg -Fq 'color: Util.alpha(root.foreground, 0.16)' \
+  "$ROOT/PluginControl.qml"
 rg -q 'sourceLabel:' "$ROOT/PluginControl.qml"
 rg -q 'service.actionRunning' "$ROOT/PluginControl.qml"
 rg -q 'actionDialog.openDialog\(\)' "$ROOT/PluginControl.qml"
 rg -q 'installInTerminal' "$ROOT/PluginControl.qml"
 rg -q 'omarchy-launch-terminal' "$ROOT/bin/plugin-control"
 rg -q 'signal confirmed' "$ROOT/ActionDialog.qml"
+rg -Fq 'plugin.commit || plugin.listingValidatedCommit' \
+  "$ROOT/ActionDialog.qml"
 rg -q 'ToggleSwitch \{' "$ROOT/ActionDialog.qml"
 rg -q 'Run in Omarchy terminal' "$ROOT/ActionDialog.qml"
 rg -q 'selectedChoice' "$ROOT/ActionDialog.qml"
@@ -101,6 +113,8 @@ fi
 grep -Fq 'PLUGIN_CONTROL_LOAD_OK service' "$runtime_root/quickshell.log"
 grep -Fq 'PLUGIN_CONTROL_LOAD_OK overlay' "$runtime_root/quickshell.log"
 grep -Fq 'PLUGIN_CONTROL_LOAD_OK bar-widget' "$runtime_root/quickshell.log"
+grep -Fq 'PLUGIN_CONTROL_INTERACTION_OK palette interactions' \
+  "$runtime_root/quickshell.log"
 if grep -Fq 'PLUGIN_CONTROL_LOAD_ERROR' "$runtime_root/quickshell.log"; then
   sed -n '1,240p' "$runtime_root/quickshell.log" >&2
   exit 1

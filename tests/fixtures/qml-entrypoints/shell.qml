@@ -85,7 +85,76 @@ ShellRoot {
     onTriggered: {
       root.serviceObject = root.loadEntry("Service.qml", "service")
       var overlay = root.loadEntry("PluginControl.qml", "overlay")
-      if (overlay && "service" in overlay) overlay.service = root.serviceObject
+      if (overlay && "service" in overlay) {
+        overlay.service = root.serviceObject
+        overlay.query = "plug-in"
+        if (overlay.mode !== "command"
+            || overlay.filteredRecords.length !== 1
+            || overlay.selectedRecord !== null) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR install completion stage")
+        }
+        var tabEvent = { modifiers: 0, key: Qt.Key_Tab }
+        if (!overlay.handleKey(tabEvent))
+          console.error("PLUGIN_CONTROL_LOAD_ERROR tab dispatch")
+        if (overlay.query !== "plug-install: " || overlay.mode !== "install"
+            || overlay.selectedRecord !== null) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR install completion")
+        }
+        overlay.query = "plug-rm"
+        var enterEvent = { modifiers: 0, key: Qt.Key_Return }
+        if (!overlay.handleKey(enterEvent)
+            || overlay.query !== "plug-remove: "
+            || overlay.mode !== "remove") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR remove completion")
+        }
+        overlay.query = "weather:"
+        if (overlay.filteredRecords.length !== 0
+            || !overlay.handleKey(tabEvent)
+            || !overlay.handleKey(enterEvent)
+            || overlay.query !== "weather:"
+            || overlay.selectedRecord !== null) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR invalid colon dispatch")
+        }
+        var backspaceEvent = { modifiers: 0, key: Qt.Key_Backspace }
+        if (overlay.handleKey(backspaceEvent))
+          console.error("PLUGIN_CONTROL_LOAD_ERROR backspace ownership")
+        overlay.loadShortcutColor('yellow = "#A1B2C3"')
+        if (String(overlay.shortcutColor).toLowerCase() !== "#a1b2c3")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR theme yellow")
+        overlay.loadShortcutColor("")
+        if (String(overlay.shortcutColor).toLowerCase() !== "#e5c07b")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR yellow fallback")
+        overlay.filteredRecords = [{
+          id: "io.example.weather",
+          repository: "https://github.com/example/weather",
+          source: "local",
+          marketplaceListed: true
+        }]
+        overlay.selectedIndex = 0
+        if (overlay.marketplaceShortcutUrl()
+              !== "https://omarchyplugins.com/plugin.html?id=io.example.weather"
+            || overlay.githubShortcutUrl()
+              !== "https://github.com/example/weather") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR contextual links")
+        }
+        overlay.filteredRecords = [{ commandCompletion: "plug-install: " }]
+        if (overlay.marketplaceShortcutUrl() !== "https://omarchyplugins.com/"
+            || overlay.githubShortcutUrl()
+              !== "https://github.com/HANCORE-linux/omarchy-plugin-marketplace") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR global links")
+        }
+        console.log("PLUGIN_CONTROL_INTERACTION_OK palette interactions")
+      }
+      var dialog = root.loadEntry("ActionDialog.qml", "dialog")
+      if (dialog) {
+        dialog.plugin = {
+          listingValidatedCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+        if (dialog.reviewedCommit
+            !== "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR reviewed commit")
+        }
+      }
       var barWidget = root.loadEntry("PluginControlBar.qml", "bar-widget")
       if (barWidget) {
         barWidget.bar = mockBar

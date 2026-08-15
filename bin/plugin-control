@@ -640,13 +640,19 @@ build_snapshot() (
     cache="$CHANNEL_CACHE/$channel_id.json"
     if [[ -f $cache && ! -L $cache ]] && jq -e '.ok == true and (.records | type == "array")' \
       "$cache" >/dev/null 2>&1; then
-      jq -c '.records[]' "$cache" >>"$records_jsonl"
-      [[ $channel_id == marketplace ]] && marketplace_loaded=true
+      if [[ $channel_id == marketplace ]]; then
+        jq -c '.records[] | .marketplaceListed = true' "$cache" \
+          >>"$records_jsonl"
+        marketplace_loaded=true
+      else
+        jq -c '.records[]' "$cache" >>"$records_jsonl"
+      fi
     fi
   done < <(jq -c '.channels[] | select(.enabled == true)' <<<"$config")
 
   if [[ $marketplace_loaded != true ]]; then
-    jq -c '.plugins[]' "$root/bootstrap/catalog.json" >>"$records_jsonl"
+    jq -c '.plugins[] | .marketplaceListed = true' \
+      "$root/bootstrap/catalog.json" >>"$records_jsonl"
   fi
   installed_records "$installed_jsonl" "$stage" || {
     rm -rf -- "$stage"
@@ -931,7 +937,7 @@ worker_command() {
       || ! valid_github_repository_url "$repository"; then
       message="The confirmed record has no supported installation path."
     elif [[ $source == submission && $allow_unlisted != true ]]; then
-      message="Unlisted installation is disabled in channel settings."
+      message="Unlisted installation is disabled in Plugin Control settings."
     elif [[ $source == submission && $execution_mode == terminal ]]; then
       message="Unlisted installs require the reviewed background path."
     elif [[ $source == submission ]] && ! submission_commit_current "$record"; then

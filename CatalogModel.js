@@ -87,6 +87,8 @@ function normalizeRecord(value) {
   record.kind = cleanText(record.kind)
   record.source = cleanText(record.source) || "custom"
   record.sourceName = cleanText(record.sourceName)
+  record.marketplaceListed = record.marketplaceListed === true
+    || record.source === "marketplace"
   record.tags = Array.isArray(record.tags) ? record.tags.map(cleanText) : []
   record.sourceRank = sourceRank(record)
   record.sourceLabel = sourceLabel(record)
