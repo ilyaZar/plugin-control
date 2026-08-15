@@ -92,7 +92,7 @@ Item {
   readonly property bool shortcutHasPluginPage: shortcutRecord
     && shortcutRecord.marketplaceListed === true
   readonly property string marketplaceShortcutLabel: shortcutHasPluginPage
-    ? "Plugin page" : "Marketplace"
+    ? "Plugin website" : "Marketplace"
   readonly property string statusText: {
     if (transientMessage) return transientMessage
     if (service && service.actionRunning)
@@ -485,9 +485,9 @@ Item {
       dismiss()
     } else if (event.key === Qt.Key_Escape) {
       dismiss()
-    } else if (isControlShortcut(event, Qt.Key_D)) {
+    } else if (isControlShortcut(event, Qt.Key_I)) {
       openSelectedInfo()
-    } else if (isControlShortcut(event, Qt.Key_O)) {
+    } else if (isControlShortcut(event, Qt.Key_W)) {
       openMarketplaceShortcut()
     } else if (isControlShortcut(event, Qt.Key_G)) {
       openGithubShortcut()
@@ -955,8 +955,8 @@ Item {
 
             Repeater {
               model: [
-                { keyLabel: "[Ctrl+D]", label: "Details" },
-                { keyLabel: "[Ctrl+O]",
+                { keyLabel: "[Ctrl+I]", label: "Info" },
+                { keyLabel: "[Ctrl+W]",
                   label: root.marketplaceShortcutLabel },
                 { keyLabel: "[Ctrl+G]", label: "GitHub source" },
                 { keyLabel: "[Ctrl+R]", label: "Refresh" },

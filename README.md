@@ -35,7 +35,7 @@ binding is active. Change the first string if that disrupts your setup.
 ## Use
 
 Start typing to search plugin names, IDs, descriptions, authors, and tags. Enter
-opens the selected plugin's available action; Ctrl+D shows details without
+opens the selected plugin's available action; Ctrl+I shows details without
 changing anything.
 
 Use either command to narrow the action first:
@@ -60,9 +60,9 @@ Useful keys:
 | `Ctrl+Backspace`                           | Remove the previous word                    |
 | `Ctrl+U`                                   | Clear the query                             |
 | `Ctrl+R`                                   | Refresh the catalog                         |
-| `Ctrl+D`                                   | Show details for the selected plugin        |
-| `Ctrl+O`                                   | Open the plugin or marketplace page         |
-| `Ctrl+G`                                   | Open the plugin or marketplace repository   |
+| `Ctrl+I`                                   | Show details for the selected plugin        |
+| `Ctrl+W`                                   | Open the plugin website                     |
+| `Ctrl+G`                                   | Open the plugin source repository           |
 | `Ctrl+S`                                   | Open settings; `Escape` returns to the list |
 
 ## Install behavior

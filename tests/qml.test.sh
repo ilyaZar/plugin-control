@@ -23,9 +23,9 @@ rg -q 'function toggle\(\)' "$ROOT/PluginControl.qml"
 rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Escape' "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Ctrl+D]", label: "Details" }' \
+rg -Fq '{ keyLabel: "[Ctrl+I]", label: "Info" }' \
   "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Ctrl+O]",' \
+rg -Fq '{ keyLabel: "[Ctrl+W]",' \
   "$ROOT/PluginControl.qml"
 rg -Fq '{ keyLabel: "[Ctrl+G]", label: "GitHub source" }' \
   "$ROOT/PluginControl.qml"

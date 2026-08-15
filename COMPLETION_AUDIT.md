@@ -98,7 +98,7 @@ This audit records evidence for version 0.1.5 of
   interactive terminal, plus `omarchy plugin remove local.test --yes`.
   Built-in actions use native enable, disable, and bar placement commands.
 - [x] Confirmation safety. Enter opens a keyboard-cancel-first dialog only for
-  an available action. Ctrl+D reuses it as a non-mutating information
+  an available action. Ctrl+I reuses it as a non-mutating information
   view, and browse-only Enter is inert. The action path pins a copy of the
   displayed record and its snapshot ID; backend execution requires that exact
   snapshot to remain current.
@@ -148,8 +148,8 @@ This audit records evidence for version 0.1.5 of
   Control`, key P, modifier mask 4. The focused field also handles Ctrl+P as a
   defensive close path.
 - [x] Footer shortcuts. A top rule separates five equal-width shortcut cells;
-  their bracketed keys use the active theme's yellow. Ctrl+D opens plugin
-  details, Ctrl+O and Ctrl+G follow the selected plugin or fall back to the
+  their bracketed keys use the active theme's yellow. Ctrl+I opens plugin
+  details, Ctrl+W and Ctrl+G follow the selected plugin or fall back to the
   marketplace, Ctrl+R refreshes, and Ctrl+S opens settings. These fixed
   controls are handled only by the focused palette.
 - [x] Visual smoke test. The live panel appeared top-centered below the bar on

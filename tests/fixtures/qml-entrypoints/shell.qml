@@ -259,24 +259,24 @@ ShellRoot {
         }
         if (overlay.handleKey(backspaceEvent))
           console.error("PLUGIN_CONTROL_LOAD_ERROR backspace ownership")
-        var controlEvent = { modifiers: Qt.ControlModifier, key: Qt.Key_O }
+        var controlEvent = { modifiers: Qt.ControlModifier, key: Qt.Key_W }
         var shiftedControlEvent = {
-          modifiers: Qt.ControlModifier | Qt.ShiftModifier, key: Qt.Key_O
+          modifiers: Qt.ControlModifier | Qt.ShiftModifier, key: Qt.Key_W
         }
-        if (!overlay.isControlShortcut(controlEvent, Qt.Key_O)
-            || overlay.isControlShortcut(shiftedControlEvent, Qt.Key_O)
+        if (!overlay.isControlShortcut(controlEvent, Qt.Key_W)
+            || overlay.isControlShortcut(shiftedControlEvent, Qt.Key_W)
             || overlay.isControlShortcut(
-              { modifiers: Qt.ShiftModifier, key: Qt.Key_O }, Qt.Key_O)) {
+              { modifiers: Qt.ShiftModifier, key: Qt.Key_W }, Qt.Key_W)) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR control shortcut modifiers")
         }
         var infoEvent = {
           modifiers: Qt.ControlModifier,
-          key: Qt.Key_D
+          key: Qt.Key_I
         }
-        var shiftInfoEvent = { modifiers: Qt.ShiftModifier, key: Qt.Key_D }
+        var shiftInfoEvent = { modifiers: Qt.ShiftModifier, key: Qt.Key_I }
         var shiftedControlInfoEvent = {
           modifiers: Qt.ControlModifier | Qt.ShiftModifier,
-          key: Qt.Key_D
+          key: Qt.Key_I
         }
         overlay.mode = "browse"
         overlay.filteredRecords = [{
