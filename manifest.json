@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.ilyazar.plugin-control",
   "name": "Plugin Control",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "author": "ilyaZar",
   "license": "MIT",
-  "description": "Ctrl+P fuzzy command palette (a la Sublime Text Package Control or VS Code) for installing/removing marketplace plugins.",
+  "description": "Ctrl+P fuzzy command palette (ala Sublime Text Package Control or VS Code) for installing/removing marketplace plugins.",
   "kinds": ["service", "overlay", "bar-widget"],
   "keepLoaded": true,
   "entryPoints": {

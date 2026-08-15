@@ -1,6 +1,6 @@
 # Plugin Control completion audit
 
-This audit records evidence for version 0.1.4 of
+This audit records evidence for version 0.1.5 of
 `io.github.ilyazar.plugin-control` on 15 August 2026.
 
 ## Product and repository
@@ -27,13 +27,18 @@ This audit records evidence for version 0.1.4 of
 - [x] Warm latency. Ten repeated shell toggles measured 38-57 ms command
   round-trip, median 47 ms and worst 57 ms. Final focus-ready measurements
   were 4-13 ms.
-- [x] Filtering latency. Final live filtering measured 1-3 ms against 188
-  merged records. Five thousand synthetic records averaged 3.1 ms per fuzzy
-  query, while 10,000 averaged 10.7 ms.
+- [x] Filtering latency. Final live filtering measured 1-3 ms; the current
+  merged catalog held 207 records. Five thousand synthetic records averaged
+  3.1 ms per fuzzy query, while 10,000 averaged 10.7 ms.
 - [x] Refresh measurement. Ten persistent snapshot reads measured 9-24 ms,
   median 11.5 ms. Seven local installed-state rebuilds measured 413-572 ms,
   median 490 ms. A forced conditional network refresh spent 258 ms in channel
-  refresh work and completed end to end in 830 ms.
+  refresh work and completed end to end in 830 ms. The final public-catalog
+  refresh spent 279 ms in channel work.
+- [x] Large snapshot assembly. The live 203-record marketplace cache exceeded
+  Linux's per-argument limit in the former in-memory jq handoff. Snapshot JSON
+  now moves through private runtime files; a 400-record, 300 KB fixture proves
+  the same path without large command-line arguments.
 - [x] Hidden cost. `keepLoaded` is true. The service has no rapid timer; the
   only resident polling is the shared binding helper's ten-second Hyprland
   state check and action-status polling while an action is running.
@@ -49,8 +54,8 @@ This audit records evidence for version 0.1.4 of
   completion data, and the Backspace transition.
 - [x] Source merging. Tests prove local-over-marketplace and
   built-in-over-marketplace precedence plus repository-collision diagnostics.
-- [x] Listed marketplace. The live normalized cache held 172 records: 125
-  installable, 36 built-in, and 0 normalization errors. All 136 community IDs
+- [x] Listed marketplace. The live normalized cache held 203 records: 156
+  installable, 36 built-in, and 0 normalization errors. All 167 community IDs
   matched the website catalog exactly and were reachable through exact-ID
   fuzzy search; the remaining 11 community entries stayed browse-only.
 - [x] Offline behavior. Malformed, failed, oversized, and unchanged catalog
@@ -60,7 +65,7 @@ This audit records evidence for version 0.1.4 of
 
 ## Settings and channels
 
-- [x] Settings editor. Ctrl+Shift+S opens an inline three-row menu. Typing is
+- [x] Settings editor. Ctrl+S opens an inline three-row menu. Typing is
   consumed; `j`/`k`, arrows, mouse, Enter, Escape, and Cancel route through
   `scripts/open-settings.sh` to the validated plugin YAML, the exact Plugin
   Control entry in `bindings.lua`, or back to the open palette.
@@ -93,14 +98,16 @@ This audit records evidence for version 0.1.4 of
   interactive terminal, plus `omarchy plugin remove local.test --yes`.
   Built-in actions use native enable, disable, and bar placement commands.
 - [x] Confirmation safety. Enter opens a keyboard-cancel-first dialog only for
-  an available action. Ctrl+Shift+I reuses it as a non-mutating information
+  an available action. Ctrl+D reuses it as a non-mutating information
   view, and browse-only Enter is inert. The action path pins a copy of the
   displayed record and its snapshot ID; backend execution requires that exact
   snapshot to remain current.
 - [x] Remote command isolation. Fixtures include a hostile remote command
   string; it is never executed or interpolated into a shell.
-- [x] Self-removal protection. Both the model and backend exclude or reject the
-  active Plugin Control ID.
+- [x] Guarded self-removal. `plug-remove:` and the bar popup share one
+  snapshot-pinned, No-first warning. The staged worker survives checkout
+  deletion, invalidates the derived snapshot, preserves user state, and treats
+  a post-deletion shell-rescan error as materially complete.
 - [x] Dirty-checkout protection. Removal is blocked before the native remove
   command when Git reports local changes.
 - [x] Path containment. IDs reject traversal and removal requires the exact
@@ -124,9 +131,9 @@ This audit records evidence for version 0.1.4 of
 ## UI and local integration
 
 - [x] Bar launcher. The single native package glyph opens the existing overlay
-  on left click, defaults to the right section, and exposes exactly one
-  Settings item on right click. A hidden setting collapses both visibility and
-  implicit size while leaving the plugin service enabled.
+  on left click, defaults to the right section, and exposes Settings plus
+  Remove Plugin Control on right click. A hidden setting collapses visibility
+  and implicit size while leaving the plugin service enabled.
 - [x] Shell lifecycle. The overlay exposes `opened`, `open`, `close`, and
   `toggle`, and is summoned through the existing shell endpoint. No competing
   Quickshell process is used in production.
@@ -138,11 +145,11 @@ This audit records evidence for version 0.1.4 of
 - [x] Ctrl+P toggle. The effective Hyprland binding description is `Plugin
   Control`, key P, modifier mask 4. The focused field also handles Ctrl+P as a
   defensive close path.
-- [x] Footer shortcuts. A top rule separates four equal-width shortcut cells;
-  their bracketed keys use the active theme's yellow. Ctrl+Shift+I opens
-  plugin information, Ctrl+Shift+O and Ctrl+Shift+G follow the selected plugin
-  or fall back to the marketplace, and Ctrl+Shift+S opens the settings
-  selector. These fixed controls are handled only by the focused palette.
+- [x] Footer shortcuts. A top rule separates five equal-width shortcut cells;
+  their bracketed keys use the active theme's yellow. Ctrl+D opens plugin
+  details, Ctrl+O and Ctrl+G follow the selected plugin or fall back to the
+  marketplace, Ctrl+R refreshes, and Ctrl+S opens settings. These fixed
+  controls are handled only by the focused palette.
 - [x] Visual smoke test. The live panel appeared top-centered below the bar on
   focused monitor VGA-1, with immediate cursor focus, compact left-aligned
   rows, theme tokens, source/status metadata, and a short dropdown animation.
@@ -181,7 +188,7 @@ ShellCheck reported no findings. The publishing preflight reported 0 errors.
 - [x] Existing user config was preserved. Plugin-owned config, cache, state,
   and runtime paths are separate and documented.
 - [x] Native removal intentionally retains user-owned settings and
-  cache; the README gives explicit optional cleanup commands.
+  cache; the README identifies the retained paths and user-owned binding.
 - [x] No task-owned command wrote under `/usr/share/omarchy`. This is a
   task-scoped statement because the shared tree had unrelated concurrent
   changes.
@@ -191,6 +198,6 @@ ShellCheck reported no findings. The publishing preflight reported 0 errors.
 - Unauthenticated GitHub API limits apply to the optional issue channel.
 - Only the first 100 open submission issues are considered per refresh.
 - Normal-update integration is not implemented.
-- The two authorized live removal targets were dirty development symlinks, so
-  the palette correctly blocked removal. Mutation behavior was tested with
-  disposable plugin directories and mocked native commands.
+- The final self-removal smoke used a dirty development symlink, so the palette
+  correctly blocked the live mutation. The complete lifecycle was exercised
+  with disposable plugin directories and mocked native commands.
