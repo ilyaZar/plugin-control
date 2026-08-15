@@ -32,6 +32,7 @@ Item {
   property double filterStartedAt: 0
   property bool installInTerminal: false
   property bool settingsMenuOpen: false
+  property bool selfRemovalRequested: false
   property var savedSettings: ({})
   property color shortcutColor: "#e5c07b"
 
@@ -138,11 +139,16 @@ Item {
     selectedRecord = null
     pendingSnapshotId = ""
     settingsMenuOpen = false
+    selfRemovalRequested = payload.removeSelf === true
     actionDialog.closeDialog()
     if (payload.settings === true) showSettingsMenu()
-    else rebuildResults()
+    else {
+      rebuildResults()
+      tryOpenSelfRemoval()
+    }
     Qt.callLater(function() {
-      if (settingsMenuOpen) resultList.forceActiveFocus()
+      if (actionDialog.opened) actionDialog.forceActiveFocus()
+      else if (settingsMenuOpen) resultList.forceActiveFocus()
       else queryInput.forceActiveFocus()
       if (service) service.recordFocusReady()
     })
@@ -152,6 +158,7 @@ Item {
     if (!surfaceVisible) return
     opened = false
     settingsMenuOpen = false
+    selfRemovalRequested = false
     actionDialog.closeDialog()
     closeTimer.interval = service && service.animationsEnabled ? 80 : 0
     closeTimer.restart()
@@ -205,7 +212,7 @@ Item {
           settingsAction: "cancel"
         }
       ]
-    } : Fuzzy.search(records, query, 50, pluginId)
+    } : Fuzzy.search(records, query, 50)
     mode = result.mode
     filteredRecords = result.results
     displayModel.clear()
@@ -277,6 +284,21 @@ Item {
         ? String(service.snapshot.snapshotId || "") : "")
     actionDialog.openDialog()
     return true
+  }
+
+  function tryOpenSelfRemoval() {
+    if (!selfRemovalRequested || !service
+        || !Array.isArray(service.records)
+        || !service.snapshot || !service.snapshot.snapshotId) return false
+    for (var i = 0; i < service.records.length; i++) {
+      var record = service.records[i]
+      if (record && record.id === pluginId && record.installed === true
+          && record.removable === true) {
+        selfRemovalRequested = false
+        return openDialogFor(record, "remove")
+      }
+    }
+    return false
   }
 
   function activateIndex(index) {
@@ -536,7 +558,10 @@ Item {
 
   Connections {
     target: root.service
-    function onRecordsChanged() { root.rebuildResults() }
+    function onRecordsChanged() {
+      root.rebuildResults()
+      root.tryOpenSelfRemoval()
+    }
     function onActionFinished(state) {
       root.transientMessage = ""
       root.rebuildResults()
@@ -601,6 +626,7 @@ Item {
         anchors.fill: parent
         z: 20
         plugin: root.selectedRecord
+        selfId: root.pluginId
         operation: root.pendingOperation
         busy: root.service ? root.service.actionRunning : false
         installInTerminal: root.installInTerminal

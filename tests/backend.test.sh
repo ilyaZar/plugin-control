@@ -45,6 +45,10 @@ fi
 if [[ ${MOCK_OMARCHY_SLEEP:-0} != 0 ]]; then
   sleep "$MOCK_OMARCHY_SLEEP"
 fi
+if [[ $* == "plugin remove io.github.ilyazar.plugin-control --yes" \
+    && -n ${MOCK_REMOVE_PATH:-} ]]; then
+  mv -T -- "$MOCK_REMOVE_PATH" "$MOCK_REMOVE_PATH.removed"
+fi
 output_bytes="${MOCK_OUTPUT_BYTES:-0}"
 if [[ $output_bytes =~ ^[0-9]+$ ]] && (( output_bytes > 0 )); then
   printf '\033[31m'
@@ -374,14 +378,73 @@ jq -e '.ok == false and (.message | contains("identity or path changed"))' \
   <<<"$status" >/dev/null
 printf 'ok - changed manifest identity is refused\n'
 
-if helper action "$ROOT" remove io.github.ilyazar.plugin-control \
-  "$snapshot_id" background >"$TEMP_ROOT/self.json" 2>/dev/null; then
-  printf 'not ok - self removal was accepted\n' >&2
+self_plugin="$plugins_root/io.github.ilyazar.plugin-control"
+mkdir -p "$self_plugin/lib" "$self_plugin/config" "$self_plugin/bootstrap"
+cp "$ROOT/manifest.json" "$self_plugin/manifest.json"
+cp "$ROOT/lib/catalog.jq" "$ROOT/lib/channel_config.rb" "$self_plugin/lib/"
+cp "$ROOT/config/channels.yaml" "$self_plugin/config/channels.yaml"
+cp "$ROOT/bootstrap/catalog.json" "$self_plugin/bootstrap/catalog.json"
+printf '[{"id":"io.github.ilyazar.plugin-control","name":"Plugin Control",\n  "kinds":["service","overlay","bar-widget"],\n  "enabled":true,"firstParty":false}]\n' >"$MOCK_RUNTIME"
+rm -f -- "$snapshot_state"
+snapshot="$(helper cached "$self_plugin")"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+jq -e '.records[] | select(.id == "io.github.ilyazar.plugin-control")
+  | .installed == true and .removable == true and .dirty == false' \
+  <<<"$snapshot" >/dev/null
+export MOCK_REMOVE_PATH="$self_plugin"
+helper action "$self_plugin" remove io.github.ilyazar.plugin-control \
+  "$snapshot_id" background >/dev/null
+status="$(wait_action)"
+wait_worker_release
+jq -e '.ok == true and .operation == "remove"
+  and .pluginId == "io.github.ilyazar.plugin-control"
+  and .acknowledged == true' <<<"$status" >/dev/null
+grep -Fqx \
+  'plugin remove io.github.ilyazar.plugin-control --yes' "$MOCK_LOG"
+[[ ! -e $self_plugin && -d $self_plugin.removed && ! -e $snapshot_state ]]
+[[ -f $XDG_CONFIG_HOME/omarchy/plugin-control/channels.yaml
+  && -f $XDG_STATE_HOME/omarchy/plugin-control/channels.json
+  && -f $XDG_CACHE_HOME/omarchy/plugin-control/channels/marketplace.json
+  && -f $XDG_STATE_HOME/omarchy/plugin-control/action.json
+  && -f $XDG_STATE_HOME/omarchy/plugin-control/action.log ]]
+if find "$XDG_STATE_HOME/omarchy/plugin-control/worker" \
+  \( -name 'plugin-control-*' -o -name 'snapshot-*.json' \) | grep -q .; then
+  printf 'not ok - self removal left worker staging files\n' >&2
   exit 1
 fi
-jq -e '.ok == false and (.error | contains("cannot remove itself"))' \
-  "$TEMP_ROOT/self.json" >/dev/null
-printf 'ok - self removal is refused\n'
+unset MOCK_REMOVE_PATH
+printf 'ok - self removal survives checkout deletion and keeps user state\n'
+
+mv -T -- "$self_plugin.removed" "$self_plugin"
+rm -f -- "$snapshot_state"
+snapshot="$(helper cached "$self_plugin")"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+export MOCK_REMOVE_PATH="$self_plugin"
+export MOCK_EXIT=1
+helper action "$self_plugin" remove io.github.ilyazar.plugin-control \
+  "$snapshot_id" background >/dev/null
+status="$(wait_action)"
+wait_worker_release
+jq -e '.ok == true and .acknowledged == true
+  and (.message | contains("shell refresh error"))' <<<"$status" >/dev/null
+[[ ! -e $self_plugin && -d $self_plugin.removed && ! -e $snapshot_state ]]
+unset MOCK_REMOVE_PATH MOCK_EXIT
+printf 'ok - deleted self checkout survives a final native rescan error\n'
+
+mv -T -- "$self_plugin.removed" "$self_plugin"
+rm -f -- "$snapshot_state"
+snapshot="$(helper cached "$self_plugin")"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+export MOCK_EXIT=1
+helper action "$self_plugin" remove io.github.ilyazar.plugin-control \
+  "$snapshot_id" background >/dev/null
+status="$(wait_action)"
+wait_worker_release
+jq -e '.ok == false and .acknowledged == false
+  and (.message | contains("failed with exit code 1"))' <<<"$status" >/dev/null
+[[ -d $self_plugin && -f $snapshot_state ]]
+unset MOCK_EXIT
+printf 'ok - failed self removal keeps its checkout and snapshot\n'
 
 printf '[]\n' >"$MOCK_RUNTIME"
 snapshot="$(rebuild_snapshot)"

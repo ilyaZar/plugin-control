@@ -8,6 +8,8 @@ ShellRoot {
     Quickshell.env("PLUGIN_CONTROL_SOURCE_DIR")
   property var createdObjects: []
   property var serviceObject: null
+  property int dialogCanceledCount: 0
+  property int dialogConfirmedCount: 0
 
   function manifestData() {
     return {
@@ -95,12 +97,19 @@ ShellRoot {
     property var bar: mockBar
     property string lastToggleId: ""
     property string lastTogglePayload: ""
+    property string lastSummonId: ""
+    property string lastSummonPayload: ""
     function hide(pluginId) { return true }
     function isPluginOpen(pluginId) { return false }
     function serviceFor(pluginId) { return root.serviceObject }
     function toggle(pluginId, payloadJson) {
       lastToggleId = pluginId
       lastTogglePayload = payloadJson
+    }
+    function summon(pluginId, payloadJson) {
+      lastSummonId = pluginId
+      lastSummonPayload = payloadJson
+      return true
     }
   }
 
@@ -401,6 +410,30 @@ ShellRoot {
             || overlay.settingsMenuOpen || !overlay.opened) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings escape back")
         }
+        root.serviceObject.records = []
+        root.serviceObject.snapshot = { snapshotId: "self-removal-snapshot" }
+        overlay.open('{"removeSelf":true}')
+        if (!overlay.selfRemovalRequested || overlay.selectedRecord !== null) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR pending self removal")
+        }
+        root.serviceObject.records = [{
+          id: "io.github.ilyazar.plugin-control",
+          name: "Plugin Control",
+          installed: true,
+          removable: true,
+          dirty: false
+        }]
+        overlay.tryOpenSelfRemoval()
+        if (overlay.selfRemovalRequested
+            || overlay.pendingOperation !== "remove"
+            || overlay.pendingSnapshotId !== "self-removal-snapshot"
+            || !overlay.selectedRecord
+            || overlay.selectedRecord.id
+              !== "io.github.ilyazar.plugin-control") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR self removal payload")
+        }
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
+          console.error("PLUGIN_CONTROL_LOAD_ERROR self removal cancel")
         console.log("PLUGIN_CONTROL_INTERACTION_OK palette interactions")
         root.serviceObject.acceptActionStart('{"error":"Install failed."}', 1)
         if (root.serviceObject.actionNoticeDurationMs !== 10000
@@ -437,6 +470,37 @@ ShellRoot {
         if (dialog.mutating || dialog.canConfirm
             || dialog.operationText !== "No system change")
           console.error("PLUGIN_CONTROL_LOAD_ERROR info dialog boundary")
+        dialog.selfId = "io.github.ilyazar.plugin-control"
+        dialog.plugin = {
+          id: "io.github.ilyazar.plugin-control",
+          name: "Plugin Control",
+          dirty: false
+        }
+        dialog.operation = "remove"
+        dialog.canceled.connect(function() { root.dialogCanceledCount++ })
+        dialog.confirmed.connect(function() { root.dialogConfirmedCount++ })
+        if (!dialog.selfRemoval
+            || dialog.title !== "Remove Plugin Control itself?"
+            || dialog.cancelLabel !== "No"
+            || dialog.confirmLabel !== "Yes, remove") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR self removal warning")
+        }
+        dialog.openDialog()
+        dialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
+        dialog.closeDialog()
+        dialog.openDialog()
+        dialog.handleKey({ modifiers: 0, key: Qt.Key_Right })
+        dialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
+        if (root.dialogCanceledCount !== 1
+            || root.dialogConfirmedCount !== 1) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR self removal choices")
+        }
+        dialog.plugin = {
+          id: "io.github.ilyazar.plugin-control",
+          dirty: true
+        }
+        if (dialog.canConfirm)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR dirty self removal")
       }
       var barWidget = root.loadEntry("PluginControlBar.qml", "bar-widget")
       if (barWidget) {
@@ -471,6 +535,14 @@ ShellRoot {
         barWidget.openSettings()
         if (mockShell.lastTogglePayload !== '{"settings":true}')
           console.error("PLUGIN_CONTROL_LOAD_ERROR bar settings payload")
+        barWidget.settingsMenuOpen = true
+        barWidget.removePluginControl()
+        if (barWidget.settingsMenuOpen
+            || mockShell.lastSummonId
+              !== "io.github.ilyazar.plugin-control"
+            || mockShell.lastSummonPayload !== '{"removeSelf":true}') {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR bar removal payload")
+        }
       }
       Qt.callLater(Qt.quit)
     }

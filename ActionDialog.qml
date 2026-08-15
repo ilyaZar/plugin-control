@@ -7,6 +7,7 @@ FocusScope {
 
   property bool opened: false
   property var plugin: null
+  property string selfId: ""
   property string operation: "browse"
   property bool busy: false
   property bool installInTerminal: false
@@ -20,6 +21,8 @@ FocusScope {
 
   readonly property bool dirtyBlocked: plugin && plugin.dirty === true
     && operation === "remove"
+  readonly property bool selfRemoval: operation === "remove"
+    && String(plugin && plugin.id || "") === selfId
   readonly property bool terminalAllowed: operation === "install"
     && String(plugin && plugin.repository || "").length > 0
     && String(plugin && plugin.source || "") !== "submission"
@@ -31,6 +34,7 @@ FocusScope {
     && (plugin.commit || plugin.listingValidatedCommit) || "")
   readonly property string title: {
     if (operation === "install") return "Install and enable plugin?"
+    if (selfRemoval) return "Remove Plugin Control itself?"
     if (operation === "remove") return "Remove plugin?"
     if (operation === "enable") return "Enable built-in plugin?"
     if (operation === "disable") return "Disable built-in plugin?"
@@ -40,12 +44,15 @@ FocusScope {
   readonly property string confirmLabel: {
     if (operation === "install")
       return terminalInstall ? "Open terminal" : "Install"
+    if (selfRemoval) return "Yes, remove"
     if (operation === "remove") return "Remove"
     if (operation === "enable") return "Enable"
     if (operation === "disable") return "Disable"
     if (operation === "add-bar") return "Add to bar"
     return "Close"
   }
+  readonly property string cancelLabel: selfRemoval ? "No"
+    : (mutating ? "Cancel" : "Close")
   readonly property string operationText: {
     if (operation === "install") return terminalInstall
       ? "omarchy plugin add <repository> --enable"
@@ -237,21 +244,26 @@ FocusScope {
 
       Rectangle {
         width: parent.width
-        height: Style.space(root.operation === "install" ? 52 : 38)
+        height: Style.space(root.operation === "install" || root.selfRemoval
+          ? 52 : 38)
         radius: Style.cornerRadius
-        color: Util.alpha(root.operation === "install"
+        color: Util.alpha(root.operation === "install" || root.selfRemoval
           ? root.warningColor : root.foreground, 0.10)
 
         Text {
           anchors.fill: parent
           anchors.margins: Style.spacing.sm
-          text: root.operation === "install"
+          text: root.selfRemoval
+            ? "This removes the tray icon and palette. Your user-owned "
+              + "keybinding and Plugin Control settings, cache, and history remain."
+            : root.operation === "install"
             ? "Plugins run unsandboxed inside the long-running shell. "
               + "Marketplace validation is not a security audit.\n"
               + root.operationText
             : root.operationText
           textFormat: Text.PlainText
-          color: root.operation === "install" ? root.warningColor : root.foreground
+          color: root.operation === "install" || root.selfRemoval
+            ? root.warningColor : root.foreground
           font.family: root.fontFamily
           font.pixelSize: Style.font.body
           wrapMode: Text.Wrap
@@ -289,7 +301,7 @@ FocusScope {
 
           Text {
             anchors.centerIn: parent
-            text: root.mutating ? "Cancel" : "Close"
+            text: root.cancelLabel
             color: root.selectedChoice === 0
               ? root.selectedText : root.foreground
             font.family: root.fontFamily

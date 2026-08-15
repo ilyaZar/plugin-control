@@ -146,16 +146,16 @@ function operationIntent(operation, value) {
     && subsequenceCost(operation, query) >= 0
 }
 
-function eligible(record, mode, selfId) {
+function eligible(record, mode) {
   if (!record || !record.id) return false
   if (mode === "install")
     return record.installable === true && record.installed !== true
   if (mode === "remove")
-    return record.removable === true && record.id !== selfId
+    return record.removable === true
   return true
 }
 
-function search(records, input, limit, selfId) {
+function search(records, input, limit) {
   var parsed = parseQuery(input)
   var values = Array.isArray(records) ? records : []
   var maximum = Number(limit)
@@ -171,7 +171,7 @@ function search(records, input, limit, selfId) {
 
   for (var i = 0; i < values.length; i++) {
     var record = values[i]
-    if (!eligible(record, parsed.mode, selfId)) continue
+    if (!eligible(record, parsed.mode)) continue
     var score = scoreRecord(record, parsed.query)
     if (parsed.query && score < 0) continue
     rows.push({ record: record, score: score })
