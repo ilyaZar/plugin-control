@@ -73,7 +73,10 @@ rg -Fq 'Qt.LeftButton' "$ROOT/PluginControlBar.qml"
 rg -Fq 'root.bar.shell.toggle' "$ROOT/PluginControlBar.qml"
 rg -Fq 'Qt.RightButton' "$ROOT/PluginControlBar.qml"
 rg -Fq 'text: "Settings"' "$ROOT/PluginControlBar.qml"
+rg -Fq 'text: "Remove Plugin Control"' "$ROOT/PluginControlBar.qml"
 rg -Fq "root.bar.shell.toggle(root.moduleName, '{\"settings\":true}')" \
+  "$ROOT/PluginControlBar.qml"
+rg -Fq "root.bar.shell.summon(root.moduleName, '{\"removeSelf\":true}')" \
   "$ROOT/PluginControlBar.qml"
 rg -Fq 'setting("trayIconHidden", false) === true' \
   "$ROOT/PluginControlBar.qml"
@@ -95,6 +98,7 @@ rg -Fq 'root.configChangeRevision++' "$ROOT/Service.qml"
 rg -q 'actionDialog.openDialog\(\)' "$ROOT/PluginControl.qml"
 rg -q 'function openSelectedInfo\(\)' "$ROOT/PluginControl.qml"
 rg -q 'function showSettingsMenu\(\)' "$ROOT/PluginControl.qml"
+rg -q 'function tryOpenSelfRemoval\(\)' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_J' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_K' "$ROOT/PluginControl.qml"
 rg -Fq 'readOnly: root.settingsMenuOpen' "$ROOT/PluginControl.qml"
@@ -108,6 +112,10 @@ rg -Fq 'if (pendingOperation === "browse") return' \
 rg -q 'installInTerminal' "$ROOT/PluginControl.qml"
 rg -q 'omarchy-launch-terminal' "$ROOT/bin/plugin-control"
 rg -q 'signal confirmed' "$ROOT/ActionDialog.qml"
+rg -Fq 'return "Remove Plugin Control itself?"' "$ROOT/ActionDialog.qml"
+rg -Fq 'if (selfRemoval) return "Yes, remove"' "$ROOT/ActionDialog.qml"
+rg -Fq 'readonly property string cancelLabel: selfRemoval ? "No"' \
+  "$ROOT/ActionDialog.qml"
 rg -Fq 'plugin.commit || plugin.listingValidatedCommit' \
   "$ROOT/ActionDialog.qml"
 rg -q 'ToggleSwitch \{' "$ROOT/ActionDialog.qml"

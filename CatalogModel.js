@@ -1,5 +1,3 @@
-var SELF_ID = "io.github.ilyazar.plugin-control"
-
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value)
 }
@@ -98,7 +96,7 @@ function normalizeRecord(value) {
   record.enabled = record.enabled !== false
   record.installable = record.installable === true && !record.installed
   record.removable = record.removable === true
-    && record.id !== SELF_ID && record.builtIn !== true
+    && record.builtIn !== true
   record.searchFields = [record.name, record.id, record.repository,
     record.author, record.tags.join(" "), record.category, record.kind,
     record.sourceLabel, record.description].map(searchText)
@@ -117,7 +115,6 @@ function prepareRecords(records) {
 
 if (typeof module !== "undefined") {
   module.exports = {
-    SELF_ID: SELF_ID,
     warningState: warningState,
     isBarWidget: isBarWidget,
     prepareRecords: prepareRecords

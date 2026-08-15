@@ -548,8 +548,7 @@ manifest_record() {
 
   jq -c \
     --arg id "$id" --arg path "$path" --arg repository "$repository" \
-    --argjson enabled "$enabled" --argjson dirty "$dirty" \
-    --arg selfId "$SELF_ID" '
+    --argjson enabled "$enabled" --argjson dirty "$dirty" '
       {
         id:$id,
         name:(.name // $id),
@@ -565,7 +564,7 @@ manifest_record() {
         enabled:$enabled,
         builtIn:false,
         installable:false,
-        removable:($id != $selfId),
+        removable:true,
         dirty:$dirty,
         installedPath:$path
       }
@@ -865,7 +864,6 @@ action_snapshot_record() {
 preflight_remove() {
   local record="$1"
   local id="$2"
-  [[ $id != "$SELF_ID" ]] || return 1
   jq -e '.installed == true and .removable == true and .builtIn != true' \
     <<<"$record" >/dev/null || return 1
   local path expected manifest_id
@@ -914,9 +912,10 @@ worker_command() {
   local snapshot="$5"
   local execution_mode="$6"
   local started status record output_file rc=0 succeeded=false message=""
+  ACTION_WORKER_CLEANUP_ID="$action_id"
+  trap 'cleanup_action_worker "$ACTION_WORKER_CLEANUP_ID" || true' EXIT
   exec 9>>"$ACTION_LOCK"
   if ! flock -w 8 9; then
-    cleanup_action_worker "$action_id" || true
     if [[ $execution_mode == terminal ]]; then
       printf 'Another Plugin Control action is still running.\n'
       printf 'Press Enter to close this terminal. '
@@ -928,7 +927,6 @@ worker_command() {
     || ! jq -e --arg actionId "$action_id" \
       '.running == true and .actionId == $actionId' \
       "$ACTION_STATE" >/dev/null 2>&1; then
-    cleanup_action_worker "$action_id" || true
     if [[ $execution_mode == terminal ]]; then
       exec 9>&-
       printf 'This install request is no longer current.\n'
@@ -989,7 +987,13 @@ worker_command() {
         message="Plugin removed."
       else
         rc=$?
-        message="Plugin removal failed with exit code $rc."
+        if [[ $id == "$SELF_ID" && ! -e $PLUGINS_ROOT/$id
+            && ! -L $PLUGINS_ROOT/$id ]]; then
+          succeeded=true
+          message="Plugin removed, but Omarchy reported a shell refresh error."
+        else
+          message="Plugin removal failed with exit code $rc."
+        fi
       fi
     else
       rc=$?
@@ -1037,23 +1041,31 @@ worker_command() {
   rm -f -- "$output_file"
   local finished
   finished="$(utc_now)"
-  status="$(jq -cn --argjson ok "$succeeded" --arg actionId "$action_id" \
+  local acknowledged=false
+  if [[ $succeeded == true && $operation == remove && $id == "$SELF_ID" ]]; then
+    acknowledged=true
+  fi
+  status="$(jq -cn --argjson ok "$succeeded" \
+    --argjson acknowledged "$acknowledged" --arg actionId "$action_id" \
     --arg operation "$operation" --arg pluginId "$id" \
     --arg executionMode "$execution_mode" \
     --arg startedAt "$started" --arg finishedAt "$finished" \
     --arg message "$message" --arg output "$output" \
-    '{ok:$ok,running:false,acknowledged:false,actionId:$actionId,
+    '{ok:$ok,running:false,acknowledged:$acknowledged,actionId:$actionId,
       operation:$operation,pluginId:$pluginId,executionMode:$executionMode,
       handoff:false,startedAt:$startedAt,finishedAt:$finishedAt,
       message:$message,output:$output}')"
-  build_snapshot "$root" >/dev/null 2>&1 || true
+  if [[ $succeeded == true && $operation == remove && $id == "$SELF_ID" ]]; then
+    rm -f -- "$SNAPSHOT_STATE"
+  else
+    build_snapshot "$root" >/dev/null 2>&1 || true
+  fi
   write_action_status "$status" || return 1
   if command -v omarchy-notification-send >/dev/null 2>&1; then
     omarchy-notification-send \
       "$([[ $succeeded == true ]] && printf 'Plugin Control' || printf 'Plugin Control action failed')" \
       "$message" >/dev/null 2>&1 || true
   fi
-  cleanup_action_worker "$action_id" || true
   if [[ $execution_mode == terminal ]]; then
     exec 9>&-
     printf '\n%s\n' "$message"
@@ -1089,10 +1101,6 @@ action_command() {
   if [[ $execution_mode == terminal ]]; then
     require_tool omarchy-launch-terminal
   fi
-  [[ $operation != remove || $id != "$SELF_ID" ]] || {
-    json_error "Plugin Control cannot remove itself from its active interface"
-    return 1
-  }
   if ! snapshot_is_current "$SNAPSHOT_STATE" \
     || ! jq -e --arg snapshotId "$confirmed_snapshot_id" \
       '.snapshotId == $snapshotId' "$SNAPSHOT_STATE" >/dev/null; then

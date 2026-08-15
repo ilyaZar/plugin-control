@@ -39,6 +39,14 @@ BarWidget {
     }
   }
 
+  function removePluginControl() {
+    close()
+    if (root.bar && root.bar.shell
+        && typeof root.bar.shell.summon === "function") {
+      root.bar.shell.summon(root.moduleName, '{"removeSelf":true}')
+    }
+  }
+
   BarIconButton {
     id: button
     anchors.fill: parent
@@ -61,14 +69,28 @@ BarWidget {
     bar: root.bar
     open: root.settingsMenuOpen
     contentWidth: settingsPopup.fittedContentWidth(Style.space(160))
-    contentHeight: settingsPopup.fittedContentHeight(settingsButton.implicitHeight)
+    contentHeight: settingsPopup.fittedContentHeight(settingsColumn.implicitHeight)
 
-    Button {
-      id: settingsButton
+    Column {
+      id: settingsColumn
       anchors.fill: parent
-      text: "Settings"
-      leftAlign: true
-      onClicked: root.openSettings()
+      spacing: Style.space(4)
+
+      Button {
+        id: settingsButton
+        width: parent.width
+        text: "Settings"
+        leftAlign: true
+        onClicked: root.openSettings()
+      }
+
+      Button {
+        width: parent.width
+        text: "Remove Plugin Control"
+        leftAlign: true
+        foreground: root.bar ? root.bar.urgent : Color.urgent
+        onClicked: root.removePluginControl()
+      }
     }
   }
 }
