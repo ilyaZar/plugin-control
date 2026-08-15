@@ -640,7 +640,8 @@ build_snapshot() (
   flock 6
   local config="${2:-}"
   [[ -n $config ]] || config="$(load_config "$root")" || return 1
-  local stage records_jsonl installed_jsonl merged diagnostics snapshot seed snapshot_id
+  local stage records_jsonl installed_jsonl merged_file diagnostics_file
+  local config_file refresh_file snapshot_file snapshot_id
   stage="$(mktemp -d "$RUNTIME_ROOT/snapshot.XXXXXX")"
   records_jsonl="$stage/records.jsonl"
   installed_jsonl="$stage/installed.jsonl"
@@ -672,37 +673,48 @@ build_snapshot() (
   }
   cat "$installed_jsonl" >>"$records_jsonl"
 
-  merged="$(jq -sc '
+  merged_file="$stage/records.json"
+  diagnostics_file="$stage/diagnostics.json"
+  config_file="$stage/config.json"
+  refresh_file="$stage/refresh.json"
+  snapshot_file="$stage/snapshot.json"
+  jq -sc '
     group_by(.id)
     | map(sort_by(.sourceRank // 0) | reduce .[] as $record ({}; . * $record))
     | sort_by((.name // .id | ascii_downcase), .id)
-  ' "$records_jsonl")"
-  diagnostics="$(jq -sc '
+  ' "$records_jsonl" >"$merged_file"
+  jq -sc '
     group_by(.id)
     | map({id:.[0].id,repositories:([.[].repository // ""] | map(select(length > 0)) | unique)})
     | map(select(.repositories | length > 1)
       | {type:"repository-collision",id,repositories})
-  ' "$records_jsonl")"
-  seed="$(jq -cnS --argjson records "$merged" --argjson config "$config" \
-    '{records:$records,config:$config}')"
-  snapshot_id="$(printf '%s' "$seed" | sha256sum | awk '{print $1}')"
+  ' "$records_jsonl" >"$diagnostics_file"
+  printf '%s\n' "$config" >"$config_file"
+  snapshot_id="$(jq -cnS \
+    --slurpfile records "$merged_file" --slurpfile config "$config_file" \
+    '{records:$records[0],config:$config[0]}' \
+    | sha256sum | awk '{print $1}')"
 
-  local refresh='{}'
   if [[ -f $REFRESH_STATE && ! -L $REFRESH_STATE ]]; then
-    refresh="$(jq -c . "$REFRESH_STATE" 2>/dev/null || printf '{}')"
+    jq -c . "$REFRESH_STATE" >"$refresh_file" 2>/dev/null \
+      || printf '{}\n' >"$refresh_file"
+  else
+    printf '{}\n' >"$refresh_file"
   fi
-  snapshot="$(jq -cn \
+  jq -cn \
     --arg snapshotId "$snapshot_id" --arg generatedAt "$(utc_now)" \
-    --argjson records "$merged" --argjson diagnostics "$diagnostics" \
-    --argjson config "$config" --argjson refresh "$refresh" \
+    --slurpfile records "$merged_file" \
+    --slurpfile diagnostics "$diagnostics_file" \
+    --slurpfile config "$config_file" --slurpfile refresh "$refresh_file" \
     '{ok:true,snapshotId:$snapshotId,generatedAt:$generatedAt,
-      records:$records,diagnostics:$diagnostics,config:$config,
-      cache:{lastSuccessfulRefresh:($refresh.lastSuccessfulRefresh // ""),
-        lastRefreshError:($refresh.lastRefreshError // ""),
-        refreshDurationMs:($refresh.refreshDurationMs // 0)}}')"
-  atomic_write_text "$SNAPSHOT_STATE" "$snapshot"
+      records:$records[0],diagnostics:$diagnostics[0],config:$config[0],
+      cache:{lastSuccessfulRefresh:($refresh[0].lastSuccessfulRefresh // ""),
+        lastRefreshError:($refresh[0].lastRefreshError // ""),
+        refreshDurationMs:($refresh[0].refreshDurationMs // 0)}}' \
+    >"$snapshot_file"
+  atomic_write_stream "$SNAPSHOT_STATE" <"$snapshot_file"
+  cat "$snapshot_file"
   rm -rf -- "$stage"
-  printf '%s\n' "$snapshot"
 )
 
 refresh_command() {
