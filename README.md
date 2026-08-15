@@ -34,9 +34,9 @@ binding is active. Change the first string if that disrupts your setup.
 
 ## Use
 
-Start typing to search plugin names, IDs, descriptions, authors, and tags.
-Enter opens the selected plugin's available action; Ctrl+Shift+I shows details
-without changing anything.
+Start typing to search plugin names, IDs, descriptions, authors, and tags. Enter
+opens the selected plugin's available action; Ctrl+Shift+I shows details without
+changing anything.
 
 Use either command to narrow the action first:
 
@@ -44,55 +44,47 @@ Use either command to narrow the action first:
 - `plug-remove:` shows removable local plugins
 
 Commands are not pinned. Type `install`, `remove`, `plug-in`, or `plg-in` to
-bring one forward, then press Tab or Enter to complete it. Search restarts
-after the colon. Backspace edits a plugin name normally; at an empty completed
-prefix, one press removes the trailing space and the next clears the command.
+bring one forward, then press Tab or Enter to complete it. Search restarts after
+the colon. Backspace edits a plugin name normally; at an empty completed prefix,
+one press removes the trailing space and the next clears the command.
 
 Useful keys:
 
-| Keys                                 | Action                                       |
-| ------------------------------------ | -------------------------------------------- |
-| `Ctrl+P`, `Escape`                   | Close palette from plugin list               |
-| `Up`, `Down`, `Page Up`, `Page Down` | Move selection                               |
-| `Home`, `End`                        | Jump to first or last result                 |
-| `Enter`                              | Complete command or confirm available action |
-| `Tab`                                | Complete selected command                    |
-| `Ctrl+Backspace`                     | Remove previous word                         |
-| `Ctrl+U`                             | Clear query                                  |
-| `Ctrl+R`                             | Refresh catalog                              |
-| `Ctrl+Shift+I`                       | Open selected plugin information             |
-| `Ctrl+Shift+O`                       | Open selected plugin or marketplace page     |
-| `Ctrl+Shift+G`                       | Open selected or marketplace repository      |
-| `Ctrl+Shift+S`                       | Open settings; Escape returns to list        |
+| Keys                         | Action                                       |
+| ---------------------------- | -------------------------------------------- |
+| `Ctrl+P`, `Escape`           | Close palette from plugin list               |
+| `Up`, `Down`, `Page Up/Down` | Move selection                               |
+| `Home`, `End`                | Jump to first or last result                 |
+| `Enter`                      | Complete command or confirm available action |
+| `Tab`                        | Complete selected command                    |
+| `Ctrl+Backspace`             | Remove previous word                         |
+| `Ctrl+U`                     | Clear query                                  |
+| `Ctrl+R`                     | Refresh catalog                              |
+| `Ctrl+Shift+I`               | Open selected plugin information             |
+| `Ctrl+Shift+O`               | Open selected plugin / marketplace page      |
+| `Ctrl+Shift+G`               | Open selected or marketplace repository      |
+| `Ctrl+Shift+S`               | Open settings; Escape returns to list        |
 
 ## Install behavior
 
-Installs run in the background by default and report their result in the
-palette and a notification. The confirmation's `Run in Omarchy terminal`
-switch streams native prompts instead. Both paths use the confirmed catalog
-snapshot.
+Installs run in the background by default and report their result in the palette
+and a notification. The confirmation's `Run in Omarchy terminal` switch streams
+native prompts instead. Both paths use the confirmed catalog snapshot.
 
 ## Start and stop
 
+Configs live in `~/.config/omarchy/plugins/io.github.ilyazar.plugin-control` and
+then under
+
 ```bash
-~/.config/omarchy/plugins/io.github.ilyazar.plugin-control/bin/plugin-control start
-~/.config/omarchy/plugins/io.github.ilyazar.plugin-control/bin/plugin-control start --tray-hidden
-~/.config/omarchy/plugins/io.github.ilyazar.plugin-control/bin/plugin-control stop
+./bin/plugin-control start
+./bin/plugin-control start --tray-hidden
+.bin/plugin-control stop
 ```
 
-`start` uses the configured tray default. `--tray-hidden` and
-`--tray-visible` override it; `stop` disables the plugin. Omarchy does not add
-plugin `bin` directories to `PATH`, so use the full path unless you add an
-alias.
-
-## Safety
-
-Omarchy plugins run unsandboxed; marketplace validation is not a security
-review. Plugin Control ignores remote command strings, validates repository
-roots, uses separate process arguments, and serializes confirmed actions.
-
-It refuses to remove itself, an unexpected checkout, or a checkout with local
-changes.
+`start` uses the configured tray default. `--tray-hidden` and `--tray-visible`
+override it; `stop` disables the plugin. Omarchy does not add plugin `bin`
+directories to `PATH`, so use the full path unless you add an alias.
 
 ## Settings
 
@@ -109,9 +101,9 @@ settings:
   tray-icon-hidden: false
 ```
 
-Plugin Control never rewrites the user-owned Ctrl+P binding. Its other
-shortcuts work only while the palette is focused. Tray visibility changes on
-the next `start` unless a CLI flag overrides it.
+Plugin Control never rewrites the user-owned Ctrl+P binding. Its other shortcuts
+work only while the palette is focused. Tray visibility changes on the next
+`start` unless a CLI flag overrides it.
 
 Settings use strict schema 2. Invalid edits keep the last valid schema-2 file;
 version 1 is not migrated.
