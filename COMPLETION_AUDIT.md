@@ -107,7 +107,9 @@ This audit records evidence for version 0.1.5 of
 - [x] Guarded self-removal. `plug-remove:` and the bar popup share one
   snapshot-pinned, No-first warning. The staged worker survives checkout
   deletion, invalidates the derived snapshot, preserves user state, and treats
-  a post-deletion shell-rescan error as materially complete.
+  a post-deletion shell-rescan error as materially complete. A clean live
+  palette removal finished with acknowledged status; public 0.1.5 then cloned,
+  enabled, opened, and was removed before the development link was restored.
 - [x] Dirty-checkout protection. Removal is blocked before the native remove
   command when Git reports local changes.
 - [x] Path containment. IDs reject traversal and removal requires the exact
@@ -198,6 +200,3 @@ ShellCheck reported no findings. The publishing preflight reported 0 errors.
 - Unauthenticated GitHub API limits apply to the optional issue channel.
 - Only the first 100 open submission issues are considered per refresh.
 - Normal-update integration is not implemented.
-- The final self-removal smoke used a dirty development symlink, so the palette
-  correctly blocked the live mutation. The complete lifecycle was exercised
-  with disposable plugin directories and mocked native commands.
