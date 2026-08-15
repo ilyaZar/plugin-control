@@ -1,6 +1,6 @@
 # Plugin Control completion audit
 
-This audit records evidence for version 0.1.2 of
+This audit records evidence for version 0.1.3 of
 `io.github.ilyazar.plugin-control` on 15 August 2026.
 
 ## Product and repository
@@ -23,11 +23,11 @@ This audit records evidence for version 0.1.2 of
 
 - [x] Instant cached opening. The service reads a bundled bootstrap before
   starting its cached snapshot process. Opening invokes no network or Git
-  function. The final live service became ready in 535 ms.
+  function. The final live service became ready in 510 ms.
 - [x] Warm latency. Ten repeated shell toggles measured 38-57 ms command
   round-trip, median 47 ms and worst 57 ms. Final focus-ready measurements
   were 4-13 ms.
-- [x] Filtering latency. Final live filtering measured 1-3 ms against 177
+- [x] Filtering latency. Final live filtering measured 1-3 ms against 188
   merged records. Five thousand synthetic records averaged 3.1 ms per fuzzy
   query, while 10,000 averaged 10.7 ms.
 - [x] Refresh measurement. Ten persistent snapshot reads measured 9-24 ms,
@@ -59,9 +59,10 @@ This audit records evidence for version 0.1.2 of
 
 ## Settings and channels
 
-- [x] Settings editor. Shift+S dispatches `scripts/open-settings.sh`, which
-  creates the plugin-owned settings safely, reports the parser line, and opens
-  them with the configured Omarchy editor.
+- [x] Settings editor. Ctrl+Shift+S dispatches `scripts/open-settings.sh`,
+  which creates the plugin-owned settings safely, reports the parser line,
+  and opens them with the configured Omarchy editor. The first header names
+  Ctrl+P as the command-palette binding and points to `bindings.lua`.
 - [x] Strict YAML. Tests cover schema version, booleans, duplicate IDs, unsafe
   tags, aliases, non-HTTPS URLs, embedded credentials, repository slugs,
   arbitrary command fields and last-good fallback.
@@ -107,13 +108,17 @@ This audit records evidence for version 0.1.2 of
 - [x] Durable actions. Detached workers write atomic status, bounded sanitized
   output, and a durable result before cleanup. Tests read the result through a
   fresh status call and prove worker staging cleanup after failure.
+- [x] Bounded action notice. A failed action remains visible in the palette and
+  red bar icon for ten seconds, then its durable status is acknowledged. A
+  persisted unacknowledged result starts the same timer when the service loads.
 - [x] Installed-state refresh. A successful mocked action caused another
   native plugin-list query and rebuilt the snapshot.
 
 ## UI and local integration
 
 - [x] Bar launcher. The single native package glyph opens the existing overlay
-  on left click, defaults to the right section, and adds no process or state.
+  on left click, defaults to the right section, and exposes exactly one
+  Settings item on right click. The live menu was opened from the bar.
 - [x] Shell lifecycle. The overlay exposes `opened`, `open`, `close`, and
   `toggle`, and is summoned through the existing shell endpoint. No competing
   Quickshell process is used in production.
@@ -126,13 +131,14 @@ This audit records evidence for version 0.1.2 of
   Control`, key P, modifier mask 4. The focused field also handles Ctrl+P as a
   defensive close path.
 - [x] Footer shortcuts. A top rule separates three equal-width shortcut cells;
-  their bracketed keys use the active theme's yellow. Shift+O and Shift+G
-  follow the selected plugin or fall back to the marketplace; Shift+S opens
-  settings.
+  their bracketed keys use the active theme's yellow. Ctrl+Shift+O and
+  Ctrl+Shift+G follow the selected plugin or fall back to the marketplace;
+  Ctrl+Shift+S opens settings.
 - [x] Visual smoke test. The live panel appeared top-centered below the bar on
-  focused monitor DP-3, with immediate cursor focus, five compact left-aligned
+  focused monitor VGA-1, with immediate cursor focus, compact left-aligned
   rows, theme tokens, source/status metadata, and a short dropdown animation.
-  Repeated toggling produced one overlay and left it closed.
+  Capital O remained search input, the failed-action notice expired after ten
+  seconds, and repeated toggling produced one overlay and left it closed.
 - [x] Preview. `preview.png` is a 722 by 492 crop containing only the palette.
   It was inspected at original resolution for layout and privacy.
 - [x] QML loading. The real Quickshell instantiation harness created the

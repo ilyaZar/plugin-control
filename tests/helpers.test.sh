@@ -40,22 +40,13 @@ mapfile -t editor_call <"$MOCK_EDITOR_LOG"
 [[ ${editor_call[1]} =~ ^\+[0-9]+$ ]]
 [[ ${editor_call[2]} == '+normal! zz' ]]
 [[ ${editor_call[3]} == "$XDG_CONFIG_HOME/omarchy/plugin-control/channels.yaml" ]]
+[[ $(head -n 1 "${editor_call[3]}") == \
+  '# COMMAND PALETTE KEYBINDING: CTRL+P' ]]
 printf 'ok - settings helper uses fixed editor argv and the validated line\n'
-
-bindings="$TEMP_ROOT/bindings.lua"
-printf '%s\n' '-- bindings' 'o.bind(' '  "CTRL + P",' \
-  '  "Plugin Control",' ')' >"$bindings"
-printf 'code\n' >"$XDG_STATE_HOME/omarchy/defaults/editor"
-"$ROOT/scripts/open-keybindings.sh" "$bindings"
-mapfile -t editor_call <"$MOCK_EDITOR_LOG"
-[[ ${editor_call[0]} == omarchy-launch-editor ]]
-[[ ${editor_call[1]} == --goto ]]
-[[ ${editor_call[2]} == "$bindings:4:1" ]]
-printf 'ok - binding helper uses fixed editor argv and matched location\n'
 
 marker="$TEMP_ROOT/must-not-run"
 printf 'touch %s\n' "$marker" >"$XDG_STATE_HOME/omarchy/defaults/editor"
-"$ROOT/scripts/open-keybindings.sh" "$bindings"
+"$ROOT/scripts/open-settings.sh" "$ROOT"
 [[ ! -e $marker ]]
 mapfile -t editor_call <"$MOCK_EDITOR_LOG"
 [[ ${editor_call[0]} == omarchy-launch-config-editor ]]

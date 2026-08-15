@@ -8,7 +8,7 @@ ROOT="$(cd -- "$TEST_DIR/.." && pwd)"
 readonly ROOT
 
 bash -n "$ROOT/bin/plugin-control" "$ROOT/scripts/open-settings.sh" \
-  "$ROOT/scripts/open-keybindings.sh" "$TEST_DIR"/*.sh
+  "$TEST_DIR"/*.sh
 ruby -c "$ROOT/lib/channel_config.rb"
 node "$TEST_DIR/model.test.js"
 ruby "$TEST_DIR/channel_config.test.rb"

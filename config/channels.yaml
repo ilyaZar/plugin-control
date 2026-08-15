@@ -1,3 +1,7 @@
+# COMMAND PALETTE KEYBINDING: CTRL+P
+# Change the "CTRL + P" binding for "Plugin Control" in:
+# ~/.config/hypr/bindings.lua
+
 version: 1
 refresh_minutes: 30
 allow_unlisted_installs: false

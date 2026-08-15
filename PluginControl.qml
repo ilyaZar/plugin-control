@@ -325,6 +325,11 @@ Item {
       sourceDir()])
   }
 
+  function dismissStatus() {
+    transientMessage = ""
+    if (service) service.acknowledgeAction()
+  }
+
   function sourceDir() {
     return manifest && manifest.__sourceDir
       ? String(manifest.__sourceDir) : ""
@@ -334,21 +339,27 @@ Item {
     return sourceDir() + "/" + relative
   }
 
+  function isContextShortcut(event, key) {
+    var control = (event.modifiers & Qt.ControlModifier) !== 0
+    var shift = (event.modifiers & Qt.ShiftModifier) !== 0
+    var alt = (event.modifiers & Qt.AltModifier) !== 0
+    return control && shift && !alt && event.key === key
+  }
+
   function handleKey(event) {
     if (actionDialog.opened) return actionDialog.handleKey(event)
     var control = (event.modifiers & Qt.ControlModifier) !== 0
-    var shift = (event.modifiers & Qt.ShiftModifier) !== 0
     var alt = (event.modifiers & Qt.AltModifier) !== 0
 
     if (control && event.key === Qt.Key_P) {
       dismiss()
     } else if (event.key === Qt.Key_Escape) {
       dismiss()
-    } else if (shift && !control && !alt && event.key === Qt.Key_O) {
+    } else if (isContextShortcut(event, Qt.Key_O)) {
       openMarketplaceShortcut()
-    } else if (shift && !control && !alt && event.key === Qt.Key_G) {
+    } else if (isContextShortcut(event, Qt.Key_G)) {
       openGithubShortcut()
-    } else if (shift && !control && !alt && event.key === Qt.Key_S) {
+    } else if (isContextShortcut(event, Qt.Key_S)) {
       openSettings()
     } else if (control && event.key === Qt.Key_R) {
       transientMessage = "Refreshing catalog..."
@@ -414,7 +425,7 @@ Item {
     target: root.service
     function onRecordsChanged() { root.rebuildResults() }
     function onActionFinished(state) {
-      root.transientMessage = String(state && state.message || "Action finished.")
+      root.transientMessage = ""
       root.rebuildResults()
     }
   }
@@ -769,7 +780,7 @@ Item {
             anchors.fill: parent
             enabled: root.service && root.service.actionState
               && root.service.actionState.acknowledged === false
-            onClicked: if (root.service) root.service.acknowledgeAction()
+            onClicked: root.dismissStatus()
           }
         }
 
@@ -791,10 +802,10 @@ Item {
 
             Repeater {
               model: [
-                { keyLabel: "[Shift+O]",
+                { keyLabel: "[Ctrl+Shift+O]",
                   label: root.marketplaceShortcutLabel },
-                { keyLabel: "[Shift+G]", label: "GitHub" },
-                { keyLabel: "[Shift+S]", label: "Settings" }
+                { keyLabel: "[Ctrl+Shift+G]", label: "GitHub" },
+                { keyLabel: "[Ctrl+Shift+S]", label: "Settings" }
               ]
 
               delegate: Item {

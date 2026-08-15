@@ -19,7 +19,8 @@ omarchy plugin add https://github.com/ilyaZar/plugin-control.git --enable
 ```
 
 Omarchy asks where to place the `󰏖` package icon during an interactive
-install. It defaults to the right section. Click the icon to open the palette.
+install. It defaults to the right section. Click the icon to open the palette,
+or right-click it for Settings.
 
 Plugin manifests cannot add global bindings. For a keyboard-only path, add
 this optional binding to your repo-managed or user-owned `bindings.lua`:
@@ -76,9 +77,10 @@ Useful keys:
 - Ctrl+Backspace removes the previous word
 - Ctrl+U clears the query
 - Ctrl+R refreshes the catalog
-- Shift+O opens the selected plugin page, or the marketplace
-- Shift+G opens the selected plugin repository, or the marketplace repository
-- Shift+S opens Plugin Control settings
+- Ctrl+Shift+O opens the selected plugin page, or the marketplace
+- Ctrl+Shift+G opens the selected plugin repository, or the marketplace
+  repository
+- Ctrl+Shift+S opens Plugin Control settings
 
 ## Install output and bar placement
 
@@ -166,8 +168,9 @@ repository.
 
 ## Settings
 
-Shift+S opens the plugin-owned settings file. The catalog-channel list is the
-only manually editable setting today:
+Ctrl+Shift+S opens the plugin-owned settings file. Its top header points to
+the Ctrl+P command-palette binding in `~/.config/hypr/bindings.lua`; the
+catalog-channel list is the only plugin setting today:
 
 ```text
 ~/.config/omarchy/plugin-control/channels.yaml

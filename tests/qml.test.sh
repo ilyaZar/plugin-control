@@ -23,11 +23,11 @@ rg -q 'function toggle\(\)' "$ROOT/PluginControl.qml"
 rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Escape' "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Shift+O]",' \
+rg -Fq '{ keyLabel: "[Ctrl+Shift+O]",' \
   "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Shift+G]", label: "GitHub" }' \
+rg -Fq '{ keyLabel: "[Ctrl+Shift+G]", label: "GitHub" }' \
   "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Shift+S]", label: "Settings" }' \
+rg -Fq '{ keyLabel: "[Ctrl+Shift+S]", label: "Settings" }' \
   "$ROOT/PluginControl.qml"
 rg -Fq 'sourcePath("scripts/open-settings.sh")' "$ROOT/PluginControl.qml"
 rg -Fq 'openMarketplaceShortcut()' "$ROOT/PluginControl.qml"
@@ -61,13 +61,22 @@ rg -Fq 'BarIconButton {' "$ROOT/PluginControlBar.qml"
 rg -Fq 'text: "󰏖"' "$ROOT/PluginControlBar.qml"
 rg -Fq 'Qt.LeftButton' "$ROOT/PluginControlBar.qml"
 rg -Fq 'root.bar.shell.toggle' "$ROOT/PluginControlBar.qml"
-printf 'ok - bar launcher uses the native package button\n'
+rg -Fq 'Qt.RightButton' "$ROOT/PluginControlBar.qml"
+rg -Fq 'text: "Settings"' "$ROOT/PluginControlBar.qml"
+rg -Fq 'barWidgetRegistry.metadataFor(root.moduleName)' \
+  "$ROOT/PluginControlBar.qml"
+rg -Fq 'sourceDir + "/scripts/open-settings.sh"' \
+  "$ROOT/PluginControlBar.qml"
+printf 'ok - bar launcher uses the native package button and settings menu\n'
 
 rg -Fq 'color: root.shortcutColor' "$ROOT/PluginControl.qml"
 rg -Fq 'color: Util.alpha(root.foreground, 0.16)' \
   "$ROOT/PluginControl.qml"
 rg -q 'sourceLabel:' "$ROOT/PluginControl.qml"
 rg -q 'service.actionRunning' "$ROOT/PluginControl.qml"
+rg -Fq 'actionNoticeDurationMs: 10000' "$ROOT/Service.qml"
+rg -Fq 'finishedUnacknowledged && isNewNotice' "$ROOT/Service.qml"
+rg -Fq 'onTriggered: root.acknowledgeAction()' "$ROOT/Service.qml"
 rg -q 'actionDialog.openDialog\(\)' "$ROOT/PluginControl.qml"
 rg -q 'installInTerminal' "$ROOT/PluginControl.qml"
 rg -q 'omarchy-launch-terminal' "$ROOT/bin/plugin-control"

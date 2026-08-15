@@ -34,6 +34,7 @@ Item {
   property double componentStartedAt: Date.now()
   property double latestOpenStartedAt: 0
   property bool startupRefreshPending: true
+  readonly property int actionNoticeDurationMs: 10000
 
   readonly property string homeDir: Quickshell.env("HOME")
   readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
@@ -119,9 +120,18 @@ Item {
 
   function acceptStatus(raw) {
     var previousRunning = actionState && actionState.running === true
+    var previousAcknowledged = actionState
+      && actionState.acknowledged === false
+    var previousActionId = String(actionState && actionState.actionId || "")
     var parsed = parseJson(raw, null)
     if (!parsed || typeof parsed !== "object") return
     actionState = parsed
+    var finishedUnacknowledged = parsed.running !== true
+      && parsed.acknowledged !== true
+    var isNewNotice = previousRunning || !previousAcknowledged
+      || previousActionId !== String(parsed.actionId || "")
+    if (finishedUnacknowledged && isNewNotice)
+      actionNoticeTimer.restart()
     if (previousRunning && parsed.running !== true) {
       loadCached()
       actionFinished(parsed)
@@ -156,6 +166,7 @@ Item {
         message: parsed && parsed.error
           ? String(parsed.error) : "Could not start the plugin action."
       }
+      actionNoticeTimer.restart()
       actionFinished(actionState)
       return
     }
@@ -171,8 +182,9 @@ Item {
 
   function acknowledgeAction() {
     var actionId = String(actionState && actionState.actionId || "")
-    if (!helperPath || !actionId) return
-    Quickshell.execDetached([helperPath, "ack", actionId])
+    actionNoticeTimer.stop()
+    if (helperPath && actionId)
+      Quickshell.execDetached([helperPath, "ack", actionId])
     var copy = ({})
     for (var key in actionState) copy[key] = actionState[key]
     copy.acknowledged = true
@@ -299,6 +311,13 @@ Item {
     repeat: true
     running: root.actionRunning
     onTriggered: root.requestStatus()
+  }
+
+  Timer {
+    id: actionNoticeTimer
+    interval: root.actionNoticeDurationMs
+    repeat: false
+    onTriggered: root.acknowledgeAction()
   }
 
   Component.onCompleted: {

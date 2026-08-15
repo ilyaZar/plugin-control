@@ -49,6 +49,13 @@ ShellRoot {
   Item { id: host }
 
   QtObject {
+    id: mockBarWidgetRegistry
+    function metadataFor(moduleName) {
+      return { sourceDir: root.sourceDir }
+    }
+  }
+
+  QtObject {
     id: mockBar
     property string position: "top"
     property bool barHidden: false
@@ -59,6 +66,7 @@ ShellRoot {
     property color urgent: "red"
     property bool foregroundAnimationEnabled: false
     property var shell: mockShell
+    property var barWidgetRegistry: mockBarWidgetRegistry
     function showTooltip(item, text) {}
     function hideTooltip(item) {}
     function registerClickTarget(item) {}
@@ -72,6 +80,7 @@ ShellRoot {
     property string lastTogglePayload: ""
     function hide(pluginId) { return true }
     function isPluginOpen(pluginId) { return false }
+    function serviceFor(pluginId) { return root.serviceObject }
     function toggle(pluginId, payloadJson) {
       lastToggleId = pluginId
       lastTogglePayload = payloadJson
@@ -118,6 +127,15 @@ ShellRoot {
         var backspaceEvent = { modifiers: 0, key: Qt.Key_Backspace }
         if (overlay.handleKey(backspaceEvent))
           console.error("PLUGIN_CONTROL_LOAD_ERROR backspace ownership")
+        var shiftEvent = { modifiers: Qt.ShiftModifier, key: Qt.Key_O }
+        var contextEvent = {
+          modifiers: Qt.ControlModifier | Qt.ShiftModifier,
+          key: Qt.Key_O
+        }
+        if (overlay.isContextShortcut(shiftEvent, Qt.Key_O)
+            || !overlay.isContextShortcut(contextEvent, Qt.Key_O)) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR context shortcut modifiers")
+        }
         overlay.loadShortcutColor('yellow = "#A1B2C3"')
         if (String(overlay.shortcutColor).toLowerCase() !== "#a1b2c3")
           console.error("PLUGIN_CONTROL_LOAD_ERROR theme yellow")
@@ -144,6 +162,25 @@ ShellRoot {
           console.error("PLUGIN_CONTROL_LOAD_ERROR global links")
         }
         console.log("PLUGIN_CONTROL_INTERACTION_OK palette interactions")
+        root.serviceObject.acceptActionStart('{"error":"Install failed."}', 1)
+        if (root.serviceObject.actionNoticeDurationMs !== 10000
+            || root.serviceObject.actionState.acknowledged !== false
+            || overlay.statusText !== "Install failed.") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR timed action notice")
+        }
+        root.serviceObject.acknowledgeAction()
+        if (root.serviceObject.actionState.acknowledged !== true
+            || overlay.statusText === "Install failed.") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR action notice dismissal")
+        }
+        root.serviceObject.acceptStatus('{"ok":false,"running":false,'
+          + '"acknowledged":false,"actionId":"persisted-failure",'
+          + '"message":"Persisted failure."}')
+        if (root.serviceObject.actionState.acknowledged !== false
+            || overlay.statusText !== "Persisted failure.") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR persisted action notice")
+        }
+        root.serviceObject.acknowledgeAction()
       }
       var dialog = root.loadEntry("ActionDialog.qml", "dialog")
       if (dialog) {
@@ -158,12 +195,26 @@ ShellRoot {
       var barWidget = root.loadEntry("PluginControlBar.qml", "bar-widget")
       if (barWidget) {
         barWidget.bar = mockBar
+        root.serviceObject.actionState = {
+          ok: false,
+          acknowledged: false,
+          message: "Install failed."
+        }
+        if (!barWidget.actionFailed)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR bar failure state")
+        root.serviceObject.acknowledgeAction()
+        if (barWidget.actionFailed)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR bar failure dismissal")
         barWidget.openPalette()
         if (mockShell.lastToggleId
             !== "io.github.ilyazar.plugin-control"
             || mockShell.lastTogglePayload !== "{}") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR bar-widget command")
         }
+        barWidget.settingsMenuOpen = true
+        barWidget.close()
+        if (barWidget.settingsMenuOpen)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR bar settings menu")
       }
       Qt.callLater(Qt.quit)
     }
