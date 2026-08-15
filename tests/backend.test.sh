@@ -176,6 +176,23 @@ jq -e '.ok == true' "$TEMP_ROOT/snapshot-two.json" >/dev/null
 unset MOCK_LIST_SLEEP
 printf 'ok - concurrent snapshot builds are serialized\n'
 
+jq -cn '{ok:true,records:[range(0;400) as $number
+  | {id:("io.example.large-" + ($number | tostring)),
+      name:("Large plugin " + ($number | tostring)),
+      description:("x" * 600),source:"marketplace",sourceRank:20,
+      marketplaceListed:true,repository:"https://github.com/example/large"}]}' \
+  >"$cache_dir/marketplace.json"
+rm -f -- "$XDG_STATE_HOME/omarchy/plugin-control/snapshot.json"
+large_snapshot="$(helper cached "$ROOT")"
+jq -e '(.records | length) >= 400
+  and any(.records[]; .id == "io.example.large-399")' \
+  <<<"$large_snapshot" >/dev/null
+printf 'ok - large snapshots avoid argument-size limits\n'
+
+cp "$TEST_DIR/fixtures/catalog-action.json" "$cache_dir/marketplace.json"
+snapshot="$(rebuild_snapshot)"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+
 snapshot_state="$XDG_STATE_HOME/omarchy/plugin-control/snapshot.json"
 cp "$snapshot_state" "$TEMP_ROOT/current-snapshot.json"
 jq '.config.version = 1' "$snapshot_state" >"$snapshot_state.tmp"
