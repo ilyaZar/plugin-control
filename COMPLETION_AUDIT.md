@@ -1,21 +1,23 @@
 # Plugin Control completion audit
 
-This audit records evidence for version 0.1.0 of
+This audit records evidence for version 0.1.1 of
 `io.github.ilyazar.plugin-control` on 15 August 2026.
 
 ## Product and repository
 
 - [x] Correct repository shape. The repository root contains one
-  `manifest.json`, separate service, overlay, dialog, JavaScript model, Bash
-  backend, strict YAML parser, jq normalizers, editor helpers, copied shortcut
-  library, fixtures, tests, documentation, MIT license, and `preview.png`.
+  `manifest.json`, separate service, overlay, bar launcher, dialog, JavaScript
+  model, Bash backend, strict YAML parser, jq normalizers, editor helpers,
+  copied shortcut library, fixtures, tests, documentation, MIT license, and
+  `preview.png`.
 - [x] Runtime validation. `omarchy plugin validate .` exited 0. The publishing
   preflight reported 0 errors.
 - [x] No plugin-tree symlinks. The publishing preflight checked this directly.
   The development installation is a symlink at the plugin root, outside the
   repository tree.
-- [x] Local installation. Omarchy lists the plugin as enabled with service and
-  overlay kinds. The source is linked at the exact manifest-ID path.
+- [x] Local installation. Omarchy lists the plugin as enabled with service,
+  overlay, and bar-widget kinds. The source is linked at the exact manifest-ID
+  path.
 
 ## Loading and performance
 
@@ -109,6 +111,8 @@ This audit records evidence for version 0.1.0 of
 
 ## UI and local integration
 
+- [x] Bar launcher. The single native package glyph opens the existing overlay
+  on left click, defaults to the right section, and adds no process or state.
 - [x] Shell lifecycle. The overlay exposes `opened`, `open`, `close`, and
   `toggle`, and is summoned through the existing shell endpoint. No competing
   Quickshell process is used in production.
@@ -126,8 +130,9 @@ This audit records evidence for version 0.1.0 of
   Repeated toggling produced one overlay and left it closed.
 - [x] Preview. `preview.png` is a 722 by 502 crop containing only the palette.
   It was inspected at original resolution for layout and privacy.
-- [x] QML loading. The real Quickshell instantiation harness created both
-  service and overlay entry points. Qt 6 model tests passed 4 of 4.
+- [x] QML loading. The real Quickshell instantiation harness created the
+  service, overlay, and bar-widget entry points. Qt 6 model tests passed 4 of
+  4.
 
 ## Verification commands
 

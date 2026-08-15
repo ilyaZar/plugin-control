@@ -13,6 +13,7 @@ if [[ -x /usr/lib/qt6/bin/qmllint ]]; then
 fi
 "$qmllint_bin" -I /usr/share/omarchy/shell \
   "$ROOT/Service.qml" "$ROOT/PluginControl.qml" "$ROOT/ActionDialog.qml" \
+  "$ROOT/PluginControlBar.qml" \
   "$ROOT/lib/shortcuts/HyprlandBinding.qml"
 printf 'ok - QML lint\n'
 
@@ -45,6 +46,12 @@ if rg -q 'horizontalAlignment: Text.AlignHCenter' "$ROOT/PluginControl.qml"; the
   exit 1
 fi
 printf 'ok - overlay lifecycle input shortcuts and left-aligned rows\n'
+
+rg -Fq 'BarIconButton {' "$ROOT/PluginControlBar.qml"
+rg -Fq 'text: "󰏖"' "$ROOT/PluginControlBar.qml"
+rg -Fq 'Qt.LeftButton' "$ROOT/PluginControlBar.qml"
+rg -Fq 'root.bar.shell.toggle' "$ROOT/PluginControlBar.qml"
+printf 'ok - bar launcher uses the native package button\n'
 
 rg -q 'Shift\+O  Marketplace' "$ROOT/PluginControl.qml"
 rg -q 'Shift\+G  GitHub' "$ROOT/PluginControl.qml"
@@ -93,8 +100,9 @@ if ! env QT_QPA_PLATFORM=wayland HOME="$runtime_root/home" \
 fi
 grep -Fq 'PLUGIN_CONTROL_LOAD_OK service' "$runtime_root/quickshell.log"
 grep -Fq 'PLUGIN_CONTROL_LOAD_OK overlay' "$runtime_root/quickshell.log"
+grep -Fq 'PLUGIN_CONTROL_LOAD_OK bar-widget' "$runtime_root/quickshell.log"
 if grep -Fq 'PLUGIN_CONTROL_LOAD_ERROR' "$runtime_root/quickshell.log"; then
   sed -n '1,240p' "$runtime_root/quickshell.log" >&2
   exit 1
 fi
-printf 'ok - service and overlay instantiate in Quickshell\n'
+printf 'ok - service overlay and bar widget instantiate in Quickshell\n'

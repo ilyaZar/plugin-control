@@ -3,8 +3,9 @@
 ![Plugin Control command palette](preview.png)
 
 Think of Sublime Text's classic Package Control or the VS Code Command
-Palette, but for Omarchy Quattro plugins. Press Ctrl+P, type a few letters,
-and install or remove a plugin without leaving the keyboard.
+Palette, but for Omarchy Quattro plugins. Click the package icon in the bar or
+press Ctrl+P, type a few letters, and install or remove a plugin without
+leaving the keyboard.
 
 Plugin Control keeps the full HANCORE marketplace and local plugin state in a
 small cache, then filters it in process on every keypress. Opening the palette
@@ -18,8 +19,11 @@ omarchy plugin add \
   --enable
 ```
 
-Plugin manifests cannot add global bindings. Add this optional binding to your
-repo-managed or user-owned `bindings.lua`:
+Omarchy asks where to place the `󰏖` package icon during an interactive
+install. It defaults to the right section. Click the icon to open the palette.
+
+Plugin manifests cannot add global bindings. For a keyboard-only path, add
+this optional binding to your repo-managed or user-owned `bindings.lua`:
 
 ```lua
 o.bind(
@@ -175,7 +179,7 @@ rechecks that commit immediately before installation.
 Runtime dependencies are Omarchy Quattro and its shell, Bash, curl, Git, jq,
 Ruby with Psych, util-linux (`flock` and `setsid`), GNU coreutils, and
 `timeout`. Terminal installs use Omarchy's `omarchy-launch-terminal`. The
-plugin does not install packages or use `sudo`.
+plugin does not install packages or request elevated privileges.
 
 ## State
 

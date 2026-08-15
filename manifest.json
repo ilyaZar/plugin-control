@@ -2,17 +2,26 @@
   "schemaVersion": 1,
   "id": "io.github.ilyazar.plugin-control",
   "name": "Plugin Control",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "ilyaZar",
   "license": "MIT",
   "description": "Ctrl+P fuzzy command palette for installing marketplace plugins and removing local plugins.",
   "kinds": [
     "service",
-    "overlay"
+    "overlay",
+    "bar-widget"
   ],
   "keepLoaded": true,
   "entryPoints": {
     "service": "Service.qml",
-    "overlay": "PluginControl.qml"
+    "overlay": "PluginControl.qml",
+    "barWidget": "PluginControlBar.qml"
+  },
+  "barWidget": {
+    "displayName": "Plugin Control",
+    "description": "Opens the Plugin Control command palette",
+    "category": "Launcher",
+    "allowMultiple": false,
+    "defaultSection": "right"
   }
 }
