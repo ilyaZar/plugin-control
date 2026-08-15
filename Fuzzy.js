@@ -137,6 +137,15 @@ function commandSuggestions(value) {
   return results
 }
 
+function operationIntent(operation, value) {
+  var query = normalize(value)
+  if (!query) return false
+  if (operation.indexOf(query) === 0) return true
+  return query.length >= 3
+    && query.charAt(0) === operation.charAt(0)
+    && subsequenceCost(operation, query) >= 0
+}
+
 function eligible(record, mode, selfId) {
   if (!record || !record.id) return false
   if (mode === "install")
@@ -171,15 +180,10 @@ function search(records, input, limit, selfId) {
   rows.sort(compareRows)
   var results = []
   var rawQuery = normalize(input)
-  if (parsed.mode === "browse"
-      && (!rawQuery || (rawQuery.length < 3
-        && "plug-".indexOf(rawQuery) === 0))) {
-    for (var k = 0; k < COMMANDS.length && results.length < maximum; k++)
-      results.push(COMMANDS[k])
-  } else if (parsed.mode === "browse") {
-    for (var m = 0; m < COMMANDS.length && results.length < maximum; m++) {
-      if (fieldScore(COMMANDS[m].operation, rawQuery, 850, true) >= 0)
-        results.push(COMMANDS[m])
+  if (parsed.mode === "browse") {
+    for (var k = 0; k < COMMANDS.length && results.length < maximum; k++) {
+      if (operationIntent(COMMANDS[k].operation, rawQuery))
+        results.push(COMMANDS[k])
     }
   }
   for (var j = 0; j < rows.length && results.length < maximum; j++)

@@ -80,18 +80,19 @@ test("whitespace around a colon is accepted", () => {
   assert.equal(parsed.query, "local");
 });
 
-test("empty browse includes commands before plugins", () => {
+test("empty browse leaves commands unpinned", () => {
   const result = Fuzzy.search(records, "", 50, Catalog.SELF_ID);
-  assert.deepEqual(result.results.slice(0, 2).map((row) => row.name),
-    ["plug-install:", "plug-remove:"]);
   assert.equal(result.mode, "browse");
+  assert.equal(result.results.some((row) => row.commandCompletion), false);
+  assert.equal(result.results[0].name, "Clock");
 });
 
-test("short command prefixes keep commands in browse results", () => {
-  const result = Fuzzy.search(records, "pl", 50, Catalog.SELF_ID);
-  assert.equal(result.mode, "browse");
-  assert.deepEqual(result.results.slice(0, 2).map((row) => row.name),
-    ["plug-install:", "plug-remove:"]);
+test("short plugin text leaves commands unpinned", () => {
+  for (const query of ["p", "pl", "n"]) {
+    const result = Fuzzy.search(records, query, 50, Catalog.SELF_ID);
+    assert.equal(result.mode, "browse");
+    assert.equal(result.results.some((row) => row.commandCompletion), false);
+  }
 });
 
 test("partial command input hides plugin rows", () => {
@@ -120,18 +121,24 @@ test("command-shaped selection is fuzzy and keeps install first", () => {
     .results.map((row) => row.commandCompletion), ["plug-install: "]);
 });
 
-test("bare operation matches keep ordinary browse results", () => {
-  for (const query of ["inst", "istl"]) {
+test("operation intent promotes commands above browse results", () => {
+  for (const query of ["i", "in", "inst", "istl"]) {
     const result = Fuzzy.search(records, query, 50, Catalog.SELF_ID);
     assert.equal(result.mode, "browse");
     assert.equal(result.results[0].commandCompletion, "plug-install: ");
   }
-  const remove = Fuzzy.search(records, "rem", 50, Catalog.SELF_ID);
-  assert.equal(remove.mode, "browse");
-  assert.equal(remove.results[0].commandCompletion, "plug-remove: ");
+  for (const query of ["r", "re", "rem"]) {
+    const result = Fuzzy.search(records, query, 50, Catalog.SELF_ID);
+    assert.equal(result.mode, "browse");
+    assert.equal(result.results[0].commandCompletion, "plug-remove: ");
+  }
 
+  for (const query of ["sta", "all", "ove"]) {
+    const result = Fuzzy.search(records, query, 50, Catalog.SELF_ID);
+    assert.equal(result.mode, "browse");
+    assert.equal(result.results.some((row) => row.commandCompletion), false);
+  }
   const station = Fuzzy.search(records, "sta", 50, Catalog.SELF_ID);
-  assert.equal(station.mode, "browse");
   assert.ok(station.results.some((row) => row.id === "io.example.weather"));
 });
 

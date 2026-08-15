@@ -31,6 +31,7 @@ Item {
   property var targetScreen: null
   property double filterStartedAt: 0
   property bool installInTerminal: false
+  property bool settingsMenuOpen: false
   property var savedSettings: ({})
   property color shortcutColor: "#e5c07b"
 
@@ -63,8 +64,9 @@ Item {
     + headerHeight + visibleRows * rowHeight
     + footerHeight + statusHeight + Style.spacing.sm * 3
   readonly property int cardHeight: Math.min(Style.space(500),
-    Math.max(Style.space(220), Math.min(desiredCardHeight,
-      panel.height - restingY - Style.gapsOut)))
+    Math.max(Style.space(actionDialog.opened ? 420 : 220),
+      Math.min(desiredCardHeight,
+        panel.height - restingY - Style.gapsOut)))
   readonly property int topBarOffset: shell && shell.bar
     && shell.bar.position === "top" && shell.bar.barHidden !== true
     ? Number(shell.bar.barSize || 0) : 0
@@ -109,6 +111,9 @@ Item {
   }
 
   function open(payloadJson) {
+    var payload = ({})
+    try { payload = JSON.parse(String(payloadJson || "{}")) }
+    catch (error) { payload = ({}) }
     resolveTargetScreen()
     if (service) service.recordOpenRequest()
     if (service) service.loadCached()
@@ -121,8 +126,10 @@ Item {
     selectedIndex = 0
     selectedRecord = null
     pendingSnapshotId = ""
+    settingsMenuOpen = false
     actionDialog.closeDialog()
-    rebuildResults()
+    if (payload.settings === true) showSettingsMenu()
+    else rebuildResults()
     Qt.callLater(function() {
       queryInput.forceActiveFocus()
       if (service) service.recordFocusReady()
@@ -132,6 +139,7 @@ Item {
   function close() {
     if (!surfaceVisible) return
     opened = false
+    settingsMenuOpen = false
     actionDialog.closeDialog()
     closeTimer.interval = service && service.animationsEnabled ? 80 : 0
     closeTimer.restart()
@@ -166,7 +174,38 @@ Item {
     filterStartedAt = Date.now()
     var records = service && Array.isArray(service.records)
       ? service.records : []
-    var result = Fuzzy.search(records, query, 50, pluginId)
+    var result = settingsMenuOpen ? {
+      mode: "settings",
+      results: [
+        {
+          name: "Plugin settings",
+          description: "Edit channels and tray defaults",
+          author: "Plugin Control",
+          kind: "Settings",
+          stateLabel: "ENTER",
+          sourceLabel: "YAML",
+          settingsAction: "plugin"
+        },
+        {
+          name: "Keybindings",
+          description: "Edit the user-owned Plugin Control shortcut",
+          author: "Omarchy",
+          kind: "Settings",
+          stateLabel: "ENTER",
+          sourceLabel: "Lua",
+          settingsAction: "keybindings"
+        },
+        {
+          name: "Cancel",
+          description: "Return to the plugin list",
+          author: "Plugin Control",
+          kind: "Settings",
+          stateLabel: "ENTER",
+          sourceLabel: "Back",
+          settingsAction: "cancel"
+        }
+      ]
+    } : Fuzzy.search(records, query, 50, pluginId)
     mode = result.mode
     filteredRecords = result.results
     displayModel.clear()
@@ -229,18 +268,37 @@ Item {
     return true
   }
 
+  function openDialogFor(record, operation) {
+    if (!record || !record.id || record.commandCompletion) return false
+    selectedRecord = JSON.parse(JSON.stringify(record))
+    pendingOperation = String(operation || "browse")
+    pendingSnapshotId = pendingOperation === "browse" ? ""
+      : (service && service.snapshot
+        ? String(service.snapshot.snapshotId || "") : "")
+    actionDialog.openDialog()
+    return true
+  }
+
   function activateIndex(index) {
     if (index < 0 || index >= filteredRecords.length) return
+    if (filteredRecords[index].settingsAction) {
+      activateSettings(filteredRecords[index].settingsAction)
+      return
+    }
     if (completeCommand(index)) return
-    selectedRecord = JSON.parse(JSON.stringify(filteredRecords[index]))
-    pendingOperation = availableOperation(selectedRecord)
-    pendingSnapshotId = service && service.snapshot
-      ? String(service.snapshot.snapshotId || "") : ""
-    actionDialog.openDialog()
+    var record = filteredRecords[index]
+    var operation = availableOperation(record)
+    if (operation === "browse") return
+    openDialogFor(record, operation)
+  }
+
+  function openSelectedInfo() {
+    return openDialogFor(shortcutRecord, "browse")
   }
 
   function confirmAction() {
     if (!selectedRecord || !service) return
+    if (pendingOperation === "browse") return
     if (!pendingSnapshotId) {
       transientMessage = "No actionable catalog snapshot is available."
       actionDialog.closeDialog()
@@ -320,9 +378,34 @@ Item {
   }
 
   function openSettings() {
+    showSettingsMenu()
+  }
+
+  function showSettingsMenu() {
+    settingsMenuOpen = true
+    queryInput.text = ""
+    selectedIndex = 0
+    rebuildResults()
+    queryInput.forceActiveFocus()
+  }
+
+  function closeSettingsMenu() {
+    settingsMenuOpen = false
+    queryInput.text = ""
+    selectedIndex = 0
+    rebuildResults()
+    queryInput.forceActiveFocus()
+  }
+
+  function activateSettings(action) {
+    if (action === "cancel") {
+      closeSettingsMenu()
+      return
+    }
+    if (["plugin", "keybindings"].indexOf(String(action)) < 0) return
     dismiss()
     Quickshell.execDetached([sourcePath("scripts/open-settings.sh"),
-      sourceDir()])
+      String(action), sourceDir()])
   }
 
   function dismissStatus() {
@@ -346,15 +429,45 @@ Item {
     return control && shift && !alt && event.key === key
   }
 
+  function isCompletedCommandPrefix(value, cursor, selectionStart,
+      selectionEnd) {
+    var text = String(value || "")
+    return cursor === text.length && selectionStart === selectionEnd
+      && (text === "plug-install:" || text === "plug-remove:")
+  }
+
+  function clearCompletedCommandPrefix() {
+    if (!isCompletedCommandPrefix(queryInput.text, queryInput.cursorPosition,
+        queryInput.selectionStart, queryInput.selectionEnd)) return false
+    queryInput.text = ""
+    queryInput.cursorPosition = 0
+    return true
+  }
+
   function handleKey(event) {
     if (actionDialog.opened) return actionDialog.handleKey(event)
     var control = (event.modifiers & Qt.ControlModifier) !== 0
     var alt = (event.modifiers & Qt.AltModifier) !== 0
 
+    if (settingsMenuOpen) {
+      if (event.key === Qt.Key_Escape) closeSettingsMenu()
+      else if (event.key === Qt.Key_Up
+          || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_K))
+        select(selectedIndex - 1)
+      else if (event.key === Qt.Key_Down
+          || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_J))
+        select(selectedIndex + 1)
+      else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+        activateIndex(selectedIndex)
+      return true
+    }
+
     if (control && event.key === Qt.Key_P) {
       dismiss()
     } else if (event.key === Qt.Key_Escape) {
       dismiss()
+    } else if (isContextShortcut(event, Qt.Key_I)) {
+      openSelectedInfo()
     } else if (isContextShortcut(event, Qt.Key_O)) {
       openMarketplaceShortcut()
     } else if (isContextShortcut(event, Qt.Key_G)) {
@@ -368,6 +481,9 @@ Item {
       queryInput.text = ""
     } else if (control && event.key === Qt.Key_Backspace) {
       queryInput.text = deletePreviousWord(queryInput.text)
+    } else if (event.modifiers === Qt.NoModifier
+        && event.key === Qt.Key_Backspace) {
+      return clearCompletedCommandPrefix()
     } else if (event.key === Qt.Key_Up) {
       select(selectedIndex - 1)
     } else if (event.key === Qt.Key_Down) {
@@ -545,6 +661,7 @@ Item {
             font.family: Style.font.menuFamily
             font.pixelSize: Style.font.heading
             clip: true
+            readOnly: root.settingsMenuOpen
             selectByMouse: true
             activeFocusOnTab: true
             onTextChanged: {
@@ -560,7 +677,8 @@ Item {
             Text {
               visible: !queryInput.text
               anchors.fill: parent
-              text: "Search plugins or type plug-install: / plug-remove:"
+              text: root.settingsMenuOpen ? "Plugin Control settings"
+                : "Search plugins or type plug-install: / plug-remove:"
               textFormat: Text.PlainText
               color: root.foreground
               opacity: 0.48
@@ -802,20 +920,21 @@ Item {
 
             Repeater {
               model: [
+                { keyLabel: "[Ctrl+Shift+I]", label: "Info" },
                 { keyLabel: "[Ctrl+Shift+O]",
                   label: root.marketplaceShortcutLabel },
-                { keyLabel: "[Ctrl+Shift+G]", label: "GitHub" },
+                { keyLabel: "[Ctrl+Shift+G]", label: "GitHub source" },
                 { keyLabel: "[Ctrl+Shift+S]", label: "Settings" }
               ]
 
               delegate: Item {
                 required property var modelData
-                width: footerRow.width / 3
+                width: footerRow.width / 4
                 height: footerRow.height
 
-                Row {
+                Column {
                   anchors.centerIn: parent
-                  spacing: Style.spacing.sm
+                  spacing: Style.space(2)
 
                   Rectangle {
                     width: keyText.implicitWidth + Style.spacing.sm
@@ -838,13 +957,13 @@ Item {
                   }
 
                   Text {
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
                     text: modelData.label
                     textFormat: Text.PlainText
                     color: root.foreground
                     opacity: 0.72
                     font.family: Style.font.menuFamily
-                    font.pixelSize: Style.font.body
+                    font.pixelSize: Style.font.caption
                   }
                 }
               }

@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell
 import qs.Commons
 import qs.Ui
 
@@ -14,15 +13,12 @@ BarWidget {
   readonly property bool actionFailed: root.service && root.service.actionState
     && root.service.actionState.ok === false
     && root.service.actionState.acknowledged === false
-  readonly property var pluginMetadata: root.bar
-    && root.bar.barWidgetRegistry
-    && typeof root.bar.barWidgetRegistry.metadataFor === "function"
-    ? root.bar.barWidgetRegistry.metadataFor(root.moduleName) : null
-  readonly property string sourceDir: String(root.pluginMetadata
-    && root.pluginMetadata.sourceDir || "")
+  readonly property bool trayIconHidden:
+    setting("trayIconHidden", false) === true
 
-  implicitWidth: button.implicitWidth
-  implicitHeight: button.implicitHeight
+  visible: !trayIconHidden
+  implicitWidth: trayIconHidden ? 0 : button.implicitWidth
+  implicitHeight: trayIconHidden ? 0 : button.implicitHeight
 
   function openPalette() {
     if (root.bar && root.bar.shell
@@ -37,8 +33,10 @@ BarWidget {
 
   function openSettings() {
     close()
-    if (!sourceDir) return
-    Quickshell.execDetached([sourceDir + "/scripts/open-settings.sh", sourceDir])
+    if (root.bar && root.bar.shell
+        && typeof root.bar.shell.toggle === "function") {
+      root.bar.shell.toggle(root.moduleName, '{"settings":true}')
+    }
   }
 
   BarIconButton {

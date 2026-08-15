@@ -23,9 +23,11 @@ rg -q 'function toggle\(\)' "$ROOT/PluginControl.qml"
 rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Escape' "$ROOT/PluginControl.qml"
+rg -Fq '{ keyLabel: "[Ctrl+Shift+I]", label: "Info" }' \
+  "$ROOT/PluginControl.qml"
 rg -Fq '{ keyLabel: "[Ctrl+Shift+O]",' \
   "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Ctrl+Shift+G]", label: "GitHub" }' \
+rg -Fq '{ keyLabel: "[Ctrl+Shift+G]", label: "GitHub source" }' \
   "$ROOT/PluginControl.qml"
 rg -Fq '{ keyLabel: "[Ctrl+Shift+S]", label: "Settings" }' \
   "$ROOT/PluginControl.qml"
@@ -46,9 +48,11 @@ rg -q 'Qt.Key_PageDown' "$ROOT/PluginControl.qml"
 rg -q 'activateIndex\(selectedIndex\)' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Tab' "$ROOT/PluginControl.qml"
 rg -q 'commandCompletion' "$ROOT/PluginControl.qml"
+rg -q 'function clearCompletedCommandPrefix()' "$ROOT/PluginControl.qml"
 rg -Fq 'repository: String(record.repository' "$ROOT/PluginControl.qml"
 rg -Fq 'font.pixelSize: Style.font.caption' "$ROOT/PluginControl.qml"
-rg -q 'pendingSnapshotId = service && service.snapshot' "$ROOT/PluginControl.qml"
+rg -q 'pendingSnapshotId = pendingOperation === "browse"' \
+  "$ROOT/PluginControl.qml"
 rg -q 'String\(selectedRecord.id || ""\), pendingSnapshotId' \
   "$ROOT/PluginControl.qml"
 if rg -q 'horizontalAlignment: Text.AlignHCenter' "$ROOT/PluginControl.qml"; then
@@ -63,9 +67,9 @@ rg -Fq 'Qt.LeftButton' "$ROOT/PluginControlBar.qml"
 rg -Fq 'root.bar.shell.toggle' "$ROOT/PluginControlBar.qml"
 rg -Fq 'Qt.RightButton' "$ROOT/PluginControlBar.qml"
 rg -Fq 'text: "Settings"' "$ROOT/PluginControlBar.qml"
-rg -Fq 'barWidgetRegistry.metadataFor(root.moduleName)' \
+rg -Fq "root.bar.shell.toggle(root.moduleName, '{\"settings\":true}')" \
   "$ROOT/PluginControlBar.qml"
-rg -Fq 'sourceDir + "/scripts/open-settings.sh"' \
+rg -Fq 'setting("trayIconHidden", false) === true' \
   "$ROOT/PluginControlBar.qml"
 printf 'ok - bar launcher uses the native package button and settings menu\n'
 
@@ -78,6 +82,13 @@ rg -Fq 'actionNoticeDurationMs: 10000' "$ROOT/Service.qml"
 rg -Fq 'finishedUnacknowledged && isNewNotice' "$ROOT/Service.qml"
 rg -Fq 'onTriggered: root.acknowledgeAction()' "$ROOT/Service.qml"
 rg -q 'actionDialog.openDialog\(\)' "$ROOT/PluginControl.qml"
+rg -q 'function openSelectedInfo\(\)' "$ROOT/PluginControl.qml"
+rg -q 'function showSettingsMenu\(\)' "$ROOT/PluginControl.qml"
+rg -q 'Qt.Key_J' "$ROOT/PluginControl.qml"
+rg -q 'Qt.Key_K' "$ROOT/PluginControl.qml"
+rg -Fq 'readOnly: root.settingsMenuOpen' "$ROOT/PluginControl.qml"
+rg -Fq 'if (pendingOperation === "browse") return' \
+  "$ROOT/PluginControl.qml"
 rg -q 'installInTerminal' "$ROOT/PluginControl.qml"
 rg -q 'omarchy-launch-terminal' "$ROOT/bin/plugin-control"
 rg -q 'signal confirmed' "$ROOT/ActionDialog.qml"

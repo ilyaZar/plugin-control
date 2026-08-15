@@ -140,6 +140,20 @@ FocusScope {
       }
 
       Text {
+        visible: String(root.plugin && root.plugin.description || "").length > 0
+        width: parent.width
+        text: String(root.plugin && root.plugin.description || "")
+        textFormat: Text.PlainText
+        color: root.foreground
+        opacity: 0.82
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.body
+        wrapMode: Text.Wrap
+        maximumLineCount: 2
+        elide: Text.ElideRight
+      }
+
+      Text {
         width: parent.width
         text: "Author: " + String(root.plugin && root.plugin.author || "Unknown")
           + "    Version: " + String(root.plugin && root.plugin.version || "Unknown")
