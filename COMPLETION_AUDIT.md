@@ -1,6 +1,6 @@
 # Plugin Control completion audit
 
-This audit records evidence for version 0.1.3 of
+This audit records evidence for version 0.1.4 of
 `io.github.ilyazar.plugin-control` on 15 August 2026.
 
 ## Product and repository
@@ -45,7 +45,8 @@ This audit records evidence for version 0.1.3 of
   ID/name/author/tag matching, result caps, and browse-only records.
 - [x] Command grammar. Tests cover `plug-install:`, `plug-remove:`, case
   differences, whitespace around the colon, fuzzy command-only completion,
-  exact Tab/Enter completion data, and the Backspace transition.
+  unpinned empty results, operation-intent promotion, exact Tab/Enter
+  completion data, and the Backspace transition.
 - [x] Source merging. Tests prove local-over-marketplace and
   built-in-over-marketplace precedence plus repository-collision diagnostics.
 - [x] Listed marketplace. The live normalized cache held 172 records: 125
@@ -59,13 +60,19 @@ This audit records evidence for version 0.1.3 of
 
 ## Settings and channels
 
-- [x] Settings editor. Ctrl+Shift+S dispatches `scripts/open-settings.sh`,
-  which creates the plugin-owned settings safely, reports the parser line,
-  and opens them with the configured Omarchy editor. The first header names
-  Ctrl+P as the command-palette binding and points to `bindings.lua`.
-- [x] Strict YAML. Tests cover schema version, booleans, duplicate IDs, unsafe
-  tags, aliases, non-HTTPS URLs, embedded credentials, repository slugs,
-  arbitrary command fields and last-good fallback.
+- [x] Settings editor. Ctrl+Shift+S opens an inline three-row menu. Typing is
+  consumed; `j`/`k`, arrows, mouse, Enter, Escape, and Cancel route through
+  `scripts/open-settings.sh` to the validated plugin YAML, the exact Plugin
+  Control entry in `bindings.lua`, or back to the open palette.
+- [x] Lifecycle CLI. Mocked `start` and `stop` calls observed the exact native
+  enable, disable, and bar-setting arguments. The strict settings schema holds
+  the tray default; explicit GNU-style tray flags
+  take precedence without accepting surplus arguments. Live hidden, stopped,
+  and visible starts produced the matching native plugin and bar states.
+- [x] Strict YAML. Schema 2 requires the tray setting. Tests cover clear
+  rejection without replacement, booleans, unknown fields, duplicate IDs,
+  unsafe tags, aliases, non-HTTPS URLs, embedded credentials, repository
+  slugs, arbitrary command fields and schema-2 last-good fallback.
 - [x] Optional issue channel. It is disabled by default. Parsing requires
   `submission` plus `validated`, rejects `listed`, `needs-fixes`, and pull
   requests, validates the current root manifest at an exact commit, rejects
@@ -85,11 +92,11 @@ This audit records evidence for version 0.1.3 of
   `omarchy plugin add https://github.com/example/weather --enable` in the
   interactive terminal, plus `omarchy plugin remove local.test --yes`.
   Built-in actions use native enable, disable, and bar placement commands.
-- [x] Confirmation safety. Enter opens a keyboard-cancel-first dialog showing
-  operation, ID, repository, source, version, reviewed commit when present,
-  trust warning, and the unsandboxed-code warning. The dialog pins a copy of
-  the displayed record and its snapshot ID; backend execution requires that
-  exact snapshot to remain current.
+- [x] Confirmation safety. Enter opens a keyboard-cancel-first dialog only for
+  an available action. Ctrl+Shift+I reuses it as a non-mutating information
+  view, and browse-only Enter is inert. The action path pins a copy of the
+  displayed record and its snapshot ID; backend execution requires that exact
+  snapshot to remain current.
 - [x] Remote command isolation. Fixtures include a hostile remote command
   string; it is never executed or interpolated into a shell.
 - [x] Self-removal protection. Both the model and backend exclude or reject the
@@ -118,7 +125,8 @@ This audit records evidence for version 0.1.3 of
 
 - [x] Bar launcher. The single native package glyph opens the existing overlay
   on left click, defaults to the right section, and exposes exactly one
-  Settings item on right click. The live menu was opened from the bar.
+  Settings item on right click. A hidden setting collapses both visibility and
+  implicit size while leaving the plugin service enabled.
 - [x] Shell lifecycle. The overlay exposes `opened`, `open`, `close`, and
   `toggle`, and is summoned through the existing shell endpoint. No competing
   Quickshell process is used in production.
@@ -130,16 +138,17 @@ This audit records evidence for version 0.1.3 of
 - [x] Ctrl+P toggle. The effective Hyprland binding description is `Plugin
   Control`, key P, modifier mask 4. The focused field also handles Ctrl+P as a
   defensive close path.
-- [x] Footer shortcuts. A top rule separates three equal-width shortcut cells;
-  their bracketed keys use the active theme's yellow. Ctrl+Shift+O and
-  Ctrl+Shift+G follow the selected plugin or fall back to the marketplace;
-  Ctrl+Shift+S opens settings.
+- [x] Footer shortcuts. A top rule separates four equal-width shortcut cells;
+  their bracketed keys use the active theme's yellow. Ctrl+Shift+I opens
+  plugin information, Ctrl+Shift+O and Ctrl+Shift+G follow the selected plugin
+  or fall back to the marketplace, and Ctrl+Shift+S opens the settings
+  selector. These fixed controls are handled only by the focused palette.
 - [x] Visual smoke test. The live panel appeared top-centered below the bar on
   focused monitor VGA-1, with immediate cursor focus, compact left-aligned
   rows, theme tokens, source/status metadata, and a short dropdown animation.
   Capital O remained search input, the failed-action notice expired after ten
   seconds, and repeated toggling produced one overlay and left it closed.
-- [x] Preview. `preview.png` is a 722 by 492 crop containing only the palette.
+- [x] Preview. `preview.png` is a 722 by 500 crop containing only the palette.
   It was inspected at original resolution for layout and privacy.
 - [x] QML loading. The real Quickshell instantiation harness created the
   service, overlay, and bar-widget entry points. Qt 6 model tests passed 4 of
