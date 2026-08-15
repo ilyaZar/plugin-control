@@ -275,7 +275,17 @@ ShellRoot {
         overlay.open('{"settings":true}')
         if (!overlay.settingsMenuOpen || !overlay.opened
             || !overlay.surfaceVisible || overlay.mode !== "settings"
-            || overlay.filteredRecords.length !== 3 || overlay.query !== "") {
+            || overlay.filteredRecords.length !== 3 || overlay.query !== ""
+            || overlay.paletteChromeVisible
+            || overlay.activeHeaderHeight !== 0
+            || overlay.activeFooterHeight !== 0
+            || overlay.statusHeight !== 0
+            || overlay.filteredRecords[0].name !== "Plugin settings"
+            || overlay.filteredRecords[0].settingsAction !== "plugin"
+            || overlay.filteredRecords[1].name !== "Keybindings"
+            || overlay.filteredRecords[1].settingsAction !== "keybindings"
+            || overlay.filteredRecords[2].name !== "Cancel / Back"
+            || overlay.filteredRecords[2].settingsAction !== "cancel") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings payload")
         }
         var plainJ = { modifiers: Qt.NoModifier, key: Qt.Key_J, text: "j" }
@@ -293,7 +303,10 @@ ShellRoot {
         }
         overlay.selectedIndex = 2
         if (!overlay.handleKey(enterEvent) || overlay.settingsMenuOpen
-            || !overlay.opened || !overlay.surfaceVisible) {
+            || !overlay.opened || !overlay.surfaceVisible
+            || !overlay.paletteChromeVisible
+            || overlay.activeHeaderHeight !== overlay.headerHeight
+            || overlay.activeFooterHeight !== overlay.footerHeight) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings cancel back")
         }
         overlay.showSettingsMenu()

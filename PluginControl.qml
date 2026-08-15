@@ -57,12 +57,23 @@ Item {
   readonly property int rowHeight: Style.space(60)
   readonly property int headerHeight: Style.space(52)
   readonly property int footerHeight: Style.space(42)
-  readonly property int statusHeight: statusText.length > 0 ? Style.space(28) : 0
+  readonly property bool paletteChromeVisible: !settingsMenuOpen
+  readonly property int activeHeaderHeight: paletteChromeVisible
+    ? headerHeight : 0
+  readonly property int activeFooterHeight: paletteChromeVisible
+    ? footerHeight : 0
+  readonly property int statusHeight: paletteChromeVisible
+    && statusText.length > 0 ? Style.space(28) : 0
   readonly property int visibleRows: Math.max(1,
     Math.min(6, filteredRecords.length || 1))
+  readonly property int resultRowsHeight: visibleRows * rowHeight
+    + Math.max(0, visibleRows - 1) * Style.space(2)
+  readonly property int chromeSpacingCount: paletteChromeVisible
+    ? (statusHeight > 0 ? 3 : 2) : 0
   readonly property int desiredCardHeight: Style.spacing.panelPadding * 2
-    + headerHeight + visibleRows * rowHeight
-    + footerHeight + statusHeight + Style.spacing.sm * 3
+    + activeHeaderHeight + resultRowsHeight
+    + activeFooterHeight + statusHeight
+    + Style.spacing.sm * chromeSpacingCount
   readonly property int cardHeight: Math.min(Style.space(500),
     Math.max(Style.space(actionDialog.opened ? 420 : 220),
       Math.min(desiredCardHeight,
@@ -131,7 +142,8 @@ Item {
     if (payload.settings === true) showSettingsMenu()
     else rebuildResults()
     Qt.callLater(function() {
-      queryInput.forceActiveFocus()
+      if (settingsMenuOpen) resultList.forceActiveFocus()
+      else queryInput.forceActiveFocus()
       if (service) service.recordFocusReady()
     })
   }
@@ -180,28 +192,16 @@ Item {
         {
           name: "Plugin settings",
           description: "Edit channels and tray defaults",
-          author: "Plugin Control",
-          kind: "Settings",
-          stateLabel: "ENTER",
-          sourceLabel: "YAML",
           settingsAction: "plugin"
         },
         {
           name: "Keybindings",
           description: "Edit the user-owned Plugin Control shortcut",
-          author: "Omarchy",
-          kind: "Settings",
-          stateLabel: "ENTER",
-          sourceLabel: "Lua",
           settingsAction: "keybindings"
         },
         {
-          name: "Cancel",
+          name: "Cancel / Back",
           description: "Return to the plugin list",
-          author: "Plugin Control",
-          kind: "Settings",
-          stateLabel: "ENTER",
-          sourceLabel: "Back",
           settingsAction: "cancel"
         }
       ]
@@ -386,7 +386,7 @@ Item {
     queryInput.text = ""
     selectedIndex = 0
     rebuildResults()
-    queryInput.forceActiveFocus()
+    resultList.forceActiveFocus()
   }
 
   function closeSettingsMenu() {
@@ -628,8 +628,9 @@ Item {
         spacing: Style.spacing.sm
 
         Rectangle {
+          visible: root.paletteChromeVisible
           width: parent.width
-          height: root.headerHeight
+          height: root.activeHeaderHeight
           radius: Style.cornerRadius
           color: Util.alpha(root.foreground, 0.06)
 
@@ -674,8 +675,7 @@ Item {
             Text {
               visible: !queryInput.text
               anchors.fill: parent
-              text: root.settingsMenuOpen ? "Plugin Control settings"
-                : "Search plugins or type plug-install: / plug-remove:"
+              text: "Search plugins or type plug-install: / plug-remove:"
               textFormat: Text.PlainText
               color: root.foreground
               opacity: 0.48
@@ -701,19 +701,25 @@ Item {
         Item {
           width: parent.width
           height: Math.max(root.rowHeight,
-            parent.height - root.headerHeight - root.footerHeight
+            parent.height - root.activeHeaderHeight - root.activeFooterHeight
               - root.statusHeight
-              - parent.spacing * (root.statusHeight > 0 ? 3 : 2))
+              - parent.spacing * root.chromeSpacingCount)
           clip: true
 
           ListView {
             id: resultList
+            focus: root.settingsMenuOpen
             anchors.fill: parent
             visible: displayModel.count > 0
             model: displayModel
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             spacing: Style.space(2)
+            Keys.priority: Keys.BeforeItem
+            Keys.onPressed: function(event) {
+              if (root.settingsMenuOpen && root.handleKey(event))
+                event.accepted = true
+            }
 
             delegate: Rectangle {
               id: resultRow
@@ -759,7 +765,8 @@ Item {
                   width: parent.width
                   spacing: Style.spacing.sm
                   Text {
-                    width: Math.min(implicitWidth, parent.width * 0.52)
+                    width: Math.min(implicitWidth, parent.width
+                      * (root.settingsMenuOpen ? 1 : 0.52))
                     text: resultRow.pluginName
                     textFormat: Text.PlainText
                     color: resultRow.selected ? root.selectedText : root.foreground
@@ -769,6 +776,7 @@ Item {
                     elide: Text.ElideRight
                   }
                   Text {
+                    visible: !root.settingsMenuOpen
                     width: parent.width - x
                     text: resultRow.pluginId
                     textFormat: Text.PlainText
@@ -782,8 +790,9 @@ Item {
 
                 Text {
                   width: parent.width
-                  text: resultRow.author + " - "
-                    + (resultRow.description || resultRow.kind)
+                  text: root.settingsMenuOpen ? resultRow.description
+                    : resultRow.author + " - "
+                      + (resultRow.description || resultRow.kind)
                   textFormat: Text.PlainText
                   color: resultRow.selected ? root.selectedText : root.foreground
                   opacity: 0.65
@@ -796,7 +805,8 @@ Item {
                 Text {
                   id: repositoryText
                   z: 2
-                  visible: resultRow.repository !== ""
+                  visible: !root.settingsMenuOpen
+                    && resultRow.repository !== ""
                   width: parent.width
                   text: resultRow.repository
                   textFormat: Text.PlainText
@@ -821,10 +831,11 @@ Item {
 
               Column {
                 id: badgeColumn
+                visible: !root.settingsMenuOpen
                 anchors.right: parent.right
                 anchors.rightMargin: Style.spacing.md
                 anchors.verticalCenter: parent.verticalCenter
-                width: Style.space(178)
+                width: visible ? Style.space(178) : 0
                 spacing: Style.space(2)
 
                 Text {
@@ -900,8 +911,9 @@ Item {
         }
 
         Item {
+          visible: root.paletteChromeVisible
           width: parent.width
-          height: root.footerHeight
+          height: root.activeFooterHeight
 
           Rectangle {
             anchors.top: parent.top
