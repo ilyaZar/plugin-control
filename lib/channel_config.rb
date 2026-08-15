@@ -8,8 +8,9 @@ module PluginControl
   class ConfigError < StandardError; end
 
   TOP_KEYS = %w[
-    version refresh_minutes allow_unlisted_installs channels
+    version refresh_minutes allow_unlisted_installs settings channels
   ].freeze
+  SETTINGS_KEYS = %w[tray-icon-hidden].freeze
   CHANNEL_KEYS = %w[
     id name type enabled catalog_url website_url repository required_labels
     excluded_labels
@@ -94,23 +95,37 @@ module PluginControl
     out
   end
 
+  def validate_settings(value)
+    fail_config("settings must be a mapping") unless value.is_a?(Hash)
+    unknown = value.keys.map(&:to_s) - SETTINGS_KEYS
+    fail_config("settings has unknown fields: #{unknown.join(', ')}") unless unknown.empty?
+
+    settings = value.transform_keys(&:to_s)
+    {
+      "tray-icon-hidden" => exact_boolean(
+        settings["tray-icon-hidden"],
+        "settings.tray-icon-hidden")
+    }
+  end
+
   def validate(value)
     fail_config("configuration must be a mapping") unless value.is_a?(Hash)
     config = value.transform_keys(&:to_s)
     unknown = config.keys - TOP_KEYS
     fail_config("unknown configuration fields: #{unknown.join(', ')}") unless unknown.empty?
-    fail_config("unsupported configuration version") unless config["version"] == 1
+    fail_config("unsupported configuration version") unless config["version"] == 2
 
     refresh = config.fetch("refresh_minutes", 30)
     valid_refresh = refresh.is_a?(Integer) && refresh.between?(5, 1_440)
     fail_config("refresh_minutes must be an integer from 5 through 1440") \
       unless valid_refresh
     out = {
-      "version" => 1,
+      "version" => 2,
       "refresh_minutes" => refresh,
       "allow_unlisted_installs" => exact_boolean(
         config.fetch("allow_unlisted_installs", false),
-        "allow_unlisted_installs")
+        "allow_unlisted_installs"),
+      "settings" => validate_settings(config["settings"])
     }
     channels = config["channels"]
     fail_config("channels must be a non-empty array") unless channels.is_a?(Array) && !channels.empty?

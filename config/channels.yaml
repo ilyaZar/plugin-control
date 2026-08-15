@@ -1,10 +1,13 @@
-# COMMAND PALETTE KEYBINDING: CTRL+P
-# Change the "CTRL + P" binding for "Plugin Control" in:
+# COMMAND PALETTE KEYBINDING
+# Manage the "Plugin Control" binding in:
 # ~/.config/hypr/bindings.lua
 
-version: 1
+version: 2
 refresh_minutes: 30
 allow_unlisted_installs: false
+
+settings:
+  tray-icon-hidden: false
 
 channels:
   - id: marketplace

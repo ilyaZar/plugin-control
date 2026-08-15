@@ -47,8 +47,38 @@ end
 
 test("valid default config") do
   config = PluginControl.load_file(DEFAULT)
-  assert_equal 1, config["version"]
+  assert_equal 2, config["version"]
   assert_equal 30, config["refresh_minutes"]
+  assert_equal false, config.dig("settings", "tray-icon-hidden")
+end
+
+test("settings mapping is required") do
+  without_settings = default_text.sub(/\nsettings:\n.*?\nchannels:/m,
+    "\nchannels:")
+  assert_invalid(without_settings,
+    "settings must be a mapping")
+end
+
+test("every settings field is required") do
+  assert_invalid(default_text.sub("settings:\n  tray-icon-hidden: false",
+    "settings: {}"),
+    "settings.tray-icon-hidden must be true or false")
+end
+
+test("tray icon can default to hidden") do
+  config = parse(default_text.sub("tray-icon-hidden: false",
+    "tray-icon-hidden: true"))
+  assert_equal true, config.dig("settings", "tray-icon-hidden")
+end
+
+test("invalid tray icon setting fails") do
+  assert_invalid(default_text.sub("tray-icon-hidden: false",
+    "tray-icon-hidden: hidden"), "true or false")
+end
+
+test("unknown settings fail") do
+  assert_invalid(default_text.sub("  tray-icon-hidden: false",
+    "  tray-icon-hidden: false\n  command: rm -rf"), "unknown")
 end
 
 test("unlisted channel disabled by default") do
@@ -71,7 +101,7 @@ test("install permission can be enabled") do
 end
 
 test("unknown schema version fails") do
-  assert_invalid(default_text.sub("version: 1", "version: 2"), "unsupported")
+  assert_invalid(default_text.sub("version: 2", "version: 1"), "unsupported")
 end
 
 test("duplicate channel IDs fail") do
@@ -84,7 +114,7 @@ test("unsafe YAML tags fail") do
 end
 
 test("YAML aliases fail") do
-  assert_invalid("version: 1\nrefresh_minutes: 30\nchannels: &x []\ncopy: *x\n",
+  assert_invalid("version: 2\nrefresh_minutes: 30\nchannels: &x []\ncopy: *x\n",
     "Alias parsing was not enabled")
 end
 

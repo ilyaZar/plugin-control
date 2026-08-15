@@ -34,19 +34,35 @@ ln -s editor-mock "$TEMP_ROOT/bin/omarchy-launch-config-editor"
 ln -s /usr/bin/true "$TEMP_ROOT/bin/omarchy"
 
 printf 'nvim\n' >"$XDG_STATE_HOME/omarchy/defaults/editor"
-"$ROOT/scripts/open-settings.sh" "$ROOT"
+"$ROOT/scripts/open-settings.sh" plugin "$ROOT"
 mapfile -t editor_call <"$MOCK_EDITOR_LOG"
 [[ ${editor_call[0]} == omarchy-launch-editor ]]
 [[ ${editor_call[1]} =~ ^\+[0-9]+$ ]]
 [[ ${editor_call[2]} == '+normal! zz' ]]
 [[ ${editor_call[3]} == "$XDG_CONFIG_HOME/omarchy/plugin-control/channels.yaml" ]]
 [[ $(head -n 1 "${editor_call[3]}") == \
-  '# COMMAND PALETTE KEYBINDING: CTRL+P' ]]
+  '# COMMAND PALETTE KEYBINDING' ]]
 printf 'ok - settings helper uses fixed editor argv and the validated line\n'
+
+mkdir -p "$XDG_CONFIG_HOME/hypr"
+cat >"$XDG_CONFIG_HOME/hypr/bindings.lua" <<'LUA'
+o.bind(
+  "CTRL + P",
+  "Plugin Control",
+  "omarchy-shell shell toggle io.github.ilyazar.plugin-control '{}'"
+)
+LUA
+"$ROOT/scripts/open-settings.sh" keybindings "$ROOT"
+mapfile -t editor_call <"$MOCK_EDITOR_LOG"
+[[ ${editor_call[0]} == omarchy-launch-editor ]]
+[[ ${editor_call[1]} == '+1' ]]
+[[ ${editor_call[2]} == '+normal! zz' ]]
+[[ ${editor_call[3]} == "$XDG_CONFIG_HOME/hypr/bindings.lua" ]]
+printf 'ok - settings helper routes to the Plugin Control keybinding\n'
 
 marker="$TEMP_ROOT/must-not-run"
 printf 'touch %s\n' "$marker" >"$XDG_STATE_HOME/omarchy/defaults/editor"
-"$ROOT/scripts/open-settings.sh" "$ROOT"
+"$ROOT/scripts/open-settings.sh" plugin "$ROOT"
 [[ ! -e $marker ]]
 mapfile -t editor_call <"$MOCK_EDITOR_LOG"
 [[ ${editor_call[0]} == omarchy-launch-config-editor ]]
