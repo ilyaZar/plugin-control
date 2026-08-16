@@ -100,6 +100,11 @@ rg -Fq 'color: Util.alpha(root.foreground, 0.16)' \
 rg -q 'sourceLabel:' "$ROOT/PaletteViewModel.js"
 rg -q 'service.actionRunning' "$ROOT/PluginControl.qml"
 rg -Fq 'actionNoticeDurationMs: 10000' "$ROOT/Service.qml"
+rg -Fq 'refreshSuccessDurationMs: 10000' "$ROOT/Service.qml"
+if rg -q 'startupRefreshPending|requestRefresh\(false\)' "$ROOT/Service.qml"; then
+  printf 'not ok - service automatically refreshes the catalog at startup\n' >&2
+  exit 1
+fi
 rg -Fq 'finishedUnacknowledged && isNewNotice' "$ROOT/Service.qml"
 rg -Fq 'onTriggered: root.acknowledgeAction()' "$ROOT/Service.qml"
 rg -Fq 'pluginRegistry.setBarWidget(' "$ROOT/Service.qml"
@@ -148,6 +153,9 @@ rg -q 'ToggleSwitch \{' "$ROOT/ActionDialog.qml"
 rg -q 'Run in Omarchy terminal' "$ROOT/ActionDialog.qml"
 rg -q 'selectedChoice' "$ROOT/ActionDialog.qml"
 rg -q 'applyBootstrap' "$ROOT/Service.qml"
+rg -Fq 'return time + "  -  " + date' "$ROOT/PluginControl.qml"
+rg -Fq 'color: root.statusColor' "$ROOT/PluginControl.qml"
+rg -Fq 'opacity: root.statusOpacity' "$ROOT/PluginControl.qml"
 printf 'ok - footer source confirmation busy and bootstrap states\n'
 
 open_body="$(sed -n '/function open(payloadJson)/,/^  }/p' \

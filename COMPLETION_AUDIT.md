@@ -23,7 +23,8 @@ This audit records release-readiness evidence for
 
 - [x] Instant cached opening. The service reads a bundled bootstrap before
   starting its cached snapshot process. Opening invokes no network or Git
-  function. The final live service became ready in 510 ms.
+  function, and enabling the plugin does not refresh remote sources. The final
+  live service became ready in 510 ms.
 - [x] Warm latency. Ten repeated shell toggles measured 38-57 ms command
   round-trip, median 47 ms and worst 57 ms. Final focus-ready measurements
   were 4-13 ms.
@@ -42,6 +43,10 @@ This audit records release-readiness evidence for
 - [x] Hidden cost. `keepLoaded` is true. The service has no rapid timer; the
   only resident polling is the shared binding helper's ten-second Hyprland
   state check and action-status polling while an action is running.
+- [x] Resident memory. Paired fresh-shell comparisons measured about 10 MiB
+  median incremental PSS while enabled. The final first-open run added about
+  19 MiB and hiding the palette returned about 11 MiB. These are approximate
+  differentials because every plugin shares the Omarchy shell process.
 
 ## Search and sources
 
@@ -153,6 +158,8 @@ This audit records release-readiness evidence for
   details, Ctrl+W and Ctrl+G follow the selected plugin or fall back to the
   marketplace, Ctrl+R refreshes, and Ctrl+S opens settings. These fixed
   controls are handled only by the focused palette.
+- [x] Refresh status. An explicit refresh is yellow while running, then its
+  local completion time is green for ten seconds before settling to grey.
 - [x] Visual smoke test. The live panel appeared top-centered below the bar on
   focused monitor VGA-1, with immediate cursor focus, compact left-aligned
   rows, theme tokens, source/status metadata, and a short dropdown animation.

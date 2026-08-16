@@ -129,7 +129,7 @@ ShellRoot {
           records: [],
           config: { settings: { "tray-icon-hidden": true } }
         })
-        root.serviceObject.applySnapshot(hiddenSnapshot, 0)
+        root.serviceObject.applySnapshot(hiddenSnapshot, 0, false)
         if (mockPluginRegistry.settingCalls !== 0) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR startup tray override")
         }
@@ -314,13 +314,45 @@ ShellRoot {
         overlay.service = savedService
         root.serviceObject.lastError = "Old catalog error"
         root.serviceObject.refreshing = true
-        if (overlay.statusText !== "Refreshing catalog...")
+        if (overlay.statusText !== "Refreshing catalog..."
+            || String(overlay.statusColor) !== String(overlay.shortcutColor)
+            || overlay.statusOpacity !== 1) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR refresh status")
-        root.serviceObject.refreshing = false
+        }
         root.serviceObject.lastError = ""
-        root.serviceObject.lastSuccessfulRefresh = "just now"
-        if (overlay.statusText.indexOf("Refreshing catalog...") >= 0)
-          console.error("PLUGIN_CONTROL_LOAD_ERROR refresh status completion")
+        root.serviceObject.refreshBaselineTimestamp =
+          "2026-08-16T11:00:00Z"
+        var refreshedAt = "2026-08-16T12:07:29Z"
+        var refreshSnapshot = JSON.stringify({
+          ok: true,
+          records: [],
+          cache: {
+            lastRefreshError: "",
+            lastSuccessfulRefresh: refreshedAt,
+            refreshDurationMs: 42
+          }
+        })
+        if (!root.serviceObject.applySnapshot(refreshSnapshot, 0, true))
+          console.error("PLUGIN_CONTROL_LOAD_ERROR refresh snapshot")
+        var formattedRefresh = overlay.formatRefreshTimestamp(refreshedAt)
+        if (formattedRefresh.indexOf("T") >= 0
+            || formattedRefresh.indexOf("Z") >= 0
+            || !formattedRefresh.match(
+              /^\d{2}:\d{2}:\d{2}  -  \d{4}-\d{2}-\d{2}$/)
+            || overlay.statusText !== "Cached catalog refreshed at: "
+              + formattedRefresh
+            || !root.serviceObject.refreshSuccessVisible
+            || root.serviceObject.refreshSuccessDurationMs !== 10000
+            || String(overlay.statusColor) !== String(overlay.successColor)
+            || overlay.statusOpacity !== 1) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR refresh success status")
+        }
+        root.serviceObject.clearRefreshSuccess()
+        if (root.serviceObject.refreshSuccessVisible
+            || String(overlay.statusColor) !== String(overlay.foreground)
+            || overlay.statusOpacity !== 0.70) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR refresh settled status")
+        }
         overlay.selectedRecord = null
         if (!overlay.handleKey(enterEvent) || overlay.selectedRecord !== null)
           console.error("PLUGIN_CONTROL_LOAD_ERROR browse enter mutated")
@@ -362,12 +394,17 @@ ShellRoot {
         overlay.selectedIndex = 0
         if (!overlay.handleKey(infoEvent) || overlay.selectedRecord !== null)
           console.error("PLUGIN_CONTROL_LOAD_ERROR command info boundary")
-        overlay.loadShortcutColor('yellow = "#A1B2C3"')
-        if (String(overlay.shortcutColor).toLowerCase() !== "#a1b2c3")
-          console.error("PLUGIN_CONTROL_LOAD_ERROR theme yellow")
-        overlay.loadShortcutColor("")
-        if (String(overlay.shortcutColor).toLowerCase() !== "#e5c07b")
-          console.error("PLUGIN_CONTROL_LOAD_ERROR yellow fallback")
+        overlay.loadStatusColors(
+          'yellow = "#A1B2C3"\ngreen = "#4D5E6F"')
+        if (String(overlay.shortcutColor).toLowerCase() !== "#a1b2c3"
+            || String(overlay.successColor).toLowerCase() !== "#4d5e6f") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR theme status colors")
+        }
+        overlay.loadStatusColors("")
+        if (String(overlay.shortcutColor).toLowerCase() !== "#e5c07b"
+            || String(overlay.successColor).toLowerCase() !== "#98c379") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR status color fallback")
+        }
         overlay.filteredRecords = [{
           id: "io.example.weather",
           repository: "https://github.com/example/weather",
