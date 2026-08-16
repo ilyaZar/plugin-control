@@ -89,11 +89,11 @@ override it; `stop` disables the plugin.
 
 ## Settings
 
-Ctrl+S opens Plugin settings, Keybindings, and Cancel / Back. Use `j`/`k`,
-arrows, mouse, or Enter; Escape returns to the plugin list.
+Ctrl+S opens Plugin settings, Keybindings, clean removal, and Cancel / Back.
+Use `j`/`k`, arrows, mouse, or Enter; Escape returns to the plugin list.
 
 ```text
-~/.config/omarchy/plugin-control/channels.yaml
+~/.config/omarchy/ilyazar.plugin-control/channels.yaml
 ~/.config/hypr/bindings.lua
 ```
 
@@ -122,19 +122,30 @@ Plugin Control installs no packages and requests no elevated privileges.
 
 ## Remove
 
-Select Plugin Control under `plug-remove:` or right-click its bar icon and
-choose Remove Plugin Control. Both paths open the same No/Yes warning. The
-native command is:
+Select Plugin Control under `plug-remove:` for native removal, or open Settings
+and select Cleanly remove Plugin Control and user data. The confirmation offers
+three choices:
+
+- Yes (preserve user data) uses native removal
+- Yes (delete user data) removes namespaced state and the recognized Plugin
+  Control keybinding before native removal
+- No / abort makes no changes
+
+The native command is:
 
 ```bash
 omarchy plugin remove io.github.ilyazar.plugin-control
 ```
 
-Remove the optional Ctrl+P binding separately. Native removal keeps:
+Native removal keeps:
 
-- settings: `~/.config/omarchy/plugin-control/`
-- cache: `~/.cache/omarchy/plugin-control/`
-- action history: `~/.local/state/omarchy/plugin-control/`
+- settings: `~/.config/omarchy/ilyazar.plugin-control/`
+- cache: `~/.cache/omarchy/ilyazar.plugin-control/`
+- action history: `~/.local/state/omarchy/ilyazar.plugin-control/`
+
+Existing `omarchy/plugin-control` data is moved to the author-namespaced path
+on first use when the destination does not already exist. Clean removal deletes
+both the current and legacy paths.
 
 ## Development
 

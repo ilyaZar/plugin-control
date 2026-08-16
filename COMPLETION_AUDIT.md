@@ -1,15 +1,15 @@
 # Plugin Control completion audit
 
-This audit records evidence for version 0.1.5 of
-`io.github.ilyazar.plugin-control` on 15 August 2026.
+This audit records release-readiness evidence for
+`io.github.ilyazar.plugin-control`.
 
 ## Product and repository
 
 - [x] Correct repository shape. The repository root contains one
   `manifest.json`, separate service, overlay, bar launcher, dialog, JavaScript
-  model, Bash backend, strict YAML parser, jq normalizers, editor helpers,
-  copied shortcut library, fixtures, tests, documentation, MIT license, and
-  `preview.png`.
+  model and view model, focused palette components, modular Bash backend,
+  strict YAML parser, jq normalizers, editor helpers, copied shortcut library,
+  fixtures, tests, documentation, MIT license, and `preview.png`.
 - [x] Runtime validation. `omarchy plugin validate .` exited 0. The publishing
   preflight reported 0 errors.
 - [x] No plugin-tree symlinks. The publishing preflight checked this directly.
@@ -104,12 +104,11 @@ This audit records evidence for version 0.1.5 of
   snapshot to remain current.
 - [x] Remote command isolation. Fixtures include a hostile remote command
   string; it is never executed or interpolated into a shell.
-- [x] Guarded self-removal. `plug-remove:` and the bar popup share one
-  snapshot-pinned, No-first warning. The staged worker survives checkout
-  deletion, invalidates the derived snapshot, preserves user state, and treats
-  a post-deletion shell-rescan error as materially complete. A clean live
-  palette removal finished with acknowledged status; public 0.1.5 then cloned,
-  enabled, opened, and was removed before the development link was restored.
+- [x] Guarded self-removal. The settings menu opens a snapshot-pinned,
+  abort-first warning with separate preserve-data and delete-data actions. The
+  staged worker survives checkout deletion. Native removal preserves user
+  state; clean removal deletes namespaced and legacy state plus the recognized
+  Plugin Control binding before invoking the native command.
 - [x] Dirty-checkout protection. Removal is blocked before the native remove
   command when Git reports local changes.
 - [x] Path containment. IDs reject traversal and removal requires the exact
@@ -133,9 +132,9 @@ This audit records evidence for version 0.1.5 of
 ## UI and local integration
 
 - [x] Bar launcher. The single native package glyph opens the existing overlay
-  on left click, defaults to the right section, and exposes Settings plus
-  Remove Plugin Control on right click. A hidden setting collapses visibility
-  and implicit size while leaving the plugin service enabled.
+  on left click, defaults to the right section, and exposes only Settings on
+  right click. A hidden setting collapses visibility and implicit size while
+  leaving the plugin service enabled.
 - [x] Shell lifecycle. The overlay exposes `opened`, `open`, `close`, and
   `toggle`, and is summoned through the existing shell endpoint. No competing
   Quickshell process is used in production.
