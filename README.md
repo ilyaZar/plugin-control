@@ -3,7 +3,7 @@
 Think of Sublime Text's classic Package Control or the VS Code Command Palette,
 but for Omarchy Quattro plugins.
 
-Press Ctrl+P (or click the tray icon), type a few letters to fuzzy-search, and
+Press Ctrl+p (or click the tray icon), type a few letters to fuzzy-search, and
 press Enter to add or toggle a plugin.
 
 ![Plugin Control command palette](preview.png)
@@ -29,13 +29,13 @@ o.bind(
 )
 ```
 
-Bare Ctrl+P is quick, but it replaces the usual application shortcut while the
+Bare Ctrl+p is quick, but it replaces the usual application shortcut while the
 binding is active. Change the first string if that disrupts your setup.
 
 ## Use
 
 Start typing to search plugin names, IDs, descriptions, authors, and tags. Enter
-opens the selected plugin's available action; Ctrl+I shows details without
+opens the selected plugin's available action; Ctrl+i shows details without
 changing anything.
 
 Without a command prefix, Enter adds an available plugin or toggles a
@@ -61,18 +61,18 @@ Useful keys:
 
 | Keys                                       | Action                                      |
 | ------------------------------------------ | ------------------------------------------- |
-| `Ctrl+P` or `Escape`                       | Close the palette from the plugin list      |
+| `Ctrl+p` or `Escape`                       | Close the palette from the plugin list      |
 | `Up`, `Down`, `Page Up`, `Page Down`       | Move the selection                          |
 | `Home` or `End`                            | Jump to the first or last result            |
 | `Enter`                                    | Complete a command or confirm an action     |
 | `Tab`                                      | Complete the selected command               |
 | `Ctrl+Backspace`                           | Remove the previous word                    |
-| `Ctrl+U`                                   | Clear the query                             |
-| `Ctrl+R`                                   | Refresh the catalog                         |
-| `Ctrl+I`                                   | Show details for the selected plugin        |
-| `Ctrl+W`                                   | Open the plugin website                     |
-| `Ctrl+G`                                   | Open the plugin source repository           |
-| `Ctrl+S`                                   | Open settings; `Escape` returns to the list |
+| `Ctrl+u`                                   | Clear the query                             |
+| `Ctrl+r`                                   | Refresh the catalog                         |
+| `Ctrl+i`                                   | Show details for the selected plugin        |
+| `Ctrl+w`                                   | Open the plugin website                     |
+| `Ctrl+g`                                   | Open the plugin source repository           |
+| `Ctrl+s`                                   | Open settings; `Escape` returns to the list |
 
 ## Add behavior
 
@@ -98,7 +98,7 @@ override it; `stop` disables the plugin.
 
 ## Settings
 
-Ctrl+S opens Plugin settings, Keybindings, clean removal, and Cancel / Back.
+Ctrl+s opens Plugin settings, Keybindings, clean removal, and Cancel / Back.
 Use `j`/`k`, arrows, mouse, or Enter; Escape returns to the plugin list.
 
 ```text
@@ -111,7 +111,7 @@ settings:
   tray-icon-hidden: false
 ```
 
-Plugin Control never rewrites the user-owned Ctrl+P binding. Its other shortcuts
+Plugin Control never rewrites the user-owned Ctrl+p binding. Its other shortcuts
 work only while the palette is focused. Saving a valid tray setting updates the
 live bar; a CLI flag overrides it until the YAML is saved again.
 
