@@ -1,4 +1,6 @@
 #!/bin/bash
+# Backend functions invoke test doubles after their modules are sourced.
+# shellcheck disable=SC2329
 
 set -euo pipefail
 

@@ -62,6 +62,15 @@ rg -q 'pendingSnapshotId = pendingOperation === "browse"' \
   "$ROOT/PluginControl.qml"
 rg -q 'String\(selectedRecord.id || ""\), pendingSnapshotId' \
   "$ROOT/PluginControl.qml"
+rg -Fq '["add", "remove", "enable", "disable"]' \
+  "$ROOT/ActionDialog.qml"
+rg -Fq 'return "omarchy plugin enable "' "$ROOT/ActionDialog.qml"
+rg -Fq 'return "omarchy plugin disable "' "$ROOT/ActionDialog.qml"
+if rg -q 'add-bar|omarchy bar put' "$ROOT/PluginControl.qml" \
+    "$ROOT/ActionDialog.qml" "$ROOT/Service.qml"; then
+  printf 'not ok - obsolete bar placement action remains\n' >&2
+  exit 1
+fi
 if rg -q 'horizontalAlignment: Text.AlignHCenter' "$ROOT/PluginControl.qml"; then
   printf 'not ok - result text must not be centered\n' >&2
   exit 1
@@ -149,11 +158,16 @@ if grep -Eq 'curl|git|requestRefresh' <<<"$open_body"; then
 fi
 printf 'ok - overlay open path has no network or Git action\n'
 
-cmp -s "$ROOT/lib/shortcuts/ShortcutFormat.js" \
-  "$ROOT/../_shared/shortcuts/ShortcutFormat.js"
-cmp -s "$ROOT/lib/shortcuts/HyprlandBinding.qml" \
-  "$ROOT/../_shared/shortcuts/HyprlandBinding.qml"
-printf 'ok - shared shortcut library copies are current\n'
+shared_shortcuts="$ROOT/../_shared/shortcuts"
+if [[ -d $shared_shortcuts ]]; then
+  cmp -s "$ROOT/lib/shortcuts/ShortcutFormat.js" \
+    "$shared_shortcuts/ShortcutFormat.js"
+  cmp -s "$ROOT/lib/shortcuts/HyprlandBinding.qml" \
+    "$shared_shortcuts/HyprlandBinding.qml"
+  printf 'ok - shared shortcut library copies are current\n'
+else
+  printf 'ok - shared shortcut comparison skipped outside the monorepo\n'
+fi
 
 runtime_root="$(mktemp -d /tmp/plugin-control-qml-load.XXXXXX)"
 trap 'rm -rf -- "$runtime_root"' EXIT

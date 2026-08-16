@@ -48,10 +48,11 @@ This audit records release-readiness evidence for
 - [x] Fuzzy behavior. Node and QML tests cover exact, prefix, word-boundary,
   substring and subsequence ranking, stable ties, case-insensitivity,
   ID/name/author/tag matching, result caps, and browse-only records.
-- [x] Command grammar. Tests cover `plug-install:`, `plug-remove:`, case
-  differences, whitespace around the colon, fuzzy command-only completion,
-  unpinned empty results, operation-intent promotion, exact Tab/Enter
-  completion data, and the Backspace transition.
+- [x] Command grammar. Tests cover `plug-add:`, `plug-remove:`,
+  `plug-enable:`, `plug-disable:`, the `plug-install:` alias, case differences,
+  whitespace around the colon, fuzzy command-only completion, unpinned empty
+  results, operation-intent promotion, exact Tab/Enter completion data, and
+  the Backspace transition.
 - [x] Source merging. Tests prove local-over-marketplace and
   built-in-over-marketplace precedence plus repository-collision diagnostics.
 - [x] Listed marketplace. The live normalized cache held 203 records: 156
@@ -85,8 +86,8 @@ This audit records release-readiness evidence for
 - [x] Separate install gate. Live config had unlisted browsing and unlisted
   installation disabled.
 - [x] Commit revalidation. A mocked changed default-branch commit is rejected
-  immediately before an unlisted install.
-- [x] One guarded install path. Background and terminal execution share the
+  immediately before an unlisted add.
+- [x] One guarded add path. Background and terminal execution share the
   same snapshot validation, action lock, durable state, and installed-state
   rebuild. Both use the native default-branch add command.
 
@@ -96,7 +97,8 @@ This audit records release-readiness evidence for
   `omarchy plugin add https://github.com/example/weather --enable --yes` and
   `omarchy plugin add https://github.com/example/weather --enable` in the
   interactive terminal, plus `omarchy plugin remove local.test --yes`.
-  Built-in actions use native enable, disable, and bar placement commands.
+  Switchable built-in and third-party plugins use native enable and disable;
+  runtime `canDisable` state guards both actions.
 - [x] Confirmation safety. Enter opens a keyboard-cancel-first dialog only for
   an available action. Ctrl+I reuses it as a non-mutating information
   view, and browse-only Enter is inert. The action path pins a copy of the
@@ -116,7 +118,7 @@ This audit records release-readiness evidence for
 - [x] Locking. A simultaneous second action receives a busy response. Snapshot
   builds share a separate lock so refresh and action completion cannot publish
   stale installed state out of order.
-- [x] Interactive terminal handoff. The persisted install toggle launches the
+- [x] Interactive terminal handoff. The persisted terminal toggle launches the
   same detached worker through `omarchy-launch-terminal`, streams native
   output and prompts, lets Omarchy choose left, center, or right for bar
   widgets, and releases the action lock before waiting for Enter to close.

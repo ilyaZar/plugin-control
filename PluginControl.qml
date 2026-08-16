@@ -6,7 +6,6 @@ import Quickshell.Wayland
 import qs.Commons
 import qs.Ui
 import "Fuzzy.js" as Fuzzy
-import "CatalogModel.js" as CatalogModel
 import "PaletteViewModel.js" as PaletteViewModel
 import "lib/shortcuts" as Shortcuts
 
@@ -216,17 +215,12 @@ Item {
 
   function availableOperation(record) {
     if (!record) return "browse"
-    if (mode === "install") return "install"
-    if (mode === "remove") return "remove"
-    if (record.builtIn === true) {
-      var kind = String(record.kind || "").toLowerCase()
-      if (kind === "bar") return "browse"
-      if (CatalogModel.isBarWidget(kind))
-        return record.enabled === false ? "add-bar" : "disable"
+    if (["add", "remove", "enable", "disable"].indexOf(mode) >= 0)
+      return mode
+    var present = record.builtIn === true || record.installed === true
+    if (present && record.canDisable === true)
       return record.enabled === false ? "enable" : "disable"
-    }
-    if (record.installed === true && record.removable === true) return "remove"
-    if (record.installable === true) return "install"
+    if (record.installable === true) return "add"
     return "browse"
   }
 
@@ -436,7 +430,8 @@ Item {
       selectionEnd) {
     var text = String(value || "")
     return cursor === text.length && selectionStart === selectionEnd
-      && (text === "plug-install:" || text === "plug-remove:")
+      && ["plug-add:", "plug-install:", "plug-remove:", "plug-enable:",
+        "plug-disable:"].indexOf(text) >= 0
   }
 
   function clearCompletedCommandPrefix() {
@@ -701,7 +696,7 @@ Item {
             Text {
               visible: !queryInput.text
               anchors.fill: parent
-              text: "Search plugins or type plug-install: / plug-remove:"
+              text: "Search plugins or type plug-add: / plug-remove:"
               textFormat: Text.PlainText
               color: root.foreground
               opacity: 0.48
@@ -768,13 +763,17 @@ Item {
           Text {
             visible: displayModel.count === 0
             anchors.fill: parent
-            text: root.mode === "install"
-              ? "No installable plugins match this query"
+            text: root.mode === "add"
+              ? "No plugins available to add match this query"
               : (root.mode === "remove"
                 ? "No removable local plugins match this query"
-                : (root.mode === "command"
-                  ? "No command matches this query"
-                  : "No plugins match this query"))
+                : (root.mode === "enable"
+                  ? "No disabled plugins match this query"
+                  : (root.mode === "disable"
+                    ? "No enabled plugins match this query"
+                    : (root.mode === "command"
+                      ? "No command matches this query"
+                      : "No plugins match this query"))))
             textFormat: Text.PlainText
             color: root.foreground
             opacity: 0.62

@@ -175,12 +175,12 @@ Item {
 
   function startAction(operation, pluginId, snapshotId, executionMode) {
     if (!helperPath || actionRunning || actionProcess.running) return false
-    if (["install", "remove", "remove-purge", "enable", "disable", "add-bar"]
+    if (["add", "remove", "remove-purge", "enable", "disable"]
         .indexOf(String(operation)) < 0) return false
     if (!String(pluginId) || !String(snapshotId)) return false
     if (["background", "terminal"].indexOf(String(executionMode)) < 0)
       return false
-    if (executionMode === "terminal" && operation !== "install") return false
+    if (executionMode === "terminal" && operation !== "add") return false
     actionStarting = true
     actionProcess.output = ""
     actionProcess.command = [helperPath, "action", sourceDir,

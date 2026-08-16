@@ -67,11 +67,6 @@ function stateLabel(record) {
   return "Browse only"
 }
 
-function isBarWidget(kind) {
-  return cleanText(kind).toLowerCase().replace(/[-_]+/g, " ")
-    .indexOf("bar widget") >= 0
-}
-
 function normalizeRecord(value) {
   var record = copy(value)
   record.id = cleanText(record.id)
@@ -94,6 +89,7 @@ function normalizeRecord(value) {
   record.stateLabel = stateLabel(record)
   record.installed = record.installed === true
   record.enabled = record.enabled !== false
+  record.canDisable = record.canDisable === true
   record.installable = record.installable === true && !record.installed
   record.removable = record.removable === true
     && record.builtIn !== true
@@ -116,7 +112,6 @@ function prepareRecords(records) {
 if (typeof module !== "undefined") {
   module.exports = {
     warningState: warningState,
-    isBarWidget: isBarWidget,
     prepareRecords: prepareRecords
   }
 }

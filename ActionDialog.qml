@@ -23,38 +23,36 @@ FocusScope {
     && operation === "remove"
   readonly property bool selfRemoval: operation === "remove"
     && String(plugin && plugin.id || "") === selfId
-  readonly property bool terminalAllowed: operation === "install"
+  readonly property bool terminalAllowed: operation === "add"
     && String(plugin && plugin.repository || "").length > 0
     && String(plugin && plugin.source || "") !== "submission"
   readonly property bool terminalInstall: terminalAllowed && installInTerminal
-  readonly property bool mutating: ["install", "remove", "enable", "disable",
-    "add-bar"].indexOf(operation) >= 0
+  readonly property bool mutating: ["add", "remove", "enable", "disable"]
+    .indexOf(operation) >= 0
   readonly property bool canConfirm: mutating && !busy && !dirtyBlocked
   readonly property string reviewedCommit: String(plugin
     && (plugin.commit || plugin.listingValidatedCommit) || "")
   readonly property string title: {
-    if (operation === "install") return "Install and enable plugin?"
+    if (operation === "add") return "Add and enable plugin?"
     if (selfRemoval) return "Remove Plugin Control itself?"
     if (operation === "remove") return "Remove plugin?"
-    if (operation === "enable") return "Enable built-in plugin?"
-    if (operation === "disable") return "Disable built-in plugin?"
-    if (operation === "add-bar") return "Add built-in widget to bar?"
+    if (operation === "enable") return "Enable plugin?"
+    if (operation === "disable") return "Disable plugin?"
     return "Plugin details"
   }
   readonly property string confirmLabel: {
-    if (operation === "install")
-      return terminalInstall ? "Open terminal" : "Install"
+    if (operation === "add")
+      return terminalInstall ? "Open terminal" : "Add"
     if (selfRemoval) return "Yes, remove"
     if (operation === "remove") return "Remove"
     if (operation === "enable") return "Enable"
     if (operation === "disable") return "Disable"
-    if (operation === "add-bar") return "Add to bar"
     return "Close"
   }
   readonly property string cancelLabel: selfRemoval ? "No"
     : (mutating ? "Cancel" : "Close")
   readonly property string operationText: {
-    if (operation === "install") return terminalInstall
+    if (operation === "add") return terminalInstall
       ? "omarchy plugin add <repository> --enable"
       : "omarchy plugin add <repository> --enable --yes"
     if (operation === "remove") return "omarchy plugin remove "
@@ -62,8 +60,6 @@ FocusScope {
     if (operation === "enable") return "omarchy plugin enable "
       + String(plugin && plugin.id || "")
     if (operation === "disable") return "omarchy plugin disable "
-      + String(plugin && plugin.id || "")
-    if (operation === "add-bar") return "omarchy bar put "
       + String(plugin && plugin.id || "")
     return "No system change"
   }
@@ -244,10 +240,10 @@ FocusScope {
 
       Rectangle {
         width: parent.width
-        height: Style.space(root.operation === "install" || root.selfRemoval
+        height: Style.space(root.operation === "add" || root.selfRemoval
           ? 52 : 38)
         radius: Style.cornerRadius
-        color: Util.alpha(root.operation === "install" || root.selfRemoval
+        color: Util.alpha(root.operation === "add" || root.selfRemoval
           ? root.warningColor : root.foreground, 0.10)
 
         Text {
@@ -256,13 +252,13 @@ FocusScope {
           text: root.selfRemoval
             ? "This removes the tray icon and palette. Your user-owned "
               + "keybinding and Plugin Control settings, cache, and history remain."
-            : root.operation === "install"
+            : root.operation === "add"
             ? "Plugins run unsandboxed inside the long-running shell. "
               + "Marketplace validation is not a security audit.\n"
               + root.operationText
             : root.operationText
           textFormat: Text.PlainText
-          color: root.operation === "install" || root.selfRemoval
+          color: root.operation === "add" || root.selfRemoval
             ? root.warningColor : root.foreground
           font.family: root.fontFamily
           font.pixelSize: Style.font.body
