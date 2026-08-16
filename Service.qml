@@ -46,7 +46,7 @@ Item {
   readonly property string helperPath: sourceDir
     ? sourceDir + "/bin/plugin-control" : ""
   readonly property string channelConfigPath: configHome
-    + "/omarchy/plugin-control/channels.yaml"
+    + "/omarchy/ilyazar.plugin-control/channels.yaml"
   readonly property bool actionRunning: actionStarting
     || (actionState && actionState.running === true)
   readonly property string moduleName: "io.github.ilyazar.plugin-control"
@@ -175,7 +175,7 @@ Item {
 
   function startAction(operation, pluginId, snapshotId, executionMode) {
     if (!helperPath || actionRunning || actionProcess.running) return false
-    if (["install", "remove", "enable", "disable", "add-bar"]
+    if (["install", "remove", "remove-purge", "enable", "disable", "add-bar"]
         .indexOf(String(operation)) < 0) return false
     if (!String(pluginId) || !String(snapshotId)) return false
     if (["background", "terminal"].indexOf(String(executionMode)) < 0)

@@ -39,7 +39,8 @@ mapfile -t editor_call <"$MOCK_EDITOR_LOG"
 [[ ${editor_call[0]} == omarchy-launch-editor ]]
 [[ ${editor_call[1]} =~ ^\+[0-9]+$ ]]
 [[ ${editor_call[2]} == '+normal! zz' ]]
-[[ ${editor_call[3]} == "$XDG_CONFIG_HOME/omarchy/plugin-control/channels.yaml" ]]
+[[ ${editor_call[3]} == \
+  "$XDG_CONFIG_HOME/omarchy/ilyazar.plugin-control/channels.yaml" ]]
 [[ $(head -n 1 "${editor_call[3]}") == \
   '# COMMAND PALETTE KEYBINDING' ]]
 printf 'ok - settings helper uses fixed editor argv and the validated line\n'
