@@ -51,8 +51,8 @@ Use these commands to narrow the action first:
 - `plug-enable:` shows disabled switchable plugins
 - `plug-disable:` shows enabled switchable plugins
 
-`plug-add:` is the preferred spelling. `plug-install:` remains an accepted
-alias for it.
+In 0.1.7, `plug-add:` is the preferred spelling. `plug-install:` remains an
+accepted alias for it.
 
 Commands are not pinned. Type `add`, `remove`, `enable`, or `disable` to bring
 one forward, then press Tab or Enter to complete it. Search restarts after the

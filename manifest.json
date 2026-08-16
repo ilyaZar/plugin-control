@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.ilyazar.plugin-control",
   "name": "Plugin Control",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "author": "ilyaZar",
   "license": "MIT",
-  "description": "Ctrl+P fuzzy command palette (ala Sublime Text Package Control or VS Code) for installing/removing marketplace plugins.",
+  "description": "Fuzzy command palette (Ctrl+P-like) for quickly adding, enabling, disabling, and removing plugins (a la Sublime Text Package Control or VS Code Command Palette). The tray icon can be hidden in the settings so it runs nicely in the background without bloating your system. The main keybinding is customizable. The palette opens only when you fire it up, so it works on slower systems with minimal overhead (approximately 10 MiB of additional memory while idle).",
   "kinds": ["service", "overlay", "bar-widget"],
   "keepLoaded": true,
   "entryPoints": {
