@@ -34,6 +34,7 @@ Item {
   property bool settingsMenuOpen: false
   property var savedSettings: ({})
   property color shortcutColor: "#e5c07b"
+  property color successColor: "#98c379"
 
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.ilyazar.plugin-control"
@@ -105,9 +106,21 @@ Item {
     if (service && service.lastRefreshError)
       return "Offline/stale: " + service.lastRefreshError
     if (service && service.lastSuccessfulRefresh)
-      return "Cached catalog - refreshed " + service.lastSuccessfulRefresh
+      return "Cached catalog refreshed at: "
+        + formatRefreshTimestamp(service.lastSuccessfulRefresh)
     return service && service.ready ? "Cached catalog ready" : "Loading local cache..."
   }
+  readonly property bool refreshStatusActive:
+    statusText === "Refreshing catalog..."
+  readonly property bool refreshSuccessActive: service
+    && service.refreshSuccessVisible === true
+    && statusText.indexOf("Cached catalog refreshed at: ") === 0
+  readonly property color statusColor: refreshStatusActive
+    ? shortcutColor : (refreshSuccessActive ? successColor
+      : (statusText.indexOf("failed") >= 0
+        || statusText.indexOf("Offline") >= 0 ? urgent : foreground))
+  readonly property real statusOpacity: refreshStatusActive
+    || refreshSuccessActive ? 1 : 0.70
 
   function resolveTargetScreen() {
     var focused = Hyprland.focusedMonitor
@@ -306,10 +319,29 @@ Item {
     settingsFile.setText(JSON.stringify(next, null, 2) + "\n")
   }
 
-  function loadShortcutColor(raw) {
-    var match = String(raw || "").match(
+  function padTimePart(value) {
+    return Number(value) < 10 ? "0" + Number(value) : String(Number(value))
+  }
+
+  function formatRefreshTimestamp(value) {
+    var instant = new Date(String(value || ""))
+    if (!isFinite(instant.getTime())) return String(value || "")
+    var time = padTimePart(instant.getHours()) + ":"
+      + padTimePart(instant.getMinutes()) + ":"
+      + padTimePart(instant.getSeconds())
+    var date = instant.getFullYear() + "-"
+      + padTimePart(instant.getMonth() + 1) + "-"
+      + padTimePart(instant.getDate())
+    return time + "  -  " + date
+  }
+
+  function loadStatusColors(raw) {
+    var yellowMatch = String(raw || "").match(
       /^\s*(?:yellow|color3)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
-    shortcutColor = match ? match[1] : "#e5c07b"
+    var greenMatch = String(raw || "").match(
+      /^\s*(?:green|color2)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
+    shortcutColor = yellowMatch ? yellowMatch[1] : "#e5c07b"
+    successColor = greenMatch ? greenMatch[1] : "#98c379"
   }
 
   function openWebsite(url) {
@@ -522,7 +554,7 @@ Item {
     path: root.themeColorsPath
     watchChanges: false
     printErrors: false
-    onLoaded: root.loadShortcutColor(text())
+    onLoaded: root.loadStatusColors(text())
   }
 
   Connections {
@@ -790,10 +822,8 @@ Item {
           height: root.statusHeight
           text: root.statusText
           textFormat: Text.PlainText
-          color: root.statusText.indexOf("failed") >= 0
-            || root.statusText.indexOf("Offline") >= 0
-            ? root.urgent : root.foreground
-          opacity: 0.70
+          color: root.statusColor
+          opacity: root.statusOpacity
           font.family: Style.font.menuFamily
           font.pixelSize: Style.font.body
           elide: Text.ElideRight

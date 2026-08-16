@@ -11,6 +11,8 @@ press Enter to add or toggle a plugin.
 Plugin Control keeps the full [@HANCORE-linux](https://github.com/HANCORE-linux)
 [community marketplace](https://omarchyplugins.com/) and local plugin state in a
 small cache, then filters it in process on every keypress.
+Startup reads only that local cache. Press Ctrl+r when you want to refresh it
+from the configured catalog sources.
 
 ## Install
 

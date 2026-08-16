@@ -25,6 +25,8 @@ Item {
   property string lastError: ""
   property string lastRefreshError: ""
   property string lastSuccessfulRefresh: ""
+  property string refreshBaselineTimestamp: ""
+  property bool refreshSuccessVisible: false
   property real serviceReadyMs: -1
   property real lastOpenRequestMs: -1
   property real lastFocusReadyMs: -1
@@ -33,10 +35,10 @@ Item {
   property int catalogRecordCount: records.length
   property double componentStartedAt: Date.now()
   property double latestOpenStartedAt: 0
-  property bool startupRefreshPending: true
   property int configChangeRevision: 0
   property bool configSyncQueued: false
   readonly property int actionNoticeDurationMs: 10000
+  readonly property int refreshSuccessDurationMs: 10000
 
   readonly property string homeDir: Quickshell.env("HOME")
   readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
@@ -104,10 +106,16 @@ Item {
     configSyncProcess.running = true
   }
 
-  function applySnapshot(raw, exitCode) {
+  function clearRefreshSuccess() {
+    refreshSuccessTimer.stop()
+    refreshSuccessVisible = false
+  }
+
+  function applySnapshot(raw, exitCode, refreshResult) {
     var parsed = parseJson(raw, null)
-    refreshing = false
+    if (refreshResult === true) refreshing = false
     if (!parsed || parsed.ok !== true || !Array.isArray(parsed.records)) {
+      if (refreshResult === true) clearRefreshSuccess()
       if (parsed && parsed.error) lastError = String(parsed.error)
       else if (exitCode !== 0) lastError = "Catalog helper failed."
       return false
@@ -122,6 +130,14 @@ Item {
     lastRefreshDurationMs = parsed.cache
       ? Number(parsed.cache.refreshDurationMs || 0) : 0
     lastError = ""
+    if (refreshResult === true) {
+      clearRefreshSuccess()
+      if (exitCode === 0 && !lastRefreshError && lastSuccessfulRefresh
+          && lastSuccessfulRefresh !== refreshBaselineTimestamp) {
+        refreshSuccessVisible = true
+        refreshSuccessTimer.restart()
+      }
+    }
     return true
   }
 
@@ -138,6 +154,8 @@ Item {
       refreshProcess.forceQueued = refreshProcess.forceQueued || force === true
       return
     }
+    clearRefreshSuccess()
+    refreshBaselineTimestamp = lastSuccessfulRefresh
     refreshing = true
     refreshProcess.output = ""
     var command = [helperPath, "refresh", sourceDir]
@@ -290,12 +308,8 @@ Item {
       onStreamFinished: cachedProcess.output = text
     }
     onExited: function(exitCode) {
-      root.applySnapshot(output, exitCode)
+      root.applySnapshot(output, exitCode, false)
       Qt.callLater(root.requestStatus)
-      if (root.startupRefreshPending) {
-        root.startupRefreshPending = false
-        Qt.callLater(function() { root.requestRefresh(false) })
-      }
     }
   }
 
@@ -308,7 +322,7 @@ Item {
       onStreamFinished: refreshProcess.output = text
     }
     onExited: function(exitCode) {
-      root.applySnapshot(output, exitCode)
+      root.applySnapshot(output, exitCode, true)
       if (forceQueued) {
         forceQueued = false
         Qt.callLater(function() { root.requestRefresh(true) })
@@ -374,6 +388,13 @@ Item {
     interval: root.actionNoticeDurationMs
     repeat: false
     onTriggered: root.acknowledgeAction()
+  }
+
+  Timer {
+    id: refreshSuccessTimer
+    interval: root.refreshSuccessDurationMs
+    repeat: false
+    onTriggered: root.refreshSuccessVisible = false
   }
 
   Component.onCompleted: {
