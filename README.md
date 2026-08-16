@@ -76,18 +76,48 @@ Useful keys:
 | `Ctrl+g`                                   | Open the plugin source repository           |
 | `Ctrl+s`                                   | Open settings; `Escape` returns to the list |
 
-## Add behavior
+## Demo
 
-Adds run in the background by default and report their result in the palette and
-a notification. The confirmation's `Run in Omarchy terminal` switch streams
-native prompts instead. Both paths use the confirmed catalog snapshot.
+Click either preview to play the video.
 
-Plugins run unsandboxed inside the shell. Marketplace validation is not a
-security audit.
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="demo/video_plugin_control_add_remove_enable_disable.mp4?raw=1">
+        <img
+          src="demo/video_plugin_control_add_remove_enable_disable.png"
+          alt="Add, remove, enable, and disable plugins"
+        >
+      </a>
+      <p><strong>Add, remove, enable, and disable</strong></p>
+      <p>
+        Shows how quickly plugins can be added, removed, enabled, and disabled,
+        using the
+        <a href="https://github.com/ilyaZar/btop-quattro-plugin">btop plugin</a>
+        as an example.
+      </p>
+    </td>
+    <td width="50%" valign="top">
+      <a href="demo/video_plugin_control_settings.mp4?raw=1">
+        <img
+          src="demo/video_plugin_control_settings.png"
+          alt="Refresh the catalog and configure Plugin Control"
+        >
+      </a>
+      <p><strong>Refresh and settings</strong></p>
+      <p>
+        Shows how to refresh the cached plugin catalog and use Plugin Control
+        settings, including enabling or disabling the tray icon and performing
+        a clean uninstall and reinstall of the plugin.
+      </p>
+    </td>
+  </tr>
+</table>
 
 ## Start and stop
 
-The lifecycle helper lives inside the installed plugin:
+These commands enable or disable Plugin Control itself. The tray options only
+control whether its icon appears after the plugin starts:
 
 ```bash
 ~/.config/omarchy/plugins/io.github.ilyazar.plugin-control/bin/plugin-control start
@@ -96,7 +126,7 @@ The lifecycle helper lives inside the installed plugin:
 ```
 
 `start` uses the configured tray default. `--tray-hidden` and `--tray-visible`
-override it; `stop` disables the plugin.
+override it. `stop` disables the whole plugin, not only its tray icon.
 
 ## Settings
 
