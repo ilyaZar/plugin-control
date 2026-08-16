@@ -83,7 +83,7 @@ Click either preview to play the video.
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="demo/video_plugin_control_add_remove_enable_disable.mp4?raw=1">
+      <a href="https://ilyazar.github.io/plugin-control/demo/video_plugin_control_add_remove_enable_disable.mp4">
         <img
           src="demo/video_plugin_control_add_remove_enable_disable.png"
           alt="Add, remove, enable, and disable plugins"
@@ -98,7 +98,7 @@ Click either preview to play the video.
       </p>
     </td>
     <td width="50%" valign="top">
-      <a href="demo/video_plugin_control_settings.mp4?raw=1">
+      <a href="https://ilyazar.github.io/plugin-control/demo/video_plugin_control_settings.mp4">
         <img
           src="demo/video_plugin_control_settings.png"
           alt="Refresh the catalog and configure Plugin Control"
