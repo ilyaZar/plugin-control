@@ -80,7 +80,7 @@ helper() {
 }
 
 rebuild_snapshot() {
-  rm -f -- "$XDG_STATE_HOME/omarchy/plugin-control/snapshot.json"
+  rm -f -- "$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/snapshot.json"
   helper cached "$ROOT"
 }
 
@@ -99,7 +99,7 @@ wait_action() {
 }
 
 wait_worker_release() {
-  flock -w 5 "$XDG_RUNTIME_DIR/omarchy-plugin-control/action.lock" true
+  flock -w 5 "$XDG_RUNTIME_DIR/omarchy-ilyazar.plugin-control/action.lock" true
 }
 
 helper help | grep -Fq \
@@ -113,7 +113,26 @@ jq -cn '
   } | [.]
 ' >"$MOCK_RUNTIME"
 
+mkdir -p "$XDG_CONFIG_HOME/omarchy/plugin-control" \
+  "$XDG_CACHE_HOME/omarchy/plugin-control" \
+  "$XDG_STATE_HOME/omarchy/plugin-control" \
+  "$XDG_RUNTIME_DIR/omarchy-plugin-control"
+printf '{"installInTerminal":true}\n' \
+  >"$XDG_CONFIG_HOME/omarchy/plugin-control/settings.json"
+touch "$XDG_CACHE_HOME/omarchy/plugin-control/legacy-cache" \
+  "$XDG_STATE_HOME/omarchy/plugin-control/legacy-state" \
+  "$XDG_RUNTIME_DIR/omarchy-plugin-control/legacy-runtime"
+
 helper start --tray-hidden | grep -Fq 'tray icon hidden'
+[[ ! -e $XDG_CONFIG_HOME/omarchy/plugin-control
+  && ! -e $XDG_CACHE_HOME/omarchy/plugin-control
+  && ! -e $XDG_STATE_HOME/omarchy/plugin-control
+  && ! -e $XDG_RUNTIME_DIR/omarchy-plugin-control
+  && -f $XDG_CONFIG_HOME/omarchy/ilyazar.plugin-control/settings.json
+  && -f $XDG_CACHE_HOME/omarchy/ilyazar.plugin-control/legacy-cache
+  && -f $XDG_STATE_HOME/omarchy/ilyazar.plugin-control/legacy-state
+  && -f $XDG_RUNTIME_DIR/omarchy-ilyazar.plugin-control/legacy-runtime ]]
+printf 'ok - legacy user roots migrate to the author namespace\n'
 grep -Fqx 'shell rescanPlugins' "$MOCK_SHELL_LOG"
 grep -Fqx 'plugin enable io.github.ilyazar.plugin-control' "$MOCK_LOG"
 grep -Fqx 'bar set io.github.ilyazar.plugin-control trayIconHidden true --json' \
@@ -124,7 +143,7 @@ grep -Fqx 'bar set io.github.ilyazar.plugin-control trayIconHidden false --json'
   "$MOCK_LOG"
 
 sed -i 's/tray-icon-hidden: false/tray-icon-hidden: true/' \
-  "$XDG_CONFIG_HOME/omarchy/plugin-control/channels.yaml"
+  "$XDG_CONFIG_HOME/omarchy/ilyazar.plugin-control/channels.yaml"
 helper start | grep -Fq 'tray icon hidden'
 helper start --tray-visible | grep -Fq 'tray icon visible'
 
@@ -145,7 +164,7 @@ printf 'ok - public lifecycle CLI follows native flags and tray defaults\n'
 
 printf '[]\n' >"$MOCK_RUNTIME"
 
-cache_dir="$XDG_CACHE_HOME/omarchy/plugin-control/channels"
+cache_dir="$XDG_CACHE_HOME/omarchy/ilyazar.plugin-control/channels"
 mkdir -p "$cache_dir"
 cp "$TEST_DIR/fixtures/catalog-action.json" "$cache_dir/marketplace.json"
 
@@ -162,7 +181,7 @@ cached_again="$(helper cached "$ROOT")"
 printf 'ok - warm cache read skips native and Git refresh work\n'
 
 export MOCK_LIST_SLEEP=0.3
-rm -f -- "$XDG_STATE_HOME/omarchy/plugin-control/snapshot.json"
+rm -f -- "$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/snapshot.json"
 snapshot_started="$(date +%s%3N)"
 helper cached "$ROOT" >"$TEMP_ROOT/snapshot-one.json" &
 snapshot_pid_one=$!
@@ -182,7 +201,7 @@ jq -cn '{ok:true,records:[range(0;400) as $number
       description:("x" * 600),source:"marketplace",sourceRank:20,
       marketplaceListed:true,repository:"https://github.com/example/large"}]}' \
   >"$cache_dir/marketplace.json"
-rm -f -- "$XDG_STATE_HOME/omarchy/plugin-control/snapshot.json"
+rm -f -- "$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/snapshot.json"
 large_snapshot="$(helper cached "$ROOT")"
 jq -e '(.records | length) >= 400
   and any(.records[]; .id == "io.example.large-399")' \
@@ -193,7 +212,7 @@ cp "$TEST_DIR/fixtures/catalog-action.json" "$cache_dir/marketplace.json"
 snapshot="$(rebuild_snapshot)"
 snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
 
-snapshot_state="$XDG_STATE_HOME/omarchy/plugin-control/snapshot.json"
+snapshot_state="$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/snapshot.json"
 cp "$snapshot_state" "$TEMP_ROOT/current-snapshot.json"
 jq '.config.version = 1' "$snapshot_state" >"$snapshot_state.tmp"
 mv "$snapshot_state.tmp" "$snapshot_state"
@@ -419,12 +438,12 @@ jq -e '.ok == true and .operation == "remove"
 grep -Fqx \
   'plugin remove io.github.ilyazar.plugin-control --yes' "$MOCK_LOG"
 [[ ! -e $self_plugin && -d $self_plugin.removed && ! -e $snapshot_state ]]
-[[ -f $XDG_CONFIG_HOME/omarchy/plugin-control/channels.yaml
-  && -f $XDG_STATE_HOME/omarchy/plugin-control/channels.json
-  && -f $XDG_CACHE_HOME/omarchy/plugin-control/channels/marketplace.json
-  && -f $XDG_STATE_HOME/omarchy/plugin-control/action.json
-  && -f $XDG_STATE_HOME/omarchy/plugin-control/action.log ]]
-if find "$XDG_STATE_HOME/omarchy/plugin-control/worker" \
+[[ -f $XDG_CONFIG_HOME/omarchy/ilyazar.plugin-control/channels.yaml
+  && -f $XDG_STATE_HOME/omarchy/ilyazar.plugin-control/channels.json
+  && -f $XDG_CACHE_HOME/omarchy/ilyazar.plugin-control/channels/marketplace.json
+  && -f $XDG_STATE_HOME/omarchy/ilyazar.plugin-control/action.json
+  && -f $XDG_STATE_HOME/omarchy/ilyazar.plugin-control/action.log ]]
+if find "$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/worker" \
   \( -name 'plugin-control-*' -o -name 'snapshot-*.json' \) | grep -q .; then
   printf 'not ok - self removal left worker staging files\n' >&2
   exit 1
@@ -463,7 +482,60 @@ jq -e '.ok == false and .acknowledged == false
 unset MOCK_EXIT
 printf 'ok - failed self removal keeps its checkout and snapshot\n'
 
+mkdir -p "$self_plugin/scripts" "$XDG_CONFIG_HOME/hypr" \
+  "$XDG_CONFIG_HOME/omarchy/plugin-control" \
+  "$XDG_CACHE_HOME/omarchy/plugin-control" \
+  "$XDG_STATE_HOME/omarchy/plugin-control"
+cp "$ROOT/scripts/remove-keybinding.rb" "$self_plugin/scripts/"
+touch "$XDG_CONFIG_HOME/omarchy/ilyazar.plugin-control/purge-config" \
+  "$XDG_CACHE_HOME/omarchy/ilyazar.plugin-control/purge-cache" \
+  "$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/purge-state" \
+  "$XDG_CONFIG_HOME/omarchy/plugin-control/legacy-config" \
+  "$XDG_CACHE_HOME/omarchy/plugin-control/legacy-cache" \
+  "$XDG_STATE_HOME/omarchy/plugin-control/legacy-state"
+cat >"$XDG_CONFIG_HOME/hypr/bindings.lua" <<'LUA'
+o.bind(
+  "CTRL + P",
+  "Plugin Control",
+  "omarchy-shell shell toggle io.github.ilyazar.plugin-control '{}'"
+)
+
+o.bind("SUPER + T", "Terminal", "omarchy-launch-terminal")
+LUA
+rm -f -- "$snapshot_state"
+snapshot="$(helper cached "$self_plugin")"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+export MOCK_REMOVE_PATH="$self_plugin"
+started="$(helper action "$self_plugin" remove-purge \
+  io.github.ilyazar.plugin-control "$snapshot_id" background)"
+purge_pid="$(jq -r '.pid' <<<"$started")"
+deadline=$((SECONDS + 10))
+while [[ -e $self_plugin && $SECONDS -lt $deadline ]]; do
+  sleep 0.05
+done
+while kill -0 "$purge_pid" 2>/dev/null && (( SECONDS < deadline )); do
+  sleep 0.05
+done
+[[ ! -e $self_plugin && -d $self_plugin.removed ]]
+[[ ! -e $XDG_CONFIG_HOME/omarchy/ilyazar.plugin-control
+  && ! -e $XDG_CACHE_HOME/omarchy/ilyazar.plugin-control
+  && ! -e $XDG_STATE_HOME/omarchy/ilyazar.plugin-control
+  && ! -e $XDG_RUNTIME_DIR/omarchy-ilyazar.plugin-control
+  && ! -e $XDG_CONFIG_HOME/omarchy/plugin-control
+  && ! -e $XDG_CACHE_HOME/omarchy/plugin-control
+  && ! -e $XDG_STATE_HOME/omarchy/plugin-control ]]
+grep -Fq 'omarchy-launch-terminal' "$XDG_CONFIG_HOME/hypr/bindings.lua"
+if grep -Fq 'io.github.ilyazar.plugin-control' \
+  "$XDG_CONFIG_HOME/hypr/bindings.lua"; then
+  printf 'not ok - clean removal left the Plugin Control binding\n' >&2
+  exit 1
+fi
+unset MOCK_REMOVE_PATH
+printf 'ok - clean removal purges namespaced data and its keybinding\n'
+
 printf '[]\n' >"$MOCK_RUNTIME"
+mkdir -p "$cache_dir"
+cp "$TEST_DIR/fixtures/catalog-action.json" "$cache_dir/marketplace.json"
 snapshot="$(rebuild_snapshot)"
 snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
 export MOCK_OUTPUT_BYTES=20000
@@ -486,7 +558,7 @@ status="$(wait_action)"
 jq -e '.ok == false and (.message | contains("failed"))' \
   <<<"$status" >/dev/null
 wait_worker_release
-if find "$XDG_STATE_HOME/omarchy/plugin-control/worker" \
+if find "$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/worker" \
   -name 'plugin-control-*' -o -name 'snapshot-*.json' | grep -q .; then
   printf 'not ok - failed action left worker staging files\n' >&2
   exit 1
