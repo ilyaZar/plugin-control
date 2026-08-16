@@ -7,6 +7,7 @@ import qs.Commons
 import qs.Ui
 import "Fuzzy.js" as Fuzzy
 import "CatalogModel.js" as CatalogModel
+import "PaletteViewModel.js" as PaletteViewModel
 import "lib/shortcuts" as Shortcuts
 
 Item {
@@ -32,7 +33,6 @@ Item {
   property double filterStartedAt: 0
   property bool installInTerminal: false
   property bool settingsMenuOpen: false
-  property bool selfRemovalRequested: false
   property var savedSettings: ({})
   property color shortcutColor: "#e5c07b"
 
@@ -41,7 +41,7 @@ Item {
   readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
     || Quickshell.env("HOME") + "/.config"
   readonly property string settingsPath: configHome
-    + "/omarchy/plugin-control/settings.json"
+    + "/omarchy/ilyazar.plugin-control/settings.json"
   readonly property string themeColorsPath: Color.currentThemePath
     + "/colors.toml"
   readonly property color background: Color.menu.background
@@ -76,7 +76,8 @@ Item {
     + activeFooterHeight + statusHeight
     + Style.spacing.sm * chromeSpacingCount
   readonly property int cardHeight: Math.min(Style.space(500),
-    Math.max(Style.space(actionDialog.opened ? 420 : 220),
+    Math.max(Style.space(actionDialog.opened ? 420
+      : (selfRemovalDialog.opened ? 280 : 220)),
       Math.min(desiredCardHeight,
         panel.height - restingY - Style.gapsOut)))
   readonly property int topBarOffset: shell && shell.bar
@@ -139,13 +140,9 @@ Item {
     selectedRecord = null
     pendingSnapshotId = ""
     settingsMenuOpen = false
-    selfRemovalRequested = payload.removeSelf === true
     actionDialog.closeDialog()
     if (payload.settings === true) showSettingsMenu()
-    else {
-      rebuildResults()
-      tryOpenSelfRemoval()
-    }
+    else rebuildResults()
     Qt.callLater(function() {
       if (actionDialog.opened) actionDialog.forceActiveFocus()
       else if (settingsMenuOpen) resultList.forceActiveFocus()
@@ -158,7 +155,6 @@ Item {
     if (!surfaceVisible) return
     opened = false
     settingsMenuOpen = false
-    selfRemovalRequested = false
     actionDialog.closeDialog()
     closeTimer.interval = service && service.animationsEnabled ? 80 : 0
     closeTimer.restart()
@@ -193,44 +189,13 @@ Item {
     filterStartedAt = Date.now()
     var records = service && Array.isArray(service.records)
       ? service.records : []
-    var result = settingsMenuOpen ? {
-      mode: "settings",
-      results: [
-        {
-          name: "Plugin settings",
-          description: "Edit channels and tray defaults",
-          settingsAction: "plugin"
-        },
-        {
-          name: "Keybindings",
-          description: "Edit the user-owned Plugin Control shortcut",
-          settingsAction: "keybindings"
-        },
-        {
-          name: "Cancel / Back",
-          description: "Return to the plugin list",
-          settingsAction: "cancel"
-        }
-      ]
-    } : Fuzzy.search(records, query, 50)
+    var result = settingsMenuOpen ? PaletteViewModel.settingsResult()
+      : Fuzzy.search(records, query, 50)
     mode = result.mode
     filteredRecords = result.results
     displayModel.clear()
     for (var i = 0; i < filteredRecords.length; i++) {
-      var record = filteredRecords[i]
-      displayModel.append({
-        pluginName: String(record.name || record.id || ""),
-        pluginId: String(record.id || ""),
-        description: String(record.description || ""),
-        author: String(record.author || "Unknown"),
-        kind: String(record.kind || record.category || "Plugin"),
-        stateLabel: String(record.stateLabel || "Browse only"),
-        sourceLabel: String(record.sourceLabel || record.sourceName || "Unknown"),
-        warning: String(record.warning || ""),
-        version: String(record.version || ""),
-        releaseTag: String(record.releaseTag || ""),
-        repository: String(record.repository || "")
-      })
+      displayModel.append(PaletteViewModel.displayRecord(filteredRecords[i]))
     }
     selectedIndex = displayModel.count > 0
       ? Math.max(0, Math.min(selectedIndex, displayModel.count - 1)) : 0
@@ -284,21 +249,6 @@ Item {
         ? String(service.snapshot.snapshotId || "") : "")
     actionDialog.openDialog()
     return true
-  }
-
-  function tryOpenSelfRemoval() {
-    if (!selfRemovalRequested || !service
-        || !Array.isArray(service.records)
-        || !service.snapshot || !service.snapshot.snapshotId) return false
-    for (var i = 0; i < service.records.length; i++) {
-      var record = service.records[i]
-      if (record && record.id === pluginId && record.installed === true
-          && record.removable === true) {
-        selfRemovalRequested = false
-        return openDialogFor(record, "remove")
-      }
-    }
-    return false
   }
 
   function activateIndex(index) {
@@ -424,10 +374,44 @@ Item {
       closeSettingsMenu()
       return
     }
+    if (action === "remove-self") {
+      openSelfRemovalDialog()
+      return
+    }
     if (["plugin", "keybindings"].indexOf(String(action)) < 0) return
     dismiss()
     Quickshell.execDetached([sourcePath("scripts/open-settings.sh"),
       String(action), sourceDir()])
+  }
+
+  function openSelfRemovalDialog() {
+    if (!service || !Array.isArray(service.records) || !service.snapshot
+        || !service.snapshot.snapshotId) {
+      transientMessage = "No current plugin snapshot is available."
+      return false
+    }
+    var record = PaletteViewModel.removableRecord(service.records, pluginId)
+    if (record) {
+      selectedRecord = JSON.parse(JSON.stringify(record))
+      pendingSnapshotId = String(service.snapshot.snapshotId)
+      selfRemovalDialog.openDialog()
+      return true
+    }
+    transientMessage = "Plugin Control is not available for removal."
+    return false
+  }
+
+  function confirmSelfRemoval(deleteUserData) {
+    if (!service || !selectedRecord || !pendingSnapshotId) return
+    var operation = deleteUserData === true ? "remove-purge" : "remove"
+    if (service.startAction(operation, pluginId, pendingSnapshotId,
+        "background")) {
+      transientMessage = deleteUserData === true
+        ? "Cleaning user data and removing Plugin Control..."
+        : "Removing Plugin Control and preserving user data..."
+      selfRemovalDialog.closeDialog()
+      resultList.forceActiveFocus()
+    }
   }
 
   function dismissStatus() {
@@ -558,10 +542,7 @@ Item {
 
   Connections {
     target: root.service
-    function onRecordsChanged() {
-      root.rebuildResults()
-      root.tryOpenSelfRemoval()
-    }
+    function onRecordsChanged() { root.rebuildResults() }
     function onActionFinished(state) {
       root.transientMessage = ""
       root.rebuildResults()
@@ -581,7 +562,7 @@ Item {
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
-    WlrLayershell.namespace: "plugin-control"
+    WlrLayershell.namespace: "ilyazar.plugin-control"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: root.surfaceVisible
       ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
@@ -643,6 +624,25 @@ Item {
           root.setInstallInTerminal(enabled)
         }
         onConfirmed: root.confirmAction()
+      }
+
+      SelfRemovalDialog {
+        id: selfRemovalDialog
+        anchors.fill: parent
+        z: 30
+        busy: root.service ? root.service.actionRunning : false
+        background: root.background
+        foreground: root.foreground
+        selectedBackground: root.selectedBackground
+        selectedText: root.selectedText
+        warningColor: root.urgent
+        onCanceled: {
+          closeDialog()
+          resultList.forceActiveFocus()
+        }
+        onRemoveRequested: function(deleteUserData) {
+          root.confirmSelfRemoval(deleteUserData)
+        }
       }
 
       Column {
@@ -747,150 +747,21 @@ Item {
                 event.accepted = true
             }
 
-            delegate: Rectangle {
-              id: resultRow
-              required property int index
-              required property string pluginName
-              required property string pluginId
-              required property string description
-              required property string author
-              required property string kind
-              required property string stateLabel
-              required property string sourceLabel
-              required property string warning
-              required property string version
-              required property string releaseTag
-              required property string repository
-
-              readonly property bool selected: index === root.selectedIndex
+            delegate: PaletteResultRow {
               width: ListView.view.width
-              height: root.rowHeight
-              radius: Style.cornerRadius
-              color: selected ? root.selectedBackground : "transparent"
-
-              MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onEntered: root.select(resultRow.index)
-                onClicked: {
-                  root.select(resultRow.index)
-                  root.activateIndex(resultRow.index)
-                }
+              selected: index === root.selectedIndex
+              settingsMenuOpen: root.settingsMenuOpen
+              rowHeight: root.rowHeight
+              foreground: root.foreground
+              selectedBackground: root.selectedBackground
+              selectedText: root.selectedText
+              urgent: root.urgent
+              onHovered: root.select(index)
+              onActivated: {
+                root.select(index)
+                root.activateIndex(index)
               }
-
-              Column {
-                anchors.left: parent.left
-                anchors.leftMargin: Style.spacing.md
-                anchors.right: badgeColumn.left
-                anchors.rightMargin: Style.spacing.sm
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: Style.space(2)
-
-                Row {
-                  width: parent.width
-                  spacing: Style.spacing.sm
-                  Text {
-                    width: Math.min(implicitWidth, parent.width
-                      * (root.settingsMenuOpen ? 1 : 0.52))
-                    text: resultRow.pluginName
-                    textFormat: Text.PlainText
-                    color: resultRow.selected ? root.selectedText : root.foreground
-                    font.family: Style.font.menuFamily
-                    font.pixelSize: Style.font.title
-                    font.bold: true
-                    elide: Text.ElideRight
-                  }
-                  Text {
-                    visible: !root.settingsMenuOpen
-                    width: parent.width - x
-                    text: resultRow.pluginId
-                    textFormat: Text.PlainText
-                    color: resultRow.selected ? root.selectedText : root.foreground
-                    opacity: 0.60
-                    font.family: Style.font.family
-                    font.pixelSize: Style.font.body
-                    elide: Text.ElideRight
-                  }
-                }
-
-                Text {
-                  width: parent.width
-                  text: root.settingsMenuOpen ? resultRow.description
-                    : resultRow.author + " - "
-                      + (resultRow.description || resultRow.kind)
-                  textFormat: Text.PlainText
-                  color: resultRow.selected ? root.selectedText : root.foreground
-                  opacity: 0.65
-                  font.family: Style.font.menuFamily
-                  font.pixelSize: Style.font.body
-                  elide: Text.ElideRight
-                  horizontalAlignment: Text.AlignLeft
-                }
-
-                Text {
-                  id: repositoryText
-                  z: 2
-                  visible: !root.settingsMenuOpen
-                    && resultRow.repository !== ""
-                  width: parent.width
-                  text: resultRow.repository
-                  textFormat: Text.PlainText
-                  color: resultRow.selected ? root.selectedText : root.foreground
-                  opacity: repositoryMouse.containsMouse ? 0.90 : 0.48
-                  font.family: Style.font.family
-                  font.pixelSize: Style.font.caption
-                  font.underline: repositoryMouse.containsMouse
-                  elide: Text.ElideRight
-                  horizontalAlignment: Text.AlignLeft
-
-                  MouseArea {
-                    id: repositoryMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onEntered: root.select(resultRow.index)
-                    onClicked: root.openWebsite(resultRow.repository)
-                  }
-                }
-              }
-
-              Column {
-                id: badgeColumn
-                visible: !root.settingsMenuOpen
-                anchors.right: parent.right
-                anchors.rightMargin: Style.spacing.md
-                anchors.verticalCenter: parent.verticalCenter
-                width: visible ? Style.space(178) : 0
-                spacing: Style.space(2)
-
-                Text {
-                  width: parent.width
-                  text: resultRow.stateLabel
-                    + (resultRow.version ? "  " + resultRow.version : "")
-                    + (resultRow.releaseTag ? "  " + resultRow.releaseTag : "")
-                  textFormat: Text.PlainText
-                  color: resultRow.selected ? root.selectedText : root.foreground
-                  font.family: Style.font.menuFamily
-                  font.pixelSize: Style.font.body
-                  horizontalAlignment: Text.AlignRight
-                  elide: Text.ElideLeft
-                }
-                Text {
-                  width: parent.width
-                  text: resultRow.sourceLabel + (resultRow.warning
-                    ? " - " + resultRow.warning : "")
-                  textFormat: Text.PlainText
-                  color: resultRow.warning ? root.urgent
-                    : (resultRow.selected ? root.selectedText : root.foreground)
-                  opacity: resultRow.warning ? 1 : 0.55
-                  font.family: Style.font.menuFamily
-                  font.pixelSize: Style.font.body
-                  horizontalAlignment: Text.AlignRight
-                  elide: Text.ElideRight
-                }
-              }
-
+              onRepositoryRequested: function(url) { root.openWebsite(url) }
             }
           }
 
@@ -936,75 +807,13 @@ Item {
           }
         }
 
-        Item {
+        PaletteFooter {
           visible: root.paletteChromeVisible
           width: parent.width
           height: root.activeFooterHeight
-
-          Rectangle {
-            anchors.top: parent.top
-            width: parent.width
-            height: 1
-            color: Util.alpha(root.foreground, 0.16)
-          }
-
-          Row {
-            id: footerRow
-            anchors.fill: parent
-            anchors.topMargin: Style.space(6)
-
-            Repeater {
-              model: [
-                { keyLabel: "[Ctrl+I]", label: "Info" },
-                { keyLabel: "[Ctrl+W]",
-                  label: root.marketplaceShortcutLabel },
-                { keyLabel: "[Ctrl+G]", label: "GitHub source" },
-                { keyLabel: "[Ctrl+R]", label: "Refresh" },
-                { keyLabel: "[Ctrl+S]", label: "Settings" }
-              ]
-
-              delegate: Item {
-                required property var modelData
-                width: footerRow.width / 5
-                height: footerRow.height
-
-                Column {
-                  anchors.centerIn: parent
-                  spacing: Style.space(2)
-
-                  Rectangle {
-                    width: keyText.implicitWidth + Style.spacing.sm
-                    height: Style.space(22)
-                    radius: Style.space(4)
-                    color: Util.alpha(root.shortcutColor, 0.10)
-                    border.width: 1
-                    border.color: Util.alpha(root.shortcutColor, 0.70)
-
-                    Text {
-                      id: keyText
-                      anchors.centerIn: parent
-                      text: modelData.keyLabel
-                      textFormat: Text.PlainText
-                      color: root.shortcutColor
-                      font.family: Style.font.family
-                      font.pixelSize: Style.font.caption
-                      font.bold: true
-                    }
-                  }
-
-                  Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: modelData.label
-                    textFormat: Text.PlainText
-                    color: root.foreground
-                    opacity: 0.72
-                    font.family: Style.font.menuFamily
-                    font.pixelSize: Style.font.caption
-                  }
-                }
-              }
-            }
-          }
+          marketplaceLabel: root.marketplaceShortcutLabel
+          foreground: root.foreground
+          shortcutColor: root.shortcutColor
         }
       }
     }

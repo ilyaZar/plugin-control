@@ -13,7 +13,8 @@ if [[ -x /usr/lib/qt6/bin/qmllint ]]; then
 fi
 "$qmllint_bin" -I /usr/share/omarchy/shell \
   "$ROOT/Service.qml" "$ROOT/PluginControl.qml" "$ROOT/ActionDialog.qml" \
-  "$ROOT/PluginControlBar.qml" \
+  "$ROOT/PluginControlBar.qml" "$ROOT/SelfRemovalDialog.qml" \
+  "$ROOT/PaletteResultRow.qml" "$ROOT/PaletteFooter.qml" \
   "$ROOT/lib/shortcuts/HyprlandBinding.qml"
 printf 'ok - QML lint\n'
 
@@ -24,15 +25,15 @@ rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Escape' "$ROOT/PluginControl.qml"
 rg -Fq '{ keyLabel: "[Ctrl+I]", label: "Info" }' \
-  "$ROOT/PluginControl.qml"
+  "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+W]",' \
-  "$ROOT/PluginControl.qml"
+  "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+G]", label: "GitHub source" }' \
-  "$ROOT/PluginControl.qml"
+  "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+R]", label: "Refresh" }' \
-  "$ROOT/PluginControl.qml"
+  "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+S]", label: "Settings" }' \
-  "$ROOT/PluginControl.qml"
+  "$ROOT/PaletteFooter.qml"
 if rg -q 'Ctrl\+Shift|isContextShortcut' "$ROOT/PluginControl.qml"; then
   printf 'not ok - shifted palette shortcuts remain\n' >&2
   exit 1
@@ -55,8 +56,8 @@ rg -q 'activateIndex\(selectedIndex\)' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Tab' "$ROOT/PluginControl.qml"
 rg -q 'commandCompletion' "$ROOT/PluginControl.qml"
 rg -q 'function clearCompletedCommandPrefix()' "$ROOT/PluginControl.qml"
-rg -Fq 'repository: String(record.repository' "$ROOT/PluginControl.qml"
-rg -Fq 'font.pixelSize: Style.font.caption' "$ROOT/PluginControl.qml"
+rg -Fq 'repository: String(value.repository' "$ROOT/PaletteViewModel.js"
+rg -Fq 'font.pixelSize: Style.font.caption' "$ROOT/PaletteResultRow.qml"
 rg -q 'pendingSnapshotId = pendingOperation === "browse"' \
   "$ROOT/PluginControl.qml"
 rg -q 'String\(selectedRecord.id || ""\), pendingSnapshotId' \
@@ -73,19 +74,21 @@ rg -Fq 'Qt.LeftButton' "$ROOT/PluginControlBar.qml"
 rg -Fq 'root.bar.shell.toggle' "$ROOT/PluginControlBar.qml"
 rg -Fq 'Qt.RightButton' "$ROOT/PluginControlBar.qml"
 rg -Fq 'text: "Settings"' "$ROOT/PluginControlBar.qml"
-rg -Fq 'text: "Remove Plugin Control"' "$ROOT/PluginControlBar.qml"
 rg -Fq "root.bar.shell.toggle(root.moduleName, '{\"settings\":true}')" \
   "$ROOT/PluginControlBar.qml"
-rg -Fq "root.bar.shell.summon(root.moduleName, '{\"removeSelf\":true}')" \
-  "$ROOT/PluginControlBar.qml"
+if rg -q 'Remove Plugin Control|removePluginControl' \
+  "$ROOT/PluginControlBar.qml"; then
+  printf 'not ok - destructive action remains in the bar popup\n' >&2
+  exit 1
+fi
 rg -Fq 'setting("trayIconHidden", false) === true' \
   "$ROOT/PluginControlBar.qml"
 printf 'ok - bar launcher uses the native package button and settings menu\n'
 
-rg -Fq 'color: root.shortcutColor' "$ROOT/PluginControl.qml"
+rg -Fq 'color: root.shortcutColor' "$ROOT/PaletteFooter.qml"
 rg -Fq 'color: Util.alpha(root.foreground, 0.16)' \
-  "$ROOT/PluginControl.qml"
-rg -q 'sourceLabel:' "$ROOT/PluginControl.qml"
+  "$ROOT/PaletteFooter.qml"
+rg -q 'sourceLabel:' "$ROOT/PaletteViewModel.js"
 rg -q 'service.actionRunning' "$ROOT/PluginControl.qml"
 rg -Fq 'actionNoticeDurationMs: 10000' "$ROOT/Service.qml"
 rg -Fq 'finishedUnacknowledged && isNewNotice' "$ROOT/Service.qml"
@@ -98,11 +101,25 @@ rg -Fq 'root.configChangeRevision++' "$ROOT/Service.qml"
 rg -q 'actionDialog.openDialog\(\)' "$ROOT/PluginControl.qml"
 rg -q 'function openSelectedInfo\(\)' "$ROOT/PluginControl.qml"
 rg -q 'function showSettingsMenu\(\)' "$ROOT/PluginControl.qml"
-rg -q 'function tryOpenSelfRemoval\(\)' "$ROOT/PluginControl.qml"
+rg -Fq 'name: "Cleanly remove Plugin Control and user data"' \
+  "$ROOT/PaletteViewModel.js"
+rg -Fq 'separatorBefore: true' "$ROOT/PaletteViewModel.js"
+rg -q 'function openSelfRemovalDialog\(\)' "$ROOT/PluginControl.qml"
+rg -Fq '"remove-purge"' "$ROOT/PluginControl.qml"
+rg -Fq 'text: "Sure to remove Plugin Control?"' \
+  "$ROOT/SelfRemovalDialog.qml"
+rg -Fq '"Yes (preserve user data)"' "$ROOT/SelfRemovalDialog.qml"
+rg -Fq '"Yes (delete user data)"' "$ROOT/SelfRemovalDialog.qml"
+rg -Fq '"No / abort"' "$ROOT/SelfRemovalDialog.qml"
+if rg -q 'removeSelf|tryOpenSelfRemoval|selfRemovalRequested' \
+  "$ROOT/PluginControl.qml"; then
+  printf 'not ok - obsolete self-removal payload remains\n' >&2
+  exit 1
+fi
 rg -q 'Qt.Key_J' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_K' "$ROOT/PluginControl.qml"
 rg -Fq 'readOnly: root.settingsMenuOpen' "$ROOT/PluginControl.qml"
-rg -Fq 'name: "Cancel / Back"' "$ROOT/PluginControl.qml"
+rg -Fq 'name: "Cancel / Back"' "$ROOT/PaletteViewModel.js"
 rg -Fq 'visible: root.paletteChromeVisible' "$ROOT/PluginControl.qml"
 rg -Fq 'height: root.activeHeaderHeight' "$ROOT/PluginControl.qml"
 rg -Fq 'height: root.activeFooterHeight' "$ROOT/PluginControl.qml"
@@ -110,7 +127,7 @@ rg -Fq 'focus: root.settingsMenuOpen' "$ROOT/PluginControl.qml"
 rg -Fq 'if (pendingOperation === "browse") return' \
   "$ROOT/PluginControl.qml"
 rg -q 'installInTerminal' "$ROOT/PluginControl.qml"
-rg -q 'omarchy-launch-terminal' "$ROOT/bin/plugin-control"
+rg -q 'omarchy-launch-terminal' "$ROOT/lib/backend/actions.sh"
 rg -q 'signal confirmed' "$ROOT/ActionDialog.qml"
 rg -Fq 'return "Remove Plugin Control itself?"' "$ROOT/ActionDialog.qml"
 rg -Fq 'if (selfRemoval) return "Yes, remove"' "$ROOT/ActionDialog.qml"

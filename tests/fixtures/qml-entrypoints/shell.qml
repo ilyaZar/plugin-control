@@ -10,6 +10,9 @@ ShellRoot {
   property var serviceObject: null
   property int dialogCanceledCount: 0
   property int dialogConfirmedCount: 0
+  property int removalCanceledCount: 0
+  property int removalPreserveCount: 0
+  property int removalPurgeCount: 0
 
   function manifestData() {
     return {
@@ -371,7 +374,7 @@ ShellRoot {
         overlay.open('{"settings":true}')
         if (!overlay.settingsMenuOpen || !overlay.opened
             || !overlay.surfaceVisible || overlay.mode !== "settings"
-            || overlay.filteredRecords.length !== 3 || overlay.query !== ""
+            || overlay.filteredRecords.length !== 4 || overlay.query !== ""
             || overlay.paletteChromeVisible
             || overlay.activeHeaderHeight !== 0
             || overlay.activeFooterHeight !== 0
@@ -380,8 +383,12 @@ ShellRoot {
             || overlay.filteredRecords[0].settingsAction !== "plugin"
             || overlay.filteredRecords[1].name !== "Keybindings"
             || overlay.filteredRecords[1].settingsAction !== "keybindings"
-            || overlay.filteredRecords[2].name !== "Cancel / Back"
-            || overlay.filteredRecords[2].settingsAction !== "cancel") {
+            || overlay.filteredRecords[2].name
+              !== "Cleanly remove Plugin Control and user data"
+            || overlay.filteredRecords[2].settingsAction !== "remove-self"
+            || overlay.filteredRecords[2].separatorBefore !== true
+            || overlay.filteredRecords[3].name !== "Cancel / Back"
+            || overlay.filteredRecords[3].settingsAction !== "cancel") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings payload")
         }
         var plainJ = { modifiers: Qt.NoModifier, key: Qt.Key_J, text: "j" }
@@ -397,7 +404,7 @@ ShellRoot {
             || overlay.selectedIndex !== 0) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings navigation")
         }
-        overlay.selectedIndex = 2
+        overlay.selectedIndex = 3
         if (!overlay.handleKey(enterEvent) || overlay.settingsMenuOpen
             || !overlay.opened || !overlay.surfaceVisible
             || !overlay.paletteChromeVisible
@@ -410,30 +417,6 @@ ShellRoot {
             || overlay.settingsMenuOpen || !overlay.opened) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings escape back")
         }
-        root.serviceObject.records = []
-        root.serviceObject.snapshot = { snapshotId: "self-removal-snapshot" }
-        overlay.open('{"removeSelf":true}')
-        if (!overlay.selfRemovalRequested || overlay.selectedRecord !== null) {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR pending self removal")
-        }
-        root.serviceObject.records = [{
-          id: "io.github.ilyazar.plugin-control",
-          name: "Plugin Control",
-          installed: true,
-          removable: true,
-          dirty: false
-        }]
-        overlay.tryOpenSelfRemoval()
-        if (overlay.selfRemovalRequested
-            || overlay.pendingOperation !== "remove"
-            || overlay.pendingSnapshotId !== "self-removal-snapshot"
-            || !overlay.selectedRecord
-            || overlay.selectedRecord.id
-              !== "io.github.ilyazar.plugin-control") {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR self removal payload")
-        }
-        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
-          console.error("PLUGIN_CONTROL_LOAD_ERROR self removal cancel")
         console.log("PLUGIN_CONTROL_INTERACTION_OK palette interactions")
         root.serviceObject.acceptActionStart('{"error":"Install failed."}', 1)
         if (root.serviceObject.actionNoticeDurationMs !== 10000
@@ -502,6 +485,34 @@ ShellRoot {
         if (dialog.canConfirm)
           console.error("PLUGIN_CONTROL_LOAD_ERROR dirty self removal")
       }
+      var removalDialog = root.loadEntry(
+        "SelfRemovalDialog.qml", "self-removal-dialog")
+      if (removalDialog) {
+        removalDialog.canceled.connect(function() {
+          root.removalCanceledCount++
+        })
+        removalDialog.removeRequested.connect(function(deleteUserData) {
+          if (deleteUserData) root.removalPurgeCount++
+          else root.removalPreserveCount++
+        })
+        removalDialog.openDialog()
+        if (removalDialog.selectedChoice !== 2)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR safe removal default")
+        removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
+        removalDialog.closeDialog()
+        removalDialog.openDialog()
+        removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Up })
+        removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
+        removalDialog.closeDialog()
+        removalDialog.openDialog()
+        removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Down })
+        removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
+        if (root.removalCanceledCount !== 1
+            || root.removalPurgeCount !== 1
+            || root.removalPreserveCount !== 1) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR self removal choices")
+        }
+      }
       var barWidget = root.loadEntry("PluginControlBar.qml", "bar-widget")
       if (barWidget) {
         barWidget.bar = mockBar
@@ -535,14 +546,6 @@ ShellRoot {
         barWidget.openSettings()
         if (mockShell.lastTogglePayload !== '{"settings":true}')
           console.error("PLUGIN_CONTROL_LOAD_ERROR bar settings payload")
-        barWidget.settingsMenuOpen = true
-        barWidget.removePluginControl()
-        if (barWidget.settingsMenuOpen
-            || mockShell.lastSummonId
-              !== "io.github.ilyazar.plugin-control"
-            || mockShell.lastSummonPayload !== '{"removeSelf":true}') {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR bar removal payload")
-        }
       }
       Qt.callLater(Qt.quit)
     }

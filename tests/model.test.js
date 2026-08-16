@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const Fuzzy = require("../Fuzzy.js");
 const Catalog = require("../CatalogModel.js");
+const Palette = require("../PaletteViewModel.js");
 const SELF_ID = "io.github.ilyazar.plugin-control";
 
 function test(name, callback) {
@@ -289,4 +290,15 @@ test("bar widget kinds accept native hyphenated spelling", () => {
   assert.equal(Catalog.isBarWidget("bar-widget"), true);
   assert.equal(Catalog.isBarWidget("Bar widget"), true);
   assert.equal(Catalog.isBarWidget("overlay"), false);
+});
+
+test("palette view model keeps settings and records declarative", () => {
+  const settings = Palette.settingsResult();
+  assert.equal(settings.mode, "settings");
+  assert.equal(settings.results[2].settingsAction, "remove-self");
+  assert.equal(settings.results[2].dangerous, true);
+  assert.equal(Palette.displayRecord({ id: "example", name: "Example" })
+    .pluginName, "Example");
+  assert.equal(Palette.removableRecord(records, SELF_ID).id, SELF_ID);
+  assert.equal(Palette.removableRecord(records, "missing"), null);
 });
