@@ -39,14 +39,6 @@ BarWidget {
     }
   }
 
-  function removePluginControl() {
-    close()
-    if (root.bar && root.bar.shell
-        && typeof root.bar.shell.summon === "function") {
-      root.bar.shell.summon(root.moduleName, '{"removeSelf":true}')
-    }
-  }
-
   BarIconButton {
     id: button
     anchors.fill: parent
@@ -84,13 +76,6 @@ BarWidget {
         onClicked: root.openSettings()
       }
 
-      Button {
-        width: parent.width
-        text: "Remove Plugin Control"
-        leftAlign: true
-        foreground: root.bar ? root.bar.urgent : Color.urgent
-        onClicked: root.removePluginControl()
-      }
     }
   }
 }
