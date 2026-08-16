@@ -4,7 +4,7 @@ Think of Sublime Text's classic Package Control or the VS Code Command Palette,
 but for Omarchy Quattro plugins.
 
 Press Ctrl+P (or click the tray icon), type a few letters to fuzzy-search, and
-press Enter to install or remove a plugin.
+press Enter to add or toggle a plugin.
 
 ![Plugin Control command palette](preview.png)
 
@@ -38,14 +38,23 @@ Start typing to search plugin names, IDs, descriptions, authors, and tags. Enter
 opens the selected plugin's available action; Ctrl+I shows details without
 changing anything.
 
-Use either command to narrow the action first:
+Without a command prefix, Enter adds an available plugin or toggles a
+switchable plugin between enabled and disabled. Removal stays behind the
+explicit remove command.
 
-- `plug-install:` shows available installable plugins
+Use these commands to narrow the action first:
+
+- `plug-add:` shows plugins available through `omarchy plugin add`
 - `plug-remove:` shows removable local plugins
+- `plug-enable:` shows disabled switchable plugins
+- `plug-disable:` shows enabled switchable plugins
 
-Commands are not pinned. Type `install`, `remove`, `plug-in`, or `plg-in` to
-bring one forward, then press Tab or Enter to complete it. Search restarts after
-the colon. Backspace edits a plugin name normally; at an empty completed prefix,
+`plug-add:` is the preferred spelling. `plug-install:` remains an accepted
+alias for it.
+
+Commands are not pinned. Type `add`, `remove`, `enable`, or `disable` to bring
+one forward, then press Tab or Enter to complete it. Search restarts after the
+colon. Backspace edits a plugin name normally; at an empty completed prefix,
 one press removes the trailing space and the next clears the command.
 
 Useful keys:
@@ -65,10 +74,10 @@ Useful keys:
 | `Ctrl+G`                                   | Open the plugin source repository           |
 | `Ctrl+S`                                   | Open settings; `Escape` returns to the list |
 
-## Install behavior
+## Add behavior
 
-Installs run in the background by default and report their result in the palette
-and a notification. The confirmation's `Run in Omarchy terminal` switch streams
+Adds run in the background by default and report their result in the palette and
+a notification. The confirmation's `Run in Omarchy terminal` switch streams
 native prompts instead. Both paths use the confirmed catalog snapshot.
 
 Plugins run unsandboxed inside the shell. Marketplace validation is not a
@@ -116,7 +125,7 @@ version 1 is not migrated.
 - Ruby with Psych
 - util-linux (`flock` and `setsid`)
 - GNU coreutils (`timeout`)
-- `omarchy-launch-terminal` for terminal installs
+- `omarchy-launch-terminal` for terminal adds
 
 Plugin Control installs no packages and requests no elevated privileges.
 

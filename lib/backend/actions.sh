@@ -111,7 +111,7 @@ set_action_result() {
   ACTION_MESSAGE="$2"
 }
 
-run_install_action() {
+run_add_action() {
   local record="$1"
   local snapshot="$2"
   local execution_mode="$3"
@@ -125,10 +125,10 @@ run_install_action() {
   if ! jq -e '.installable == true and .installed != true' \
     <<<"$record" >/dev/null || ! valid_github_repository_url "$repository"; then
     set_action_result false \
-      "The confirmed record has no supported installation path."
+      "The confirmed record has no supported add path."
   elif [[ $source == submission && $allow_unlisted != true ]]; then
     set_action_result false \
-      "Unlisted installation is disabled in Plugin Control settings."
+      "Adding unlisted plugins is disabled in Plugin Control settings."
   elif [[ $source == submission && $execution_mode == terminal ]]; then
     set_action_result false \
       "Unlisted installs require the reviewed background path."
@@ -139,18 +139,18 @@ run_install_action() {
   elif [[ $execution_mode == terminal ]]; then
     if omarchy plugin add "$repository" --enable; then
       set_action_result true \
-        "Plugin installed and enabled in the Omarchy terminal."
+        "Plugin added and enabled in the Omarchy terminal."
     else
       rc=$?
-      set_action_result false "Plugin installation failed with exit code $rc."
+      set_action_result false "Plugin add failed with exit code $rc."
     fi
   elif timeout --signal=TERM --kill-after=5s 300s \
     omarchy plugin add "$repository" --enable --yes \
       >"$output_file" 2>&1; then
-    set_action_result true "Plugin installed and enabled."
+    set_action_result true "Plugin added and enabled."
   else
     rc=$?
-    set_action_result false "Plugin installation failed with exit code $rc."
+    set_action_result false "Plugin add failed with exit code $rc."
   fi
 }
 
@@ -202,7 +202,7 @@ run_remove_action() {
   fi
 }
 
-run_builtin_action() {
+run_switch_action() {
   local record="$1"
   local id="$2"
   local operation="$3"
@@ -210,28 +210,28 @@ run_builtin_action() {
   local success_message rc
   local -a command
 
-  if ! jq -e '.builtIn == true' <<<"$record" >/dev/null; then
-    set_action_result false "The confirmed record is not an Omarchy built-in."
+  if ! jq -e '(.builtIn == true or .installed == true)
+      and .canDisable == true' <<<"$record" >/dev/null; then
+    set_action_result false \
+      "The confirmed plugin does not support enable or disable."
     return
   fi
   case "$operation" in
     enable)
-      command=(omarchy plugin enable "$id")
-      success_message="Built-in plugin enabled."
-      ;;
-    disable)
-      command=(omarchy plugin disable "$id")
-      success_message="Built-in plugin disabled."
-      ;;
-    add-bar)
-      if ! jq -e '(.kind // "" | ascii_downcase | gsub("[-_]"; " ")
-        | contains("bar widget"))' <<<"$record" >/dev/null; then
-        set_action_result false \
-          "The confirmed built-in is not a bar widget."
+      if ! jq -e '.enabled == false' <<<"$record" >/dev/null; then
+        set_action_result false "The confirmed plugin is already enabled."
         return
       fi
-      command=(omarchy bar put "$id")
-      success_message="Built-in widget added to the bar."
+      command=(omarchy plugin enable "$id")
+      success_message="Plugin enabled."
+      ;;
+    disable)
+      if ! jq -e '.enabled == true' <<<"$record" >/dev/null; then
+        set_action_result false "The confirmed plugin is already disabled."
+        return
+      fi
+      command=(omarchy plugin disable "$id")
+      success_message="Plugin disabled."
       ;;
   esac
   if timeout --signal=TERM --kill-after=2s 30s \
@@ -240,7 +240,7 @@ run_builtin_action() {
   else
     rc=$?
     set_action_result false \
-      "Built-in plugin action failed with exit code $rc."
+      "Plugin state change failed with exit code $rc."
   fi
 }
 
@@ -256,14 +256,13 @@ execute_action() {
   if [[ -z $record ]]; then
     set_action_result false \
       "The confirmed plugin record is no longer available."
-  elif [[ $operation == install ]]; then
-    run_install_action "$record" "$snapshot" "$execution_mode" "$output_file"
+  elif [[ $operation == add ]]; then
+    run_add_action "$record" "$snapshot" "$execution_mode" "$output_file"
   elif [[ $operation == remove || $operation == remove-purge ]]; then
     run_remove_action "$root" "$record" "$id" "$operation" \
       "$execution_mode" "$output_file"
-  elif [[ $operation == enable || $operation == disable \
-      || $operation == add-bar ]]; then
-    run_builtin_action "$record" "$id" "$operation" "$output_file"
+  elif [[ $operation == enable || $operation == disable ]]; then
+    run_switch_action "$record" "$id" "$operation" "$output_file"
   fi
 }
 
@@ -345,7 +344,7 @@ worker_command() {
       "$ACTION_STATE" >/dev/null 2>&1; then
     if [[ $execution_mode == terminal ]]; then
       exec 9>&-
-      printf 'This install request is no longer current.\n'
+      printf 'This add request is no longer current.\n'
       printf 'Press Enter to close this terminal. '
       IFS= read -r _ || true
     fi
@@ -377,9 +376,9 @@ validate_action_request() {
     json_error "a valid plugin ID is required"
     return 2
   }
-  [[ $operation == install || $operation == remove \
+  [[ $operation == add || $operation == remove \
     || $operation == remove-purge || $operation == enable
-    || $operation == disable || $operation == add-bar ]] || {
+    || $operation == disable ]] || {
     json_error "unsupported plugin operation"
     return 2
   }
@@ -387,8 +386,8 @@ validate_action_request() {
     json_error "unsupported action execution mode"
     return 2
   }
-  [[ $execution_mode != terminal || $operation == install ]] || {
-    json_error "terminal mode is supported only for installation"
+  [[ $execution_mode != terminal || $operation == add ]] || {
+    json_error "terminal mode is supported only when adding plugins"
     return 2
   }
   if [[ $execution_mode == terminal ]]; then

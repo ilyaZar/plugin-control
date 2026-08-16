@@ -12,6 +12,7 @@ readonly BACKEND_ROOT
 
 for backend_module in common config catalog snapshot actions lifecycle; do
   # Workers use the same modules from their staged private directory.
+  # shellcheck disable=SC1090
   source "$BACKEND_ROOT/$backend_module.sh"
 done
 unset backend_module

@@ -21,19 +21,21 @@ function commandRecord(name, operation, description) {
 }
 
 var COMMANDS = [
-  commandRecord("plug-install", "install",
-    "Search available plugins to install"),
-  commandRecord("plug-remove", "remove", "Search removable local plugins")
+  commandRecord("plug-add", "add", "Search available plugins to add"),
+  commandRecord("plug-remove", "remove", "Search removable local plugins"),
+  commandRecord("plug-enable", "enable", "Search disabled plugins"),
+  commandRecord("plug-disable", "disable", "Search enabled plugins")
 ]
 
 function parseQuery(value) {
   var raw = text(value)
-  var match = /^\s*plug-(install|remove)\s*:\s*([\s\S]*)$/i.exec(raw)
+  var match = /^\s*plug-(add|install|remove|enable|disable)\s*:\s*([\s\S]*)$/i
+    .exec(raw)
   if (!match) return { mode: "browse", query: raw.trim() }
 
   var command = match[1].toLowerCase()
   return {
-    mode: command,
+    mode: command === "install" ? "add" : command,
     query: match[2].trim()
   }
 }
@@ -148,10 +150,15 @@ function operationIntent(operation, value) {
 
 function eligible(record, mode) {
   if (!record || !record.id) return false
-  if (mode === "install")
+  if (mode === "add")
     return record.installable === true && record.installed !== true
   if (mode === "remove")
     return record.removable === true
+  var present = record.builtIn === true || record.installed === true
+  if (mode === "enable")
+    return present && record.canDisable === true && record.enabled === false
+  if (mode === "disable")
+    return present && record.canDisable === true && record.enabled === true
   return true
 }
 

@@ -216,7 +216,7 @@ snapshot_state="$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/snapshot.json"
 cp "$snapshot_state" "$TEMP_ROOT/current-snapshot.json"
 jq '.config.version = 1' "$snapshot_state" >"$snapshot_state.tmp"
 mv "$snapshot_state.tmp" "$snapshot_state"
-if helper action "$ROOT" install io.example.weather "$snapshot_id" background \
+if helper action "$ROOT" add io.example.weather "$snapshot_id" background \
   >"$TEMP_ROOT/legacy-action.json" 2>/dev/null; then
   printf 'not ok - legacy snapshot reached an action\n' >&2
   exit 1
@@ -226,44 +226,53 @@ jq -e '.ok == false and (.error | contains("changed"))' \
 mv "$TEMP_ROOT/current-snapshot.json" "$snapshot_state"
 printf 'ok - legacy snapshots cannot authorize actions\n'
 
+if helper action "$ROOT" install io.example.weather "$snapshot_id" background \
+  >"$TEMP_ROOT/old-operation.json" 2>/dev/null; then
+  printf 'not ok - superseded install operation was accepted\n' >&2
+  exit 1
+fi
+jq -e '.ok == false and (.error | contains("unsupported"))' \
+  "$TEMP_ROOT/old-operation.json" >/dev/null
+printf 'ok - backend accepts only the canonical add operation\n'
+
 before_list_calls="$(grep -c '^plugin list --json$' "$MOCK_LOG" || true)"
-helper action "$ROOT" install io.example.weather "$snapshot_id" background \
+helper action "$ROOT" add io.example.weather "$snapshot_id" background \
   | jq -e '.started == true' >/dev/null
 status="$(wait_action)"
-jq -e '.ok == true and .operation == "install"' <<<"$status" >/dev/null
+jq -e '.ok == true and .operation == "add"' <<<"$status" >/dev/null
 grep -Fqx 'plugin add https://github.com/example/weather --enable --yes' \
   "$MOCK_LOG"
 [[ ! -e /tmp/plugin-control-must-not-run ]]
-printf 'ok - native install argv ignores remote command strings\n'
+printf 'ok - native add argv ignores remote command strings\n'
 wait_worker_release
 after_list_calls="$(grep -c '^plugin list --json$' "$MOCK_LOG" || true)"
 (( after_list_calls > before_list_calls ))
 printf 'ok - successful action refreshes installed state\n'
 
-helper action "$ROOT" install io.example.weather "$snapshot_id" terminal \
+helper action "$ROOT" add io.example.weather "$snapshot_id" terminal \
   | jq -e '.started == true' >/dev/null
 status="$(wait_action)"
-jq -e '.ok == true and .operation == "install"
+jq -e '.ok == true and .operation == "add"
   and .executionMode == "terminal"' <<<"$status" >/dev/null
 grep -Fqx 'plugin add https://github.com/example/weather --enable' \
   "$MOCK_TERMINAL_LOG"
 if grep -F 'plugin add ' "$MOCK_TERMINAL_LOG" | grep -Fq -- '--yes'; then
-  printf 'not ok - terminal install bypassed native prompts\n' >&2
+  printf 'not ok - terminal add bypassed native prompts\n' >&2
   exit 1
 fi
 wait_worker_release
-printf 'ok - terminal install streams the native interactive command\n'
+printf 'ok - terminal add streams the native interactive command\n'
 
 if helper action "$ROOT" remove io.example.weather "$snapshot_id" terminal \
   >"$TEMP_ROOT/terminal-remove.json" 2>/dev/null; then
-  printf 'not ok - terminal mode accepted a non-install action\n' >&2
+  printf 'not ok - terminal mode accepted a non-add action\n' >&2
   exit 1
 fi
-jq -e '.ok == false and (.error | contains("only for installation"))' \
+jq -e '.ok == false and (.error | contains("only when adding"))' \
   "$TEMP_ROOT/terminal-remove.json" >/dev/null
-printf 'ok - terminal mode is install-only\n'
+printf 'ok - terminal mode is add-only\n'
 
-if helper action "$ROOT" install io.example.weather "$snapshot_id" \
+if helper action "$ROOT" add io.example.weather "$snapshot_id" \
   >"$TEMP_ROOT/missing-mode.json" 2>/dev/null; then
   printf 'not ok - action without an execution mode was accepted\n' >&2
   exit 1
@@ -274,7 +283,7 @@ durable="$(helper status)"
 [[ $durable == "$status" ]]
 printf 'ok - completed action survives a service-style status reload\n'
 
-if helper action "$ROOT" install io.example.weather stale-snapshot background \
+if helper action "$ROOT" add io.example.weather stale-snapshot background \
   >"$TEMP_ROOT/stale.json" 2>/dev/null; then
   printf 'not ok - stale confirmation was accepted\n' >&2
   exit 1
@@ -294,10 +303,10 @@ printf 'ok - unsafe plugin IDs cannot escape the plugin directory\n'
 
 sleep 0.1
 export MOCK_OMARCHY_SLEEP=1
-helper action "$ROOT" install io.example.weather "$snapshot_id" background \
+helper action "$ROOT" add io.example.weather "$snapshot_id" background \
   >"$TEMP_ROOT/first-action.json"
 sleep 0.05
-if helper action "$ROOT" install io.example.weather "$snapshot_id" background \
+if helper action "$ROOT" add io.example.weather "$snapshot_id" background \
   >"$TEMP_ROOT/duplicate.json" 2>/dev/null; then
   printf 'not ok - duplicate action was accepted\n' >&2
   exit 1
@@ -308,16 +317,40 @@ unset MOCK_OMARCHY_SLEEP
 printf 'ok - action locking rejects simultaneous mutations\n'
 
 printf '[{"id":"omarchy.weather","name":"Weather",
-  "kinds":["bar-widget"],"enabled":false,"firstParty":true}]\n' \
+  "kinds":["bar-widget"],"enabled":false,"canDisable":true,
+  "firstParty":true}]\n' \
   >"$MOCK_RUNTIME"
 snapshot="$(rebuild_snapshot)"
 snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
-helper action "$ROOT" add-bar omarchy.weather "$snapshot_id" background >/dev/null
+jq -e '.records[] | select(.id == "omarchy.weather")
+  | .builtIn == true and .canDisable == true and .enabled == false' \
+  <<<"$snapshot" >/dev/null
+helper action "$ROOT" enable omarchy.weather "$snapshot_id" background >/dev/null
 status="$(wait_action)"
-jq -e '.ok == true and .operation == "add-bar"' <<<"$status" >/dev/null
-grep -Fqx 'bar put omarchy.weather' "$MOCK_LOG"
+jq -e '.ok == true and .operation == "enable"' <<<"$status" >/dev/null
+grep -Fqx 'plugin enable omarchy.weather' "$MOCK_LOG"
+if grep -Fqx 'bar put omarchy.weather' "$MOCK_LOG"; then
+  printf 'not ok - bar widget enable used the placement command\n' >&2
+  exit 1
+fi
 wait_worker_release
-printf 'ok - native hyphenated bar widgets use the bar placement command\n'
+printf 'ok - bar widgets use native plugin enable\n'
+
+printf '[{"id":"omarchy.bar","name":"Bar","kinds":["bar"],
+  "enabled":true,"canDisable":false,"firstParty":true}]\n' \
+  >"$MOCK_RUNTIME"
+snapshot="$(rebuild_snapshot)"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+helper action "$ROOT" disable omarchy.bar "$snapshot_id" background >/dev/null
+status="$(wait_action)"
+jq -e '.ok == false and (.message | contains("does not support"))' \
+  <<<"$status" >/dev/null
+if grep -Fqx 'plugin disable omarchy.bar' "$MOCK_LOG"; then
+  printf 'not ok - non-switchable plugin reached native disable\n' >&2
+  exit 1
+fi
+wait_worker_release
+printf 'ok - runtime switchability gates state actions\n'
 
 plugins_root="$XDG_CONFIG_HOME/omarchy/plugins"
 weather_local="$plugins_root/io.example.weather"
@@ -342,7 +375,8 @@ git -C "$weather_local" -c user.name=Test -c user.email=test@example.invalid \
 git -C "$weather_local" remote add origin \
   https://github.com/local/weather
 printf '[{"id":"io.example.weather","name":"Local Weather",
-  "kinds":["overlay"],"enabled":true,"firstParty":false}]\n' \
+  "kinds":["overlay"],"enabled":true,"canDisable":true,
+  "firstParty":false}]\n' \
   >"$MOCK_RUNTIME"
 snapshot="$(rebuild_snapshot)"
 jq -e '.records[] | select(.id == "io.example.weather")
@@ -375,12 +409,38 @@ git -C "$local_plugin" add .
 git -C "$local_plugin" -c user.name=Test -c user.email=test@example.invalid \
   commit -qm initial
 printf '[{"id":"local.test","name":"Local Test","kinds":["overlay"],
-  "enabled":true,"firstParty":false}]\n' >"$MOCK_RUNTIME"
+  "enabled":true,"canDisable":true,"firstParty":false}]\n' \
+  >"$MOCK_RUNTIME"
 snapshot="$(rebuild_snapshot)"
 snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
 jq -e '.records[] | select(.id == "local.test")
-  | .installed == true and .removable == true and .dirty == false' \
+  | .installed == true and .removable == true and .dirty == false
+    and .canDisable == true and .enabled == true' \
   <<<"$snapshot" >/dev/null
+
+helper action "$ROOT" disable local.test "$snapshot_id" background >/dev/null
+status="$(wait_action)"
+jq -e '.ok == true and .operation == "disable"' <<<"$status" >/dev/null
+grep -Fqx 'plugin disable local.test' "$MOCK_LOG"
+wait_worker_release
+
+printf '[{"id":"local.test","name":"Local Test","kinds":["overlay"],
+  "enabled":false,"canDisable":true,"firstParty":false}]\n' \
+  >"$MOCK_RUNTIME"
+snapshot="$(rebuild_snapshot)"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+helper action "$ROOT" enable local.test "$snapshot_id" background >/dev/null
+status="$(wait_action)"
+jq -e '.ok == true and .operation == "enable"' <<<"$status" >/dev/null
+grep -Fqx 'plugin enable local.test' "$MOCK_LOG"
+wait_worker_release
+printf 'ok - third-party plugins use native enable and disable actions\n'
+
+printf '[{"id":"local.test","name":"Local Test","kinds":["overlay"],
+  "enabled":true,"canDisable":true,"firstParty":false}]\n' \
+  >"$MOCK_RUNTIME"
+snapshot="$(rebuild_snapshot)"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
 
 printf 'dirty\n' >>"$local_plugin/Plugin.qml"
 helper action "$ROOT" remove local.test "$snapshot_id" background >/dev/null
@@ -539,7 +599,7 @@ cp "$TEST_DIR/fixtures/catalog-action.json" "$cache_dir/marketplace.json"
 snapshot="$(rebuild_snapshot)"
 snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
 export MOCK_OUTPUT_BYTES=20000
-helper action "$ROOT" install io.example.weather "$snapshot_id" background >/dev/null
+helper action "$ROOT" add io.example.weather "$snapshot_id" background >/dev/null
 status="$(wait_action)"
 output_length="$(jq -r '.output | length' <<<"$status")"
 (( output_length <= 12000 ))
@@ -553,7 +613,7 @@ printf 'ok - action output is sanitized and bounded\n'
 
 wait_worker_release
 export MOCK_EXIT=1
-helper action "$ROOT" install io.example.weather "$snapshot_id" background >/dev/null
+helper action "$ROOT" add io.example.weather "$snapshot_id" background >/dev/null
 status="$(wait_action)"
 jq -e '.ok == false and (.message | contains("failed"))' \
   <<<"$status" >/dev/null

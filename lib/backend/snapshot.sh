@@ -1,7 +1,8 @@
 manifest_record() {
   local id="$1"
   local enabled="$2"
-  local path="$3"
+  local can_disable="$3"
+  local path="$4"
   local manifest="$path/manifest.json"
   local dirty=false repository=""
   [[ -f $manifest ]] || return 1
@@ -14,7 +15,8 @@ manifest_record() {
 
   jq -c \
     --arg id "$id" --arg path "$path" --arg repository "$repository" \
-    --argjson enabled "$enabled" --argjson dirty "$dirty" '
+    --argjson enabled "$enabled" --argjson canDisable "$can_disable" \
+    --argjson dirty "$dirty" '
       {
         id:$id,
         name:(.name // $id),
@@ -28,6 +30,7 @@ manifest_record() {
         sourceRank:50,
         installed:true,
         enabled:$enabled,
+        canDisable:$canDisable,
         builtIn:false,
         installable:false,
         removable:true,
@@ -63,23 +66,25 @@ installed_records() {
         sourceRank:40,
         installed:false,
         enabled:(.enabled == true),
+        canDisable:(.canDisable == true),
         installable:false,
         removable:false
       }
   ' "$runtime" >>"$output"
 
-  local id enabled path record
-  while IFS=$'\t' read -r id enabled; do
+  local id enabled can_disable path record
+  while IFS=$'\t' read -r id enabled can_disable; do
     valid_plugin_id "$id" || continue
     printf '%s\n' "$id" >>"$seen"
     path="$PLUGINS_ROOT/$id"
     [[ -e $path || -L $path ]] || continue
-    record="$(manifest_record "$id" "$enabled" "$path" 2>/dev/null || true)"
+    record="$(manifest_record "$id" "$enabled" "$can_disable" "$path" \
+      2>/dev/null || true)"
     [[ -n $record ]] && printf '%s\n' "$record" >>"$output"
   done < <(jq -r '
     .[]
     | select(.firstParty != true)
-    | [.id, (.enabled == true)]
+    | [.id, (.enabled == true), (.canDisable == true)]
     | @tsv
   ' "$runtime")
 
@@ -92,7 +97,8 @@ installed_records() {
       id="$(basename -- "$entry")"
       valid_plugin_id "$id" || continue
       grep -Fqx -- "$id" "$seen" && continue
-      record="$(manifest_record "$id" false "$entry" 2>/dev/null || true)"
+      record="$(manifest_record "$id" false false "$entry" \
+        2>/dev/null || true)"
       [[ -n $record ]] && printf '%s\n' "$record" >>"$output"
     done
   fi

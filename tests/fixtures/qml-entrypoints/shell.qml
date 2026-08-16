@@ -195,41 +195,42 @@ ShellRoot {
       var overlay = root.loadEntry("PluginControl.qml", "overlay")
       if (overlay && "service" in overlay) {
         overlay.service = root.serviceObject
-        overlay.query = "plug-in"
+        overlay.query = "plug-ad"
         if (overlay.mode !== "command"
             || overlay.filteredRecords.length !== 1
             || overlay.selectedRecord !== null) {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR install completion stage")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR add completion stage")
         }
         var tabEvent = { modifiers: 0, key: Qt.Key_Tab }
         var backspaceEvent = { modifiers: 0, key: Qt.Key_Backspace }
-        var installPrefix = "plug-install:"
-        if (!overlay.isCompletedCommandPrefix(installPrefix,
-              installPrefix.length, installPrefix.length,
-              installPrefix.length)
-            || overlay.isCompletedCommandPrefix(installPrefix,
-              installPrefix.length - 1, installPrefix.length - 1,
-              installPrefix.length - 1)
-            || overlay.isCompletedCommandPrefix(installPrefix,
-              installPrefix.length, 0, installPrefix.length)
-            || overlay.isCompletedCommandPrefix("PLUG-INSTALL:",
-              installPrefix.length, installPrefix.length,
-              installPrefix.length)) {
+        var addPrefix = "plug-add:"
+        var installAlias = "plug-install:"
+        if (!overlay.isCompletedCommandPrefix(addPrefix,
+              addPrefix.length, addPrefix.length, addPrefix.length)
+            || !overlay.isCompletedCommandPrefix(installAlias,
+              installAlias.length, installAlias.length, installAlias.length)
+            || overlay.isCompletedCommandPrefix(addPrefix,
+              addPrefix.length - 1, addPrefix.length - 1,
+              addPrefix.length - 1)
+            || overlay.isCompletedCommandPrefix(addPrefix,
+              addPrefix.length, 0, addPrefix.length)
+            || overlay.isCompletedCommandPrefix("PLUG-ADD:",
+              addPrefix.length, addPrefix.length, addPrefix.length)) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR backspace boundary")
         }
         if (!overlay.handleKey(tabEvent))
           console.error("PLUGIN_CONTROL_LOAD_ERROR tab dispatch")
-        if (overlay.query !== "plug-install: " || overlay.mode !== "install"
+        if (overlay.query !== "plug-add: " || overlay.mode !== "add"
             || overlay.selectedRecord !== null) {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR install completion")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR add completion")
         }
         if (overlay.handleKey(backspaceEvent)
-            || overlay.query !== "plug-install: ") {
+            || overlay.query !== "plug-add: ") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR completion space backspace")
         }
-        overlay.query = "plug-install:"
+        overlay.query = "plug-add:"
         if (!overlay.handleKey(backspaceEvent) || overlay.query !== "") {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR install prefix backspace")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR add prefix backspace")
         }
         overlay.query = "plug-rm"
         var enterEvent = { modifiers: 0, key: Qt.Key_Return }
@@ -333,7 +334,7 @@ ShellRoot {
         }]
         overlay.selectedIndex = 0
         if (!overlay.handleKey(enterEvent)
-            || overlay.pendingOperation !== "install"
+            || overlay.pendingOperation !== "add"
             || overlay.pendingSnapshotId !== "snapshot-test"
             || !overlay.selectedRecord
             || overlay.selectedRecord.id !== "io.example.installable") {
@@ -341,8 +342,23 @@ ShellRoot {
         }
         if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
           console.error("PLUGIN_CONTROL_LOAD_ERROR action dialog close")
+        overlay.mode = "browse"
+        var switchable = {
+          id: "io.example.switchable",
+          installed: true,
+          enabled: false,
+          canDisable: true
+        }
+        if (overlay.availableOperation(switchable) !== "enable")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR enable operation")
+        switchable.enabled = true
+        if (overlay.availableOperation(switchable) !== "disable")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR disable operation")
+        switchable.canDisable = false
+        if (overlay.availableOperation(switchable) !== "browse")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR switchability gate")
         overlay.selectedRecord = null
-        overlay.filteredRecords = [{ commandCompletion: "plug-install: " }]
+        overlay.filteredRecords = [{ commandCompletion: "plug-add: " }]
         overlay.selectedIndex = 0
         if (!overlay.handleKey(infoEvent) || overlay.selectedRecord !== null)
           console.error("PLUGIN_CONTROL_LOAD_ERROR command info boundary")
@@ -365,7 +381,7 @@ ShellRoot {
               !== "https://github.com/example/weather") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR contextual links")
         }
-        overlay.filteredRecords = [{ commandCompletion: "plug-install: " }]
+        overlay.filteredRecords = [{ commandCompletion: "plug-add: " }]
         if (overlay.marketplaceShortcutUrl() !== "https://omarchyplugins.com/"
             || overlay.githubShortcutUrl()
               !== "https://github.com/HANCORE-linux/omarchy-plugin-marketplace") {

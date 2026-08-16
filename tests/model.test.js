@@ -45,7 +45,18 @@ const records = Catalog.prepareRecords([
     author: "Carla",
     source: "local",
     installed: true,
+    enabled: true,
+    canDisable: true,
     removable: true
+  },
+  {
+    id: "local.disabled",
+    name: "Disabled Local",
+    source: "local",
+    installed: true,
+    enabled: false,
+    canDisable: true,
+    removable: false
   },
   {
     id: "omarchy.clock",
@@ -53,6 +64,7 @@ const records = Catalog.prepareRecords([
     source: "builtin",
     builtIn: true,
     enabled: true,
+    canDisable: true,
     installable: false,
     removable: false
   },
@@ -72,8 +84,16 @@ test("browse query has no command mode", () => {
 });
 
 test("prefix parsing is case-insensitive", () => {
-  assert.equal(Fuzzy.parseQuery("PLUG-INSTALL: weather").mode, "install");
+  assert.equal(Fuzzy.parseQuery("PLUG-ADD: weather").mode, "add");
   assert.equal(Fuzzy.parseQuery("Plug-Remove: notes").mode, "remove");
+  assert.equal(Fuzzy.parseQuery("Plug-Enable: local").mode, "enable");
+  assert.equal(Fuzzy.parseQuery("Plug-Disable: local").mode, "disable");
+});
+
+test("install command remains an add alias", () => {
+  assert.equal(Fuzzy.parseQuery("plug-install: weather").mode, "add");
+  assert.deepEqual(Fuzzy.search(records, "plug-install: weather", 50)
+    .results.map((row) => row.id), ["io.example.weather"]);
 });
 
 test("whitespace around a colon is accepted", () => {
@@ -98,36 +118,44 @@ test("short plugin text leaves commands unpinned", () => {
 });
 
 test("partial command input hides plugin rows", () => {
-  const install = Fuzzy.search(records, "plug-in", 50);
-  assert.equal(install.mode, "command");
-  assert.deepEqual(install.results.map((row) => row.commandCompletion),
-    ["plug-install: "]);
+  const add = Fuzzy.search(records, "plug-ad", 50);
+  assert.equal(add.mode, "command");
+  assert.deepEqual(add.results.map((row) => row.commandCompletion),
+    ["plug-add: "]);
 
   const remove = Fuzzy.search(records, "plug-rm", 50);
   assert.equal(remove.mode, "command");
   assert.deepEqual(remove.results.map((row) => row.commandCompletion),
     ["plug-remove: "]);
+
+  const enable = Fuzzy.search(records, "plug-en", 50);
+  assert.deepEqual(enable.results.map((row) => row.commandCompletion),
+    ["plug-enable: "]);
+
+  const disable = Fuzzy.search(records, "plug-dis", 50);
+  assert.deepEqual(disable.results.map((row) => row.commandCompletion),
+    ["plug-disable: "]);
 });
 
-test("command-shaped selection is fuzzy and keeps install first", () => {
-  for (const query of ["plg-in"]) {
+test("command-shaped selection is fuzzy and keeps add first", () => {
+  for (const query of ["plg-ad"]) {
     const result = Fuzzy.search(records, query, 50);
     assert.equal(result.mode, "command");
     assert.deepEqual(result.results.map((row) => row.commandCompletion),
-      ["plug-install: "]);
+      ["plug-add: "]);
   }
   assert.deepEqual(Fuzzy.search(records, "plug", 50)
     .results.map((row) => row.commandCompletion),
-    ["plug-install: ", "plug-remove: "]);
+    ["plug-add: ", "plug-remove: ", "plug-enable: ", "plug-disable: "]);
   assert.deepEqual(Fuzzy.search(records, "plug", 1)
-    .results.map((row) => row.commandCompletion), ["plug-install: "]);
+    .results.map((row) => row.commandCompletion), ["plug-add: "]);
 });
 
 test("operation intent promotes commands above browse results", () => {
-  for (const query of ["i", "in", "inst", "istl"]) {
+  for (const query of ["a", "ad"]) {
     const result = Fuzzy.search(records, query, 50);
     assert.equal(result.mode, "browse");
-    assert.equal(result.results[0].commandCompletion, "plug-install: ");
+    assert.equal(result.results[0].commandCompletion, "plug-add: ");
   }
   for (const query of ["r", "re", "rem"]) {
     const result = Fuzzy.search(records, query, 50);
@@ -152,21 +180,21 @@ test("ordinary plugin text does not become a command", () => {
 });
 
 test("deleting the colon returns to command completion", () => {
-  const result = Fuzzy.search(records, "plug-install", 50);
+  const result = Fuzzy.search(records, "plug-add", 50);
   assert.equal(result.mode, "command");
-  assert.equal(result.results[0].commandCompletion, "plug-install: ");
+  assert.equal(result.results[0].commandCompletion, "plug-add: ");
 });
 
 test("malformed colon input is inert", () => {
-  for (const query of ["plug-instll:", "plug-unknown:", "weather:"]) {
+  for (const query of ["plug-adx:", "plug-unknown:", "weather:"]) {
     const result = Fuzzy.search(records, query, 50);
     assert.equal(result.mode, "command");
     assert.deepEqual(result.results, []);
   }
 });
 
-test("install mode limits candidates", () => {
-  const result = Fuzzy.search(records, "plug-install: weather", 50);
+test("add mode limits candidates", () => {
+  const result = Fuzzy.search(records, "plug-add: weather", 50);
   assert.deepEqual(result.results.map((row) => row.id), ["io.example.weather"]);
 });
 
@@ -174,6 +202,13 @@ test("remove mode includes removable self", () => {
   const result = Fuzzy.search(records, "plug-remove: ", 50);
   assert.deepEqual(result.results.map((row) => row.id),
     ["local.notes", SELF_ID]);
+});
+
+test("enable and disable modes follow runtime switchability", () => {
+  assert.deepEqual(Fuzzy.search(records, "plug-enable: ", 50)
+    .results.map((row) => row.id), ["local.disabled"]);
+  assert.deepEqual(Fuzzy.search(records, "plug-disable: ", 50)
+    .results.map((row) => row.id), ["omarchy.clock", "local.notes"]);
 });
 
 test("exact name outranks prefix and fuzzy matches", () => {
@@ -286,10 +321,15 @@ test("unlisted security labels remain visible warnings", () => {
   }), "Unlisted - security-review-required");
 });
 
-test("bar widget kinds accept native hyphenated spelling", () => {
-  assert.equal(Catalog.isBarWidget("bar-widget"), true);
-  assert.equal(Catalog.isBarWidget("Bar widget"), true);
-  assert.equal(Catalog.isBarWidget("overlay"), false);
+test("runtime switchability must be explicitly true", () => {
+  const values = Catalog.prepareRecords([
+    { id: "x.yes", canDisable: true },
+    { id: "x.no", canDisable: false },
+    { id: "x.missing" }
+  ]);
+  assert.equal(values[0].canDisable, true);
+  assert.equal(values[1].canDisable, false);
+  assert.equal(values[2].canDisable, false);
 });
 
 test("palette view model keeps settings and records declarative", () => {

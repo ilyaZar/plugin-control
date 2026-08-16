@@ -7,8 +7,11 @@ TestCase {
   name: "PluginControlModels"
 
   function test_parser() {
-    compare(Fuzzy.parseQuery("plug-install: weather").mode, "install")
+    compare(Fuzzy.parseQuery("plug-add: weather").mode, "add")
+    compare(Fuzzy.parseQuery("plug-install: weather").mode, "add")
     compare(Fuzzy.parseQuery("plug-remove : local").query, "local")
+    compare(Fuzzy.parseQuery("plug-enable: local").mode, "enable")
+    compare(Fuzzy.parseQuery("plug-disable: local").mode, "disable")
   }
 
   function test_qml_search() {
@@ -16,18 +19,26 @@ TestCase {
       { id: "x.weather", name: "Weather", source: "marketplace",
         installable: true },
       { id: "x.local", name: "Local", source: "local",
-        installed: true, removable: true }
+        installed: true, enabled: true, canDisable: true, removable: true },
+      { id: "x.disabled", name: "Disabled", source: "local",
+        installed: true, enabled: false, canDisable: true }
     ])
+    compare(Fuzzy.search(records, "plug-add: weather", 50)
+      .results[0].id, "x.weather")
     compare(Fuzzy.search(records, "plug-install: weather", 50)
       .results[0].id, "x.weather")
     compare(Fuzzy.search(records, "plug-remove: local", 50)
       .results[0].id, "x.local")
-    compare(Fuzzy.search(records, "plug-in", 50)
-      .results[0].commandCompletion, "plug-install: ")
-    compare(Fuzzy.search(records, "plg-in", 50)
-      .results[0].commandCompletion, "plug-install: ")
+    compare(Fuzzy.search(records, "plug-ad", 50)
+      .results[0].commandCompletion, "plug-add: ")
+    compare(Fuzzy.search(records, "plg-ad", 50)
+      .results[0].commandCompletion, "plug-add: ")
     compare(Fuzzy.search(records, "rem", 50)
       .results[0].commandCompletion, "plug-remove: ")
+    compare(Fuzzy.search(records, "plug-enable: disabled", 50)
+      .results[0].id, "x.disabled")
+    compare(Fuzzy.search(records, "plug-disable: local", 50)
+      .results[0].id, "x.local")
     compare(Fuzzy.search(records, "weather:", 50).results.length, 0)
   }
 }
