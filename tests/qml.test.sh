@@ -24,15 +24,15 @@ rg -q 'function toggle\(\)' "$ROOT/PluginControl.qml"
 rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Escape' "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Ctrl+I]", label: "Info" }' \
+rg -Fq '{ keyLabel: "[Ctrl+i]", label: "Info" }' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+W]",' \
+rg -Fq '{ keyLabel: "[Ctrl+w]",' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+G]", label: "GitHub source" }' \
+rg -Fq '{ keyLabel: "[Ctrl+g]", label: "GitHub source" }' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+R]", label: "Refresh" }' \
+rg -Fq '{ keyLabel: "[Ctrl+r]", label: "Refresh" }' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+S]", label: "Settings" }' \
+rg -Fq '{ keyLabel: "[Ctrl+s]", label: "Settings" }' \
   "$ROOT/PaletteFooter.qml"
 if rg -q 'Ctrl\+Shift|isContextShortcut' "$ROOT/PluginControl.qml"; then
   printf 'not ok - shifted palette shortcuts remain\n' >&2

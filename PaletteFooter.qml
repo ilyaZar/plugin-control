@@ -22,11 +22,11 @@ Item {
 
     Repeater {
       model: [
-        { keyLabel: "[Ctrl+I]", label: "Info" },
-        { keyLabel: "[Ctrl+W]", label: root.marketplaceLabel },
-        { keyLabel: "[Ctrl+G]", label: "GitHub source" },
-        { keyLabel: "[Ctrl+R]", label: "Refresh" },
-        { keyLabel: "[Ctrl+S]", label: "Settings" }
+        { keyLabel: "[Ctrl+i]", label: "Info" },
+        { keyLabel: "[Ctrl+w]", label: root.marketplaceLabel },
+        { keyLabel: "[Ctrl+g]", label: "GitHub source" },
+        { keyLabel: "[Ctrl+r]", label: "Refresh" },
+        { keyLabel: "[Ctrl+s]", label: "Settings" }
       ]
 
       delegate: Item {
