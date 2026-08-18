@@ -68,6 +68,18 @@ source "$ROOT/bin/plugin-control"
 init_paths
 
 good_config="$(load_config "$ROOT")"
+sed 's/tray-icon-hidden: false/tray-icon-hidden: hidden/' \
+  "$ROOT/config/channels.yaml" >"$CHANNEL_CONFIG"
+invalid_status="$(config_status "$ROOT")"
+jq -e '.ok == false and .usingLastGood == true
+  and .usingDefaults == false and .fallback == "last-good"
+  and .field == "settings.tray-icon-hidden"
+  and .actual == "\"hidden\"" and .expected == "true or false"
+  and .config.settings["tray-icon-hidden"] == false' \
+  <<<"$invalid_status" >/dev/null
+cp "$ROOT/config/channels.yaml" "$CHANNEL_CONFIG"
+printf 'ok - invalid fields report admissible values and keep last good\n'
+
 printf 'version: [\n' >"$CHANNEL_CONFIG"
 fallback_config="$(load_config "$ROOT")"
 jq -e --argjson expected "$good_config" '. == $expected' \
@@ -87,6 +99,8 @@ fi
 cmp "$CHANNEL_CONFIG" "$TEMP_ROOT/legacy-config.yaml"
 legacy_status="$(config_status "$ROOT" || true)"
 jq -e '.ok == false and .usingLastGood == false and .config == null
+  and .usingDefaults == false and .fallback == ""
+  and .field == "version" and .expected == "the integer 2"
   and (.error | contains("unsupported"))' <<<"$legacy_status" >/dev/null
 mkdir -p -- "$(dirname -- "$SNAPSHOT_STATE")"
 jq -cn '{ok:true,snapshotId:"legacy",records:[],config:{version:1}}' \
@@ -96,6 +110,17 @@ if cached_command "$ROOT" >"$TEMP_ROOT/legacy-snapshot.json"; then
   exit 1
 fi
 [[ ! -s $TEMP_ROOT/legacy-snapshot.json ]]
+
+sed 's/tray-icon-hidden: false/tray-icon-hidden: hidden/' \
+  "$ROOT/config/channels.yaml" >"$CHANNEL_CONFIG"
+default_status="$(config_status "$ROOT")"
+jq -e '.ok == false and .usingLastGood == false
+  and .usingDefaults == true and .fallback == "defaults"
+  and .field == "settings.tray-icon-hidden"
+  and .config.settings["tray-icon-hidden"] == false' \
+  <<<"$default_status" >/dev/null
+printf 'ok - recoverable first-run errors use shipped defaults\n'
+
 cp "$ROOT/config/channels.yaml" "$CHANNEL_CONFIG"
 load_config "$ROOT" >/dev/null
 printf 'ok - unsupported config and snapshot fail without replacement\n'

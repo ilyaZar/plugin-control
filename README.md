@@ -125,6 +125,10 @@ control whether its icon appears after the plugin starts:
 ~/.config/omarchy/plugins/io.github.ilyazar.plugin-control/bin/plugin-control stop
 ```
 
+The helper belongs to the installed plugin checkout and is not added to
+`PATH`. Run it with the full path above, or from the checkout root as
+`bin/plugin-control`.
+
 `start` uses the configured tray default. `--tray-hidden` and `--tray-visible`
 override it. `stop` disables the whole plugin, not only its tray icon.
 
@@ -147,8 +151,10 @@ Plugin Control never rewrites the user-owned Ctrl+p binding. Its other shortcuts
 work only while the palette is focused. Saving a valid tray setting updates the
 live bar; a CLI flag overrides it until the YAML is saved again.
 
-Settings use strict schema 2. Invalid edits keep the last valid schema-2 file;
-version 1 is not migrated.
+Settings use strict schema 2. A rejected field produces a short notification
+with its value and admissible type or range. The plugin keeps the last valid
+settings, or uses shipped defaults when a recoverable first-run typo has no
+last-valid file. It never rewrites the invalid YAML. Version 1 is not migrated.
 
 ## Dependencies
 

@@ -83,7 +83,9 @@ This audit records release-readiness evidence for
 - [x] Strict YAML. Schema 2 requires the tray setting. Tests cover clear
   rejection without replacement, booleans, unknown fields, duplicate IDs,
   unsafe tags, aliases, non-HTTPS URLs, embedded credentials, repository
-  slugs, arbitrary command fields and schema-2 last-good fallback.
+  slugs, arbitrary command fields and schema-2 last-good fallback. Rejected
+  values report their field, actual value, and admissible type or range; a
+  recoverable first-run typo uses shipped defaults without rewriting YAML.
 - [x] Optional issue channel. It is disabled by default. Parsing requires
   `submission` plus `validated`, rejects `listed`, `needs-fixes`, and pull
   requests, validates the current root manifest at an exact commit, rejects

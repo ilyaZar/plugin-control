@@ -114,6 +114,8 @@ rg -Fq 'configSyncProcess.command = [helperPath, "config-status", sourceDir]' \
 rg -Fq 'root.configChangeRevision++' "$ROOT/Service.qml"
 rg -Fq 'id: channelConfigFile' "$ROOT/Service.qml"
 rg -Fq 'channelConfigFile.reload()' "$ROOT/Service.qml"
+rg -Fq 'omarchy-notification-send' "$ROOT/Service.qml"
+rg -Fq 'root.notifyConfigProblem(output, revision)' "$ROOT/Service.qml"
 rg -q 'actionDialog.openDialog\(\)' "$ROOT/PluginControl.qml"
 rg -q 'function openSelectedInfo\(\)' "$ROOT/PluginControl.qml"
 rg -q 'function showSettingsMenu\(\)' "$ROOT/PluginControl.qml"

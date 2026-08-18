@@ -157,6 +157,30 @@ ShellRoot {
         if (mockPluginRegistry.settingCalls !== 0) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR invalid tray setting")
         }
+        var invalidNotice = root.serviceObject.configProblemNotice(
+          JSON.stringify({
+            ok: false,
+            field: "settings.tray-icon-hidden",
+            actual: '"hidden"',
+            expected: "true or false",
+            fallback: "last-good"
+          }))
+        if (invalidNotice !== '"hidden" is not admissible for '
+            + "settings.tray-icon-hidden. Set it to true or false. "
+            + "Keeping the last valid settings.") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR config problem notice")
+        }
+        var defaultNotice = root.serviceObject.configProblemNotice(
+          JSON.stringify({
+            ok: false,
+            field: "refresh_minutes",
+            actual: '"fast"',
+            expected: "an integer from 5 through 1440",
+            fallback: "defaults"
+          }))
+        if (defaultNotice.indexOf("Using shipped defaults.") < 0) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR config default notice")
+        }
         root.serviceObject.applyConfigStatus(hiddenConfigStatus, 0, 2)
         if (mockPluginRegistry.settingCalls !== 1
             || mockPluginRegistry.lastSettingId

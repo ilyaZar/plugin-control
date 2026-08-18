@@ -106,6 +106,36 @@ Item {
     configSyncProcess.running = true
   }
 
+  function configProblemNotice(raw) {
+    var parsed = parseJson(raw, null)
+    if (!parsed || parsed.ok !== false) return ""
+    var field = String(parsed.field || "configuration")
+    var actual = String(parsed.actual || "")
+    var expected = String(parsed.expected || "")
+    var detail = String(parsed.error || "Invalid Plugin Control settings.")
+    if (expected) {
+      detail = actual
+        ? actual + " is not admissible for " + field
+          + ". Set it to " + expected + "."
+        : field + " is not admissible. Use " + expected + "."
+    }
+    var fallback = parsed.fallback === "defaults"
+      ? "Using shipped defaults."
+      : (parsed.fallback === "last-good"
+        ? "Keeping the last valid settings."
+        : "Fix the file before it can be used.")
+    return (detail + " " + fallback).slice(0, 480)
+  }
+
+  function notifyConfigProblem(raw, revision) {
+    if (revision !== configChangeRevision) return false
+    var message = configProblemNotice(raw)
+    if (!message) return false
+    Quickshell.execDetached(["omarchy-notification-send", "-u", "normal",
+      "Plugin Control settings", message])
+    return true
+  }
+
   function clearRefreshSuccess() {
     refreshSuccessTimer.stop()
     refreshSuccessVisible = false
@@ -296,6 +326,7 @@ Item {
     }
     onExited: function(exitCode) {
       root.applyConfigStatus(output, exitCode, revision)
+      root.notifyConfigProblem(output, revision)
       if (root.configSyncQueued || revision !== root.configChangeRevision)
         Qt.callLater(root.requestConfigSync)
     }
