@@ -276,6 +276,7 @@ Item {
   }
 
   FileView {
+    id: channelConfigFile
     path: root.channelConfigPath
     watchChanges: true
     printErrors: false
@@ -309,6 +310,7 @@ Item {
     }
     onExited: function(exitCode) {
       root.applySnapshot(output, exitCode, false)
+      channelConfigFile.reload()
       Qt.callLater(root.requestStatus)
     }
   }
