@@ -170,8 +170,10 @@ This audit records release-readiness evidence for
 - [x] Preview. `preview.png` is a 722 by 500 crop containing only the palette.
   It was inspected at original resolution for layout and privacy.
 - [x] QML loading. The real Quickshell instantiation harness created the
-  service, overlay, and bar-widget entry points. Qt 6 model tests passed 4 of
-  4.
+  service, overlay, and bar-widget entry points with isolated XDG paths. It
+  also proved a late-injected manifest starts the service and arms the watcher
+  after creating a fresh configuration directory. Qt 6 model tests passed 4
+  of 4.
 
 ## Verification commands
 

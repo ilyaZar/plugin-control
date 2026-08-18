@@ -114,6 +114,9 @@ rg -Fq 'configSyncProcess.command = [helperPath, "config-status", sourceDir]' \
 rg -Fq 'root.configChangeRevision++' "$ROOT/Service.qml"
 rg -Fq 'id: channelConfigFile' "$ROOT/Service.qml"
 rg -Fq 'channelConfigFile.reload()' "$ROOT/Service.qml"
+rg -Fq 'onHelperPathChanged: startInitialLoad()' "$ROOT/Service.qml"
+rg -Fq 'id: configWatchRetry' "$ROOT/Service.qml"
+rg -Fq 'configWatchRetry.restart()' "$ROOT/Service.qml"
 rg -Fq 'omarchy-notification-send' "$ROOT/Service.qml"
 rg -Fq 'root.notifyConfigProblem(output, revision)' "$ROOT/Service.qml"
 rg -q 'actionDialog.openDialog\(\)' "$ROOT/PluginControl.qml"
@@ -189,6 +192,9 @@ cp "$TEST_DIR/fixtures/qml-entrypoints/shell.qml" \
 ln -s /usr/share/omarchy/shell/Commons "$runtime_root/config/Commons"
 ln -s /usr/share/omarchy/shell/Ui "$runtime_root/config/Ui"
 if ! env QT_QPA_PLATFORM=wayland HOME="$runtime_root/home" \
+  XDG_CONFIG_HOME="$runtime_root/config" \
+  XDG_CACHE_HOME="$runtime_root/cache" \
+  XDG_STATE_HOME="$runtime_root/state" \
   OMARCHY_PATH=/usr/share/omarchy PLUGIN_CONTROL_SOURCE_DIR="$ROOT" \
   QML2_IMPORT_PATH=/usr/share/omarchy/shell \
   QML_IMPORT_PATH=/usr/share/omarchy/shell \
@@ -200,10 +206,13 @@ fi
 grep -Fq 'PLUGIN_CONTROL_LOAD_OK service' "$runtime_root/quickshell.log"
 grep -Fq 'PLUGIN_CONTROL_LOAD_OK overlay' "$runtime_root/quickshell.log"
 grep -Fq 'PLUGIN_CONTROL_LOAD_OK bar-widget' "$runtime_root/quickshell.log"
+grep -Fq 'PLUGIN_CONTROL_WATCH_OK fresh install save' \
+  "$runtime_root/quickshell.log"
 grep -Fq 'PLUGIN_CONTROL_INTERACTION_OK palette interactions' \
   "$runtime_root/quickshell.log"
+test -f "$runtime_root/config/omarchy/ilyazar.plugin-control/channels.yaml"
 if grep -Fq 'PLUGIN_CONTROL_LOAD_ERROR' "$runtime_root/quickshell.log"; then
   sed -n '1,240p' "$runtime_root/quickshell.log" >&2
   exit 1
 fi
-printf 'ok - service overlay and bar widget instantiate in Quickshell\n'
+printf 'ok - fresh install watcher and entry points instantiate in Quickshell\n'

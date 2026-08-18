@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
 ShellRoot {
   id: root
@@ -13,6 +14,9 @@ ShellRoot {
   property int removalCanceledCount: 0
   property int removalPreserveCount: 0
   property int removalPurgeCount: 0
+  property bool entryChecksComplete: false
+  property bool watcherSaveStarted: false
+  property int watcherWaitAttempts: 0
 
   function manifestData() {
     return {
@@ -53,6 +57,16 @@ ShellRoot {
   }
 
   Item { id: host }
+
+  FileView {
+    id: testConfigFile
+    path: Quickshell.env("XDG_CONFIG_HOME")
+      + "/omarchy/ilyazar.plugin-control/channels.yaml"
+    blockLoading: true
+    blockWrites: true
+    atomicWrites: true
+    printErrors: false
+  }
 
   QtObject {
     id: mockBarWidgetRegistry
@@ -123,6 +137,9 @@ ShellRoot {
     onTriggered: {
       root.serviceObject = root.loadEntry("Service.qml", "service")
       if (root.serviceObject) {
+        if (!root.serviceObject.initialLoadStarted) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR late service initialization")
+        }
         mockPluginRegistry.settingCalls = 0
         var hiddenSnapshot = JSON.stringify({
           ok: true,
@@ -624,7 +641,55 @@ ShellRoot {
         if (mockShell.lastTogglePayload !== '{"settings":true}')
           console.error("PLUGIN_CONTROL_LOAD_ERROR bar settings payload")
       }
-      Qt.callLater(Qt.quit)
+      mockPluginRegistry.settingCalls = 0
+      root.entryChecksComplete = true
+    }
+  }
+
+  Timer {
+    interval: 50
+    running: root.entryChecksComplete
+    repeat: true
+    onTriggered: {
+      root.watcherWaitAttempts++
+      if (!root.serviceObject
+          || !root.serviceObject.channelConfigWatchReady) {
+        if (root.watcherWaitAttempts >= 100) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR fresh install watcher")
+          stop()
+          Qt.callLater(Qt.quit)
+        }
+        return
+      }
+      if (!root.watcherSaveStarted) {
+        testConfigFile.reload()
+        testConfigFile.waitForJob()
+        var current = testConfigFile.text()
+        if (current.indexOf("tray-icon-hidden: false") < 0) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR fresh config contents")
+          stop()
+          Qt.callLater(Qt.quit)
+          return
+        }
+        root.watcherSaveStarted = true
+        testConfigFile.setText(current.replace(
+          "tray-icon-hidden: false", "tray-icon-hidden: true"))
+        return
+      }
+      if (mockPluginRegistry.settingCalls > 0) {
+        if (mockPluginRegistry.lastSettingKey !== "trayIconHidden"
+            || mockPluginRegistry.lastSettingValue !== true) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR watched tray setting")
+        } else {
+          console.log("PLUGIN_CONTROL_WATCH_OK fresh install save")
+        }
+        stop()
+        Qt.callLater(Qt.quit)
+      } else if (root.watcherWaitAttempts >= 100) {
+        console.error("PLUGIN_CONTROL_LOAD_ERROR watched config save")
+        stop()
+        Qt.callLater(Qt.quit)
+      }
     }
   }
 }

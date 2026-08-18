@@ -37,6 +37,8 @@ Item {
   property double latestOpenStartedAt: 0
   property int configChangeRevision: 0
   property bool configSyncQueued: false
+  property bool initialLoadStarted: false
+  property bool channelConfigWatchReady: false
   readonly property int actionNoticeDurationMs: 10000
   readonly property int refreshSuccessDurationMs: 10000
 
@@ -172,10 +174,17 @@ Item {
   }
 
   function loadCached() {
-    if (!helperPath || cachedProcess.running) return
+    if (!helperPath || cachedProcess.running) return false
     cachedProcess.output = ""
     cachedProcess.command = [helperPath, "cached", sourceDir]
     cachedProcess.running = true
+    return true
+  }
+
+  function startInitialLoad() {
+    if (initialLoadStarted || !helperPath) return false
+    initialLoadStarted = loadCached()
+    return initialLoadStarted
   }
 
   function requestRefresh(force) {
@@ -310,10 +319,27 @@ Item {
     path: root.channelConfigPath
     watchChanges: true
     printErrors: false
+    onLoaded: {
+      root.channelConfigWatchReady = true
+      configWatchRetry.stop()
+    }
+    onLoadFailed: {
+      root.channelConfigWatchReady = false
+      configWatchRetry.restart()
+    }
     onFileChanged: {
+      root.channelConfigWatchReady = false
+      reload()
       root.configChangeRevision++
       configRefreshDebounce.restart()
     }
+  }
+
+  Timer {
+    id: configWatchRetry
+    interval: 1000
+    repeat: false
+    onTriggered: channelConfigFile.reload()
   }
 
   Process {
@@ -430,8 +456,10 @@ Item {
     onTriggered: root.refreshSuccessVisible = false
   }
 
+  onHelperPathChanged: startInitialLoad()
+
   Component.onCompleted: {
     animationProbe.running = true
-    Qt.callLater(loadCached)
+    startInitialLoad()
   }
 }
