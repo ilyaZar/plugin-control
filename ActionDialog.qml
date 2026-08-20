@@ -190,8 +190,7 @@ FocusScope {
   function handleKey(event) {
     if (!opened) return false
     if (event.key === Qt.Key_Escape
-        || (readOnly && event.modifiers === Qt.NoModifier
-          && event.key === Qt.Key_Q)) {
+        || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_Q)) {
       canceled()
       return true
     }

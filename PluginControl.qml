@@ -590,14 +590,40 @@ Item {
     return true
   }
 
+  function isSubmenuCloseKey(event) {
+    return event.key === Qt.Key_Escape
+      || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_Q)
+  }
+
+  function closeActiveSubmenu() {
+    if (previewOpen) {
+      closePreview()
+      return true
+    }
+    if (selfRemovalDialog.opened) {
+      selfRemovalDialog.canceled()
+      return true
+    }
+    if (actionDialog.opened) {
+      actionDialog.canceled()
+      return true
+    }
+    if (settingsMenuOpen) {
+      closeSettingsMenu()
+      return true
+    }
+    return false
+  }
+
   function handleKey(event) {
     if (previewOpen) return handlePreviewKey(event)
+    if (selfRemovalDialog.opened) return selfRemovalDialog.handleKey(event)
     if (actionDialog.opened) return actionDialog.handleKey(event)
     var control = (event.modifiers & Qt.ControlModifier) !== 0
     var alt = (event.modifiers & Qt.AltModifier) !== 0
 
     if (settingsMenuOpen) {
-      if (event.key === Qt.Key_Escape) closeSettingsMenu()
+      if (isSubmenuCloseKey(event)) closeSettingsMenu()
       else if (event.key === Qt.Key_Up
           || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_K))
         select(selectedIndex - 1, true)
@@ -719,6 +745,20 @@ Item {
     WlrLayershell.keyboardFocus: root.surfaceVisible
       ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
+    Shortcut {
+      enabled: root.modalDialogOpened || root.settingsMenuOpen
+      sequence: "Escape"
+      context: Qt.WindowShortcut
+      onActivated: root.closeActiveSubmenu()
+    }
+
+    Shortcut {
+      enabled: root.modalDialogOpened || root.settingsMenuOpen
+      sequence: "Q"
+      context: Qt.WindowShortcut
+      onActivated: root.closeActiveSubmenu()
+    }
+
     Rectangle {
       anchors.fill: parent
       visible: root.backgroundDim
@@ -819,7 +859,8 @@ Item {
         warningColor: root.urgent
         onCanceled: {
           closeDialog()
-          resultList.forceActiveFocus()
+          if (root.settingsMenuOpen) resultList.forceActiveFocus()
+          else queryInput.forceActiveFocus()
         }
         onRemoveRequested: function(deleteUserData) {
           root.confirmSelfRemoval(deleteUserData)

@@ -420,7 +420,8 @@ ShellRoot {
               "Unsafe", 1600, 900)) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR info preview")
         }
-        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
+            || overlay.modalDialogOpened)
           console.error("PLUGIN_CONTROL_LOAD_ERROR info dialog close")
         overlay.service = savedInfoService
         var savedService = overlay.service
@@ -559,7 +560,10 @@ ShellRoot {
             || overlay.pendingSnapshotId !== "snapshot-test") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared browse dialog")
         }
-        overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Q })
+            || overlay.modalDialogOpened) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR action q close")
+        }
         overlay.selectedRecord = null
         overlay.spaceActivatesSelection = false
         if (overlay.handleKey({ modifiers: 0, key: Qt.Key_Space })
@@ -590,7 +594,8 @@ ShellRoot {
             || overlay.selectedRecord.id !== "io.example.installable") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR actionable enter")
         }
-        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
+            || overlay.modalDialogOpened)
           console.error("PLUGIN_CONTROL_LOAD_ERROR action dialog close")
         overlay.mode = "browse"
         overlay.selectedRecord = null
@@ -676,6 +681,15 @@ ShellRoot {
             || overlay.settingsMenuOpen || !overlay.opened) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings escape back")
         }
+        if (!overlay.handleKey({
+              modifiers: Qt.ControlModifier, key: Qt.Key_S
+            }) || !overlay.settingsMenuOpen
+            || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Q })
+            || overlay.settingsMenuOpen || !overlay.opened) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR settings shortcut q back")
+        }
+        if (overlay.handleKey({ modifiers: 0, key: Qt.Key_Q }))
+          console.error("PLUGIN_CONTROL_LOAD_ERROR main palette q ownership")
         console.log("PLUGIN_CONTROL_INTERACTION_OK palette interactions")
         root.serviceObject.acceptActionStart('{"error":"Install failed."}', 1)
         if (root.serviceObject.actionNoticeDurationMs !== 10000
@@ -797,6 +811,11 @@ ShellRoot {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared action choices")
         }
         dialog.openDialog()
+        if (!dialog.handleKey({ modifiers: 0, key: Qt.Key_Q })
+            || root.dialogCanceledCount !== 5) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR action q close")
+        }
+        dialog.openDialog()
         if (dialog.selectedChoice !== 0)
           console.error("PLUGIN_CONTROL_LOAD_ERROR safe action default")
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Right })
@@ -806,7 +825,7 @@ ShellRoot {
           console.error("PLUGIN_CONTROL_LOAD_ERROR update action selection")
         }
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
-        if (root.dialogCanceledCount !== 4
+        if (root.dialogCanceledCount !== 5
             || root.dialogConfirmedCount !== 1
             || root.lastDialogOperation !== "update") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared action dispatch")
@@ -881,7 +900,10 @@ ShellRoot {
         removalDialog.openDialog()
         removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Down })
         removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
-        if (root.removalCanceledCount !== 1
+        removalDialog.closeDialog()
+        removalDialog.openDialog()
+        if (!removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Q })
+            || root.removalCanceledCount !== 2
             || root.removalPurgeCount !== 1
             || root.removalPreserveCount !== 1) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR self removal choices")
