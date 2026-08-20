@@ -408,6 +408,15 @@ test("runtime switchability must be explicitly true", () => {
   assert.equal(values[2].canDisable, false);
 });
 
+test("enabled user plugins use the agreed Added label", () => {
+  const value = Catalog.prepareRecords([{
+    id: "x.added",
+    installed: true,
+    enabled: true
+  }])[0];
+  assert.equal(value.stateLabel, "Added");
+});
+
 test("palette view model keeps settings and records declarative", () => {
   const settings = Palette.settingsResult();
   assert.equal(settings.mode, "settings");
