@@ -220,8 +220,7 @@ Item {
     if (payload.settings === true) showSettingsMenu()
     else rebuildResults()
     Qt.callLater(function() {
-      if (modalDialogOpened || settingsMenuOpen)
-        submenuKeyCatcher.forceActiveFocus()
+      if (settingsMenuOpen) card.forceActiveFocus()
       else queryInput.forceActiveFocus()
       if (service) service.recordFocusReady()
     })
@@ -319,7 +318,6 @@ Item {
     actionDialog.readOnly = readOnly === true
     if (readOnly === true && service) service.requestPreview(selectedRecord)
     actionDialog.openDialog()
-    Qt.callLater(submenuKeyCatcher.forceActiveFocus)
     return true
   }
 
@@ -352,7 +350,6 @@ Item {
     previewWidth = Math.max(0, Math.min(10000, Number(width || 0)))
     previewHeight = Math.max(0, Math.min(10000, Number(height || 0)))
     previewOpen = true
-    Qt.callLater(submenuKeyCatcher.forceActiveFocus)
     return true
   }
 
@@ -360,7 +357,6 @@ Item {
     if (!previewOpen) return
     previewOpen = false
     previewUrl = ""
-    Qt.callLater(submenuKeyCatcher.forceActiveFocus)
   }
 
   function handlePreviewKey(event) {
@@ -490,7 +486,7 @@ Item {
     queryInput.text = ""
     selectedIndex = 0
     rebuildResults()
-    Qt.callLater(submenuKeyCatcher.forceActiveFocus)
+    Qt.callLater(card.forceActiveFocus)
   }
 
   function closeSettingsMenu() {
@@ -543,7 +539,6 @@ Item {
       selectedRecord = JSON.parse(JSON.stringify(record))
       pendingSnapshotId = String(service.snapshot.snapshotId)
       selfRemovalDialog.openDialog()
-      Qt.callLater(submenuKeyCatcher.forceActiveFocus)
       return true
     }
     transientMessage = "Plugin Control is not available for removal."
@@ -559,9 +554,7 @@ Item {
         ? "Cleaning user data and removing Plugin Control..."
         : "Removing Plugin Control and preserving user data..."
       selfRemovalDialog.closeDialog()
-      if (settingsMenuOpen)
-        Qt.callLater(submenuKeyCatcher.forceActiveFocus)
-      else Qt.callLater(queryInput.forceActiveFocus)
+      if (!settingsMenuOpen) Qt.callLater(queryInput.forceActiveFocus)
     }
   }
 
@@ -610,6 +603,16 @@ Item {
   }
 
   function handleKey(event) {
+    var returnKey = event.key === Qt.Key_Escape
+      || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_Q)
+    if (returnKey) {
+      if (returnToMainMenu()) return true
+      if (event.key === Qt.Key_Escape) {
+        dismiss()
+        return true
+      }
+      return false
+    }
     if (previewOpen) return handlePreviewKey(event)
     if (selfRemovalDialog.opened) return selfRemovalDialog.handleKey(event)
     if (actionDialog.opened) return actionDialog.handleKey(event)
@@ -736,36 +739,6 @@ Item {
     WlrLayershell.keyboardFocus: root.surfaceVisible
       ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    Shortcut {
-      sequence: "Escape"
-      enabled: root.opened
-      context: Qt.ApplicationShortcut
-      onActivated: {
-        if (!root.returnToMainMenu()) root.dismiss()
-      }
-    }
-
-    Shortcut {
-      sequence: "Q"
-      enabled: root.opened
-        && (root.modalDialogOpened || root.settingsMenuOpen)
-      context: Qt.ApplicationShortcut
-      onActivated: root.returnToMainMenu()
-    }
-
-    Item {
-      id: submenuKeyCatcher
-      anchors.fill: parent
-      visible: root.modalDialogOpened || root.settingsMenuOpen
-      focus: visible
-      z: 100
-
-      Keys.priority: Keys.BeforeItem
-      Keys.onPressed: function(event) {
-        if (root.handleKey(event)) event.accepted = true
-      }
-    }
-
     Rectangle {
       anchors.fill: parent
       visible: root.backgroundDim
@@ -793,6 +766,12 @@ Item {
       color: root.background
       borderSpec: root.borderSpec
       padding: Style.spacing.panelPadding
+      focus: true
+
+      Keys.priority: Keys.BeforeItem
+      Keys.onPressed: function(event) {
+        if (root.handleKey(event)) event.accepted = true
+      }
 
       Behavior on reveal {
         enabled: root.service ? root.service.animationsEnabled : true
@@ -866,9 +845,8 @@ Item {
         warningColor: root.urgent
         onCanceled: {
           closeDialog()
-          if (root.settingsMenuOpen)
-            Qt.callLater(submenuKeyCatcher.forceActiveFocus)
-          else Qt.callLater(queryInput.forceActiveFocus)
+          if (!root.settingsMenuOpen)
+            Qt.callLater(queryInput.forceActiveFocus)
         }
         onRemoveRequested: function(deleteUserData) {
           root.confirmSelfRemoval(deleteUserData)

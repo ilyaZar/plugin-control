@@ -423,7 +423,7 @@ ShellRoot {
         if (!overlay.openPreview(
               localDetailUrl,
               overlay.selectedRecord.name, 1600, 900)
-            || !overlay.returnToMainMenu()
+            || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
             || overlay.modalDialogOpened)
           console.error("PLUGIN_CONTROL_LOAD_ERROR stacked submenu close")
         overlay.service = savedInfoService
@@ -563,7 +563,7 @@ ShellRoot {
             || overlay.pendingSnapshotId !== "snapshot-test") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared browse dialog")
         }
-        if (!overlay.returnToMainMenu()
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Q })
             || overlay.modalDialogOpened) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR action menu close")
         }
@@ -580,7 +580,7 @@ ShellRoot {
             || overlay.actionDialogReadOnly) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared browse space")
         }
-        overlay.returnToMainMenu()
+        overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
 
         overlay.filteredRecords = [{
           id: "io.example.installable",
@@ -597,7 +597,7 @@ ShellRoot {
             || overlay.selectedRecord.id !== "io.example.installable") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR actionable enter")
         }
-        if (!overlay.returnToMainMenu()
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
             || overlay.modalDialogOpened)
           console.error("PLUGIN_CONTROL_LOAD_ERROR action dialog close")
         overlay.mode = "browse"
@@ -680,14 +680,14 @@ ShellRoot {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings cancel back")
         }
         overlay.showSettingsMenu()
-        if (!overlay.returnToMainMenu()
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
             || overlay.settingsMenuOpen || !overlay.opened) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings escape back")
         }
         if (!overlay.handleKey({
               modifiers: Qt.ControlModifier, key: Qt.Key_S
             }) || !overlay.settingsMenuOpen
-            || !overlay.returnToMainMenu()
+            || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Q })
             || overlay.settingsMenuOpen || !overlay.opened) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings shortcut q back")
         }
@@ -703,7 +703,7 @@ ShellRoot {
         overlay.showSettingsMenu()
         if (!overlay.openSelfRemovalDialog()
             || !overlay.modalDialogOpened
-            || !overlay.returnToMainMenu()
+            || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Q })
             || overlay.modalDialogOpened || overlay.settingsMenuOpen) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR nested settings close")
         }

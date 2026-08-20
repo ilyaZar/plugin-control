@@ -23,7 +23,7 @@ rg -q 'function close\(\)' "$ROOT/PluginControl.qml"
 rg -q 'function toggle\(\)' "$ROOT/PluginControl.qml"
 rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
-rg -Fq 'sequence: "Escape"' "$ROOT/PluginControl.qml"
+rg -Fq 'event.key === Qt.Key_Escape' "$ROOT/PluginControl.qml"
 rg -Fq '{ keyLabel: "[Ctrl+i]", label: "Plugin info" }' \
   "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+u]", label: "Check for plugin updates" }' \
@@ -171,8 +171,7 @@ rg -Fq 'name: "Cancel / Back"' "$ROOT/PaletteViewModel.js"
 rg -Fq 'visible: root.paletteChromeVisible' "$ROOT/PluginControl.qml"
 rg -Fq 'height: root.activeHeaderHeight' "$ROOT/PluginControl.qml"
 rg -Fq 'height: root.activeFooterHeight' "$ROOT/PluginControl.qml"
-rg -Fq 'Qt.callLater(submenuKeyCatcher.forceActiveFocus)' \
-  "$ROOT/PluginControl.qml"
+rg -Fq 'Qt.callLater(card.forceActiveFocus)' "$ROOT/PluginControl.qml"
 rg -q 'installInTerminal' "$ROOT/PluginControl.qml"
 rg -q 'omarchy-launch-terminal' "$ROOT/lib/backend/actions.sh"
 rg -q 'signal actionRequested\(string operation\)' "$ROOT/ActionDialog.qml"
@@ -203,15 +202,18 @@ fi
 rg -Fq 'border.color: root.marketplaceYellow' "$ROOT/ActionDialog.qml"
 rg -Fq 'font.bold: root.readOnly' "$ROOT/ActionDialog.qml"
 rg -Fq 'function returnToMainMenu()' "$ROOT/PluginControl.qml"
-rg -Fq 'sequence: "Q"' "$ROOT/PluginControl.qml"
-rg -Fq 'onActivated: root.returnToMainMenu()' "$ROOT/PluginControl.qml"
+rg -Fq 'event.key === Qt.Key_Escape' "$ROOT/PluginControl.qml"
+rg -Fq 'event.key === Qt.Key_Q' "$ROOT/PluginControl.qml"
 if rg -q 'Qt.Key_(Escape|Q)' "$ROOT/ActionDialog.qml" \
     "$ROOT/SelfRemovalDialog.qml"; then
   fail "dialogs must not retain legacy close-key handlers"
 fi
-rg -Fq 'id: submenuKeyCatcher' "$ROOT/PluginControl.qml"
-rg -Fq 'visible: root.modalDialogOpened || root.settingsMenuOpen' \
-  "$ROOT/PluginControl.qml"
+if rg -q 'submenuKeyCatcher|Shortcut \{' "$ROOT/PluginControl.qml"; then
+  fail "legacy submenu focus and shortcut paths must be removed"
+fi
+rg -Fq 'id: card' "$ROOT/PluginControl.qml"
+rg -Fq 'focus: true' "$ROOT/PluginControl.qml"
+rg -Fq 'Keys.priority: Keys.BeforeItem' "$ROOT/PluginControl.qml"
 rg -Fq 'if (actionDialog.readOnly || !selectedRecord || !service) return' \
   "$ROOT/PluginControl.qml"
 rg -q 'function validPreviewUrl\(value\)' "$ROOT/PluginControl.qml"
