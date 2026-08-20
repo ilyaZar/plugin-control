@@ -395,7 +395,7 @@ Item {
         ? "Opening Omarchy terminal..." : ""
       actionDialog.closeDialog()
       if (executionMode === "terminal") dismiss()
-      else queryInput.forceActiveFocus()
+      else Qt.callLater(queryInput.forceActiveFocus)
     }
   }
 
@@ -499,7 +499,7 @@ Item {
     queryInput.text = ""
     selectedIndex = 0
     rebuildResults()
-    queryInput.forceActiveFocus()
+    Qt.callLater(queryInput.forceActiveFocus)
   }
 
   function activateSettings(action) {
@@ -544,8 +544,9 @@ Item {
         ? "Cleaning user data and removing Plugin Control..."
         : "Removing Plugin Control and preserving user data..."
       selfRemovalDialog.closeDialog()
-      if (settingsMenuOpen) submenuKeyCatcher.forceActiveFocus()
-      else queryInput.forceActiveFocus()
+      if (settingsMenuOpen)
+        Qt.callLater(submenuKeyCatcher.forceActiveFocus)
+      else Qt.callLater(queryInput.forceActiveFocus)
     }
   }
 
@@ -816,7 +817,7 @@ Item {
           ? String(root.service.previewState.detailUrl || "") : ""
         onCanceled: {
           closeDialog()
-          queryInput.forceActiveFocus()
+          Qt.callLater(queryInput.forceActiveFocus)
         }
         onTerminalInstallToggled: function(enabled) {
           root.setInstallInTerminal(enabled)
@@ -841,8 +842,9 @@ Item {
         warningColor: root.urgent
         onCanceled: {
           closeDialog()
-          if (root.settingsMenuOpen) submenuKeyCatcher.forceActiveFocus()
-          else queryInput.forceActiveFocus()
+          if (root.settingsMenuOpen)
+            Qt.callLater(submenuKeyCatcher.forceActiveFocus)
+          else Qt.callLater(queryInput.forceActiveFocus)
         }
         onRemoveRequested: function(deleteUserData) {
           root.confirmSelfRemoval(deleteUserData)
