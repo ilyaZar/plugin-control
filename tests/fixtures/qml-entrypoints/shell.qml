@@ -477,6 +477,20 @@ ShellRoot {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared browse dialog")
         }
         overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
+        overlay.selectedRecord = null
+        overlay.spaceActivatesSelection = false
+        if (overlay.handleKey({ modifiers: 0, key: Qt.Key_Space })
+            || overlay.selectedRecord !== null) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR searchable space")
+        }
+        overlay.spaceActivatesSelection = true
+        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Space })
+            || !overlay.selectedRecord
+            || overlay.selectedRecord.id !== "io.example.browse"
+            || overlay.actionDialogReadOnly) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR shared browse space")
+        }
+        overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
 
         overlay.filteredRecords = [{
           id: "io.example.installable",

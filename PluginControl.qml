@@ -32,6 +32,7 @@ Item {
   property double filterStartedAt: 0
   property bool installInTerminal: false
   property bool settingsMenuOpen: false
+  property bool spaceActivatesSelection: false
   property var savedSettings: ({})
   property color shortcutColor: "#e5c07b"
   property color successColor: "#98c379"
@@ -243,6 +244,7 @@ Item {
     mode = result.mode
     filteredRecords = result.results
     displayModel.clear()
+    spaceActivatesSelection = false
     for (var i = 0; i < filteredRecords.length; i++) {
       displayModel.append(PaletteViewModel.displayRecord(filteredRecords[i]))
     }
@@ -257,9 +259,10 @@ Item {
       resultList.positionViewAtIndex(selectedIndex, ListView.Contain)
   }
 
-  function select(index) {
+  function select(index, byKeyboard) {
     if (displayModel.count === 0) return
     selectedIndex = Math.max(0, Math.min(index, displayModel.count - 1))
+    spaceActivatesSelection = byKeyboard === true
     positionSelection()
   }
 
@@ -530,10 +533,10 @@ Item {
       if (event.key === Qt.Key_Escape) closeSettingsMenu()
       else if (event.key === Qt.Key_Up
           || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_K))
-        select(selectedIndex - 1)
+        select(selectedIndex - 1, true)
       else if (event.key === Qt.Key_Down
           || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_J))
-        select(selectedIndex + 1)
+        select(selectedIndex + 1, true)
       else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
         activateIndex(selectedIndex)
       return true
@@ -565,19 +568,24 @@ Item {
         && event.key === Qt.Key_Backspace) {
       return clearCompletedCommandPrefix()
     } else if (event.key === Qt.Key_Up) {
-      select(selectedIndex - 1)
+      select(selectedIndex - 1, true)
     } else if (event.key === Qt.Key_Down) {
-      select(selectedIndex + 1)
+      select(selectedIndex + 1, true)
     } else if (event.key === Qt.Key_PageUp) {
-      select(selectedIndex - 5)
+      select(selectedIndex - 5, true)
     } else if (event.key === Qt.Key_PageDown) {
-      select(selectedIndex + 5)
+      select(selectedIndex + 5, true)
     } else if (event.key === Qt.Key_Home) {
-      select(0)
+      select(0, true)
     } else if (event.key === Qt.Key_End) {
-      select(displayModel.count - 1)
+      select(displayModel.count - 1, true)
     } else if (!control && !alt && event.key === Qt.Key_Tab) {
       if (!startTypedUpdateCommand()) completeCommand(selectedIndex)
+    } else if (event.key === Qt.Key_Space) {
+      if (!startTypedUpdateCommand()) {
+        if (!spaceActivatesSelection) return false
+        activateIndex(selectedIndex)
+      }
     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
       if (!startTypedUpdateCommand()) activateIndex(selectedIndex)
     } else {
@@ -774,6 +782,11 @@ Item {
             Keys.priority: Keys.BeforeItem
             Keys.onPressed: function(event) {
               if (root.handleKey(event)) event.accepted = true
+            }
+
+            TapHandler {
+              acceptedButtons: Qt.LeftButton
+              onTapped: root.spaceActivatesSelection = false
             }
 
             Text {
