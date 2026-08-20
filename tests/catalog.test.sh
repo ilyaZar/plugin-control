@@ -175,13 +175,32 @@ fi
 printf 'ok - failed or oversized downloads preserve cache\n'
 
 download_catalog() {
+  [[ ${4:-} == '"current"' ]]
   : >"$2"
   : >"$3"
   printf '304\n'
 }
+printf '%s\n' '{"normalizerVersion":2,"etag":"\"current\""}' \
+  >"$CHANNEL_CACHE/marketplace.meta.json"
 refresh_catalog_channel "$ROOT" "$channel"
 [[ $(sha256sum "$CHANNEL_CACHE/marketplace.json") == "$before" ]]
 printf 'ok - ETag unchanged response keeps cache\n'
+
+download_catalog() {
+  [[ -z ${4:-} && -z ${5:-} ]]
+  cp "$TEST_DIR/fixtures/catalog-valid.json" "$2"
+  printf 'ETag: "new"\n' >"$3"
+  printf '200\n'
+}
+printf '%s\n' '{"normalizerVersion":1,"etag":"\"stale\""}' \
+  >"$CHANNEL_CACHE/marketplace.meta.json"
+refresh_catalog_channel "$ROOT" "$channel"
+jq -e '.normalizerVersion == 2 and .etag == "\"new\""' \
+  "$CHANNEL_CACHE/marketplace.meta.json" >/dev/null
+jq -e '.records[0].stars == 42
+  and .records[0].versionUpdatedAt == "2026-08-20T09:00:00.000Z"' \
+  "$CHANNEL_CACHE/marketplace.json" >/dev/null
+printf 'ok - changed normalizer forces a complete catalog download\n'
 
 download_catalog() {
   printf '{"stateSchemaVersion":1,"plugins":[]}\n' >"$2"
