@@ -116,6 +116,8 @@ Use at least one light theme and one dark theme. Keep a terminal open for
   install-in-terminal switch, including for an installable marketplace plugin.
 - [ ] Confirm the dialog uses a larger plugin title, clear metadata groups,
   bordered metric chips, and enough whitespace to avoid a wall of text.
+- [ ] Confirm the information card ends shortly below its final metadata or tag
+  row, with only normal spacing before Close and no large empty middle area.
 - [ ] Confirm author, version, source, repository, reviewed commit when known,
   tags, stars, verification state, views, command copies, and anonymous hearts
   match the cached upstream data.

@@ -66,6 +66,9 @@ FocusScope {
     && previewImageUrl.length > 0 && previewThumbnailUrl.length > 0
   readonly property bool previewReady: hasPreview
     && previewCardSource.length > 0 && previewDetailSource.length > 0
+  readonly property int preferredReadOnlyHeight:
+    Style.spacing.panelPadding * 2 + contentColumn.implicitHeight
+      + Style.space(7) + Style.space(38)
   readonly property var badgeItems: {
     var values = []
     if (activityState === "updated") values.push({

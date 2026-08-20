@@ -90,7 +90,8 @@ Item {
   readonly property int availableCardHeight: Math.max(Style.space(220),
     panel.height - restingY - Style.gapsOut)
   readonly property int actionCardHeight: actionDialog.readOnly
-    ? Style.space(actionDialog.hasPreview ? 900 : 720) : Style.space(540)
+    ? Math.max(Style.space(360), actionDialog.preferredReadOnlyHeight)
+    : Style.space(540)
   readonly property int cardHeight: actionDialog.opened
     ? Math.min(actionCardHeight, availableCardHeight)
     : (selfRemovalDialog.opened
