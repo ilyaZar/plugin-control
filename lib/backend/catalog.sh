@@ -2,6 +2,84 @@ safe_header_value() {
   local value="${1:-}"
   [[ ${#value} -le 1024 && $value != *$'\n'* && $value != *$'\r'* ]]
 }
+
+valid_marketplace_preview_url() {
+  local value="${1:-}"
+  local variant="${2:-}"
+  [[ $variant == card || $variant == detail ]] || return 1
+  [[ $value =~ ^https://omarchyplugins\.com/assets/img/plugins/[A-Za-z0-9._-]+-${variant}\.webp$ ]]
+}
+
+cache_marketplace_preview() {
+  local id="$1"
+  local variant="$2"
+  local url="$3"
+  local revision="$4"
+  local key target temporary_webp temporary_png
+  key="$(printf '%s\0%s' "$url" "$revision" | sha256sum | cut -d' ' -f1)"
+  target="$PREVIEW_CACHE/$id-$variant-${key:0:16}.png"
+  if [[ -s $target ]]; then
+    printf '%s\n' "$target"
+    return
+  fi
+
+  temporary_webp="$(mktemp "$RUNTIME_ROOT/preview-$variant.XXXXXX.webp")"
+  temporary_png="$(mktemp "$PREVIEW_CACHE/.preview-$variant.XXXXXX.png")"
+  if ! curl --fail --silent --show-error --location \
+      --proto '=https' --proto-redir '=https' \
+      --connect-timeout 5 --max-time 20 --max-filesize 5242880 \
+      --output "$temporary_webp" -- "$url" \
+      || ! magick "$temporary_webp[0]" -auto-orient -strip \
+        "$temporary_png" \
+      || [[ ! -s $temporary_png ]]; then
+    rm -f -- "$temporary_webp" "$temporary_png"
+    return 1
+  fi
+  rm -f -- "$temporary_webp"
+  mv -f -- "$temporary_png" "$target"
+  find "$PREVIEW_CACHE" -maxdepth 1 -type f \
+    -name "$id-$variant-*.png" ! -path "$target" -delete
+  printf '%s\n' "$target"
+}
+
+preview_command() {
+  local id="$1"
+  local card_url="$2"
+  local detail_url="$3"
+  local revision="${4:-}"
+  valid_plugin_id "$id" || {
+    json_error "invalid plugin ID for preview"
+    return 1
+  }
+  valid_marketplace_preview_url "$card_url" card || {
+    json_error "invalid marketplace card preview URL"
+    return 1
+  }
+  valid_marketplace_preview_url "$detail_url" detail || {
+    json_error "invalid marketplace detail preview URL"
+    return 1
+  }
+  [[ ${#revision} -le 80 && $revision != *$'\n'* && $revision != *$'\r'* ]] \
+    || {
+      json_error "invalid marketplace preview revision"
+      return 1
+    }
+
+  local card_path detail_path
+  card_path="$(cache_marketplace_preview \
+    "$id" card "$card_url" "$revision")" || {
+      json_error "marketplace card preview could not be prepared"
+      return 1
+    }
+  detail_path="$(cache_marketplace_preview \
+    "$id" detail "$detail_url" "$revision")" || {
+      json_error "marketplace detail preview could not be prepared"
+      return 1
+    }
+  jq -cn --arg id "$id" --arg card "file://$card_path" \
+    --arg detail "file://$detail_path" \
+    '{ok:true,id:$id,cardUrl:$card,detailUrl:$detail}'
+}
 header_value() {
   local name="$1"
   local file="$2"

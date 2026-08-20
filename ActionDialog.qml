@@ -13,6 +13,10 @@ FocusScope {
   property bool readOnly: false
   property bool busy: false
   property bool installInTerminal: false
+  property bool previewLoading: false
+  property bool previewFailed: false
+  property string previewCardSource: ""
+  property string previewDetailSource: ""
   property int selectedChoice: 0
   property string helpText: ""
   property color background: Color.menu.background
@@ -60,6 +64,8 @@ FocusScope {
     && plugin.previewHeight || 0)
   readonly property bool hasPreview: readOnly
     && previewImageUrl.length > 0 && previewThumbnailUrl.length > 0
+  readonly property bool previewReady: hasPreview
+    && previewCardSource.length > 0 && previewDetailSource.length > 0
   readonly property var badgeItems: {
     var values = []
     if (activityState === "updated") values.push({
@@ -206,8 +212,8 @@ FocusScope {
   }
 
   function requestPreview() {
-    if (!hasPreview) return
-    previewRequested(previewImageUrl,
+    if (!previewReady) return
+    previewRequested(previewDetailSource,
       String(plugin && plugin.name || "Plugin preview"),
       previewWidth, previewHeight)
   }
@@ -319,8 +325,8 @@ FocusScope {
           id: previewThumbnail
           anchors.fill: parent
           anchors.margins: Math.max(1, Style.space(1))
-          source: root.opened && root.hasPreview
-            ? root.previewThumbnailUrl : ""
+          source: root.opened && root.previewReady
+            ? root.previewCardSource : ""
           asynchronous: true
           cache: true
           fillMode: Image.PreserveAspectFit
@@ -329,9 +335,13 @@ FocusScope {
 
         Text {
           anchors.centerIn: parent
-          visible: previewThumbnail.status === Image.Loading
+          visible: root.hasPreview && (root.previewLoading
+            || previewThumbnail.status === Image.Null
+            || previewThumbnail.status === Image.Loading
             || previewThumbnail.status === Image.Error
-          text: previewThumbnail.status === Image.Error
+          )
+          text: root.previewFailed || (!root.previewLoading
+            && previewThumbnail.status === Image.Error)
             ? "Preview could not be loaded" : "Loading preview..."
           textFormat: Text.PlainText
           color: root.foreground
@@ -341,6 +351,8 @@ FocusScope {
         }
 
         Rectangle {
+          visible: root.previewReady
+            && previewThumbnail.status === Image.Ready
           anchors.right: parent.right
           anchors.bottom: parent.bottom
           anchors.margins: Style.spacing.sm
@@ -365,7 +377,8 @@ FocusScope {
 
         MouseArea {
           anchors.fill: parent
-          enabled: previewThumbnail.status === Image.Ready
+          enabled: root.previewReady
+            && previewThumbnail.status === Image.Ready
           cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
           onClicked: root.requestPreview()
         }

@@ -145,6 +145,19 @@ ShellRoot {
         if (!root.serviceObject.initialLoadStarted) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR late service initialization")
         }
+        if (!root.serviceObject.acceptPreview(JSON.stringify({
+              ok: true,
+              id: "io.example.preview",
+              cardUrl: "file:///tmp/example-card.png",
+              detailUrl: "file:///tmp/example-detail.png"
+            }), 0)
+            || root.serviceObject.previewState.id !== "io.example.preview"
+            || root.serviceObject.previewLoading) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR preview cache result")
+        }
+        root.serviceObject.acceptPreview('{"ok":false}', 1)
+        if (root.serviceObject.previewState.failed !== true)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR preview cache failure")
         mockPluginRegistry.settingCalls = 0
         var hiddenSnapshot = JSON.stringify({
           ok: true,
@@ -368,6 +381,8 @@ ShellRoot {
         }]
         overlay.selectedIndex = 0
         overlay.selectedRecord = null
+        var savedInfoService = overlay.service
+        overlay.service = null
         if (overlay.handleKey(shiftInfoEvent)
             || overlay.handleKey(shiftedControlInfoEvent)
             || !overlay.handleKey(infoEvent)
@@ -378,8 +393,10 @@ ShellRoot {
             || overlay.selectedRecord.id !== "io.example.docs") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR info shortcut")
         }
+        var localDetailUrl = overlay.previewCacheUrlPrefix
+          + "io.example.docs-detail-0123456789abcdef.png"
         if (!overlay.openPreview(
-              overlay.selectedRecord.previewImageUrl,
+              localDetailUrl,
               overlay.selectedRecord.name, 1600, 900)
             || !overlay.previewOpen
             || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Q })
@@ -391,6 +408,7 @@ ShellRoot {
         }
         if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
           console.error("PLUGIN_CONTROL_LOAD_ERROR info dialog close")
+        overlay.service = savedInfoService
         var savedService = overlay.service
         overlay.service = null
         overlay.transientMessage = "Old message"
@@ -653,6 +671,8 @@ ShellRoot {
           previewHeight: 900,
           listingValidatedCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
+        dialog.previewCardSource = "file:///tmp/info-card.png"
+        dialog.previewDetailSource = "file:///tmp/info-detail.png"
         dialog.readOnly = true
         if (dialog.reviewedCommit
               !== "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -666,7 +686,7 @@ ShellRoot {
         dialog.requestPreview()
         if (root.previewRequestedCount !== 1
             || root.lastPreviewUrl
-              !== "https://omarchyplugins.com/assets/img/plugins/7-example-info-detail.webp"
+              !== "file:///tmp/info-detail.png"
             || root.lastPreviewWidth !== 1600
             || root.lastPreviewHeight !== 900) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR preview request")

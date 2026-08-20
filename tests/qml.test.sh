@@ -188,7 +188,7 @@ rg -Fq 'event.key === Qt.Key_Q' "$ROOT/ActionDialog.qml"
 rg -Fq 'if (actionDialog.readOnly || !selectedRecord || !service) return' \
   "$ROOT/PluginControl.qml"
 rg -q 'function validPreviewUrl\(value\)' "$ROOT/PluginControl.qml"
-rg -q 'omarchyplugins\\\.com.*-detail\\\.webp' \
+rg -q 'previewCacheUrlPrefix' \
   "$ROOT/PluginControl.qml"
 rg -Fq 'id: previewLayer' "$ROOT/PluginControl.qml"
 rg -Fq 'Not listed on Omarchy Plugins' "$ROOT/ActionDialog.qml"
