@@ -30,13 +30,12 @@ var COMMANDS = [
 
 function parseQuery(value) {
   var raw = text(value)
-  var match = /^\s*plug-(add|install|remove|enable|disable|update)\s*:\s*([\s\S]*)$/i
+  var match = /^\s*plug-(add|remove|enable|disable|update)\s*:\s*([\s\S]*)$/i
     .exec(raw)
   if (!match) return { mode: "browse", query: raw.trim() }
 
-  var command = match[1].toLowerCase()
   return {
-    mode: command === "install" ? "add" : command,
+    mode: match[1].toLowerCase(),
     query: match[2].trim()
   }
 }

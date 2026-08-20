@@ -1,6 +1,5 @@
 readonly SELF_ID="io.github.ilyazar.plugin-control"
 readonly USER_DATA_ID="ilyazar.plugin-control"
-readonly LEGACY_USER_DATA_ID="plugin-control"
 json_error() {
   jq -cn --arg error "$1" '{ok:false,error:$error}'
 }
@@ -78,14 +77,6 @@ init_paths() {
   CACHE_ROOT="$(realpath -m -- "$cache_base/omarchy/$USER_DATA_ID")"
   STATE_ROOT="$(realpath -m -- "$state_base/omarchy/$USER_DATA_ID")"
   RUNTIME_ROOT="$(realpath -m -- "$runtime_base/omarchy-$USER_DATA_ID")"
-  LEGACY_CONFIG_ROOT="$(realpath -m -- \
-    "$config_base/omarchy/$LEGACY_USER_DATA_ID")"
-  LEGACY_CACHE_ROOT="$(realpath -m -- \
-    "$cache_base/omarchy/$LEGACY_USER_DATA_ID")"
-  LEGACY_STATE_ROOT="$(realpath -m -- \
-    "$state_base/omarchy/$LEGACY_USER_DATA_ID")"
-  LEGACY_RUNTIME_ROOT="$(realpath -m -- \
-    "$runtime_base/omarchy-$LEGACY_USER_DATA_ID")"
   PLUGINS_ROOT="$(realpath -m -- "$config_base/omarchy/plugins")"
   BINDINGS_FILE="$(realpath -m -- "$config_base/hypr/bindings.lua")"
   CHANNEL_CONFIG="$CONFIG_ROOT/channels.yaml"
@@ -110,21 +101,12 @@ init_paths() {
     && $(basename -- "$CACHE_ROOT") == "$USER_DATA_ID"
     && $(basename -- "$STATE_ROOT") == "$USER_DATA_ID"
     && $(basename -- "$RUNTIME_ROOT") == "omarchy-$USER_DATA_ID"
-    && $(basename -- "$LEGACY_CONFIG_ROOT") == "$LEGACY_USER_DATA_ID"
-    && $(basename -- "$LEGACY_CACHE_ROOT") == "$LEGACY_USER_DATA_ID"
-    && $(basename -- "$LEGACY_STATE_ROOT") == "$LEGACY_USER_DATA_ID"
-    && $(basename -- "$LEGACY_RUNTIME_ROOT") == \
-      "omarchy-$LEGACY_USER_DATA_ID"
     && $(basename -- "$BINDINGS_FILE") == bindings.lua ]] || {
     json_error "refusing unsafe Plugin Control paths"
     exit 1
   }
 
   umask 077
-  migrate_user_root "$LEGACY_CONFIG_ROOT" "$CONFIG_ROOT"
-  migrate_user_root "$LEGACY_CACHE_ROOT" "$CACHE_ROOT"
-  migrate_user_root "$LEGACY_STATE_ROOT" "$STATE_ROOT"
-  migrate_user_root "$LEGACY_RUNTIME_ROOT" "$RUNTIME_ROOT"
   MARKETPLACE_STATS_CACHE="$CACHE_ROOT/marketplace-stats.json"
   mkdir -p -- "$CONFIG_ROOT" "$CHANNEL_CACHE" "$STATE_ROOT" "$RUNTIME_ROOT" \
     "$PLUGIN_LOCK_ROOT"
@@ -136,24 +118,13 @@ plugin_lock_path() {
   printf '%s/%s.lock\n' "$PLUGIN_LOCK_ROOT" "$id"
 }
 
-migrate_user_root() {
-  local legacy="$1"
-  local namespaced="$2"
-  [[ -d $legacy && ! -L $legacy && ! -e $namespaced && ! -L $namespaced ]] \
-    || return 0
-  mkdir -p -- "$(dirname -- "$namespaced")"
-  mv -T -- "$legacy" "$namespaced"
-}
-
 purge_user_data() {
   local root="$1"
   local binding_helper="$root/scripts/remove-keybinding.rb"
   [[ -f $binding_helper && ! -L $binding_helper ]] || return 1
 
   ruby "$binding_helper" "$BINDINGS_FILE" "$SELF_ID" || return 1
-  rm -rf -- "$CONFIG_ROOT" "$CACHE_ROOT" "$STATE_ROOT" \
-    "$LEGACY_CONFIG_ROOT" "$LEGACY_CACHE_ROOT" "$LEGACY_STATE_ROOT" \
-    "$LEGACY_RUNTIME_ROOT"
+  rm -rf -- "$CONFIG_ROOT" "$CACHE_ROOT" "$STATE_ROOT"
 }
 
 source_root() {

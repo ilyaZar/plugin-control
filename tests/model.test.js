@@ -94,12 +94,6 @@ test("prefix parsing is case-insensitive", () => {
   assert.equal(Fuzzy.parseQuery("Plug-Update: local").mode, "update");
 });
 
-test("install command remains an add alias", () => {
-  assert.equal(Fuzzy.parseQuery("plug-install: weather").mode, "add");
-  assert.deepEqual(Fuzzy.search(records, "plug-install: weather", 50)
-    .results.map((row) => row.id), ["io.example.weather"]);
-});
-
 test("whitespace around a colon is accepted", () => {
   const parsed = Fuzzy.parseQuery("  plug-remove   :   local ");
   assert.equal(parsed.mode, "remove");

@@ -113,26 +113,7 @@ jq -cn '
   } | [.]
 ' >"$MOCK_RUNTIME"
 
-mkdir -p "$XDG_CONFIG_HOME/omarchy/plugin-control" \
-  "$XDG_CACHE_HOME/omarchy/plugin-control" \
-  "$XDG_STATE_HOME/omarchy/plugin-control" \
-  "$XDG_RUNTIME_DIR/omarchy-plugin-control"
-printf '{"installInTerminal":true}\n' \
-  >"$XDG_CONFIG_HOME/omarchy/plugin-control/settings.json"
-touch "$XDG_CACHE_HOME/omarchy/plugin-control/legacy-cache" \
-  "$XDG_STATE_HOME/omarchy/plugin-control/legacy-state" \
-  "$XDG_RUNTIME_DIR/omarchy-plugin-control/legacy-runtime"
-
 helper start --tray-hidden | grep -Fq 'tray icon hidden'
-[[ ! -e $XDG_CONFIG_HOME/omarchy/plugin-control
-  && ! -e $XDG_CACHE_HOME/omarchy/plugin-control
-  && ! -e $XDG_STATE_HOME/omarchy/plugin-control
-  && ! -e $XDG_RUNTIME_DIR/omarchy-plugin-control
-  && -f $XDG_CONFIG_HOME/omarchy/ilyazar.plugin-control/settings.json
-  && -f $XDG_CACHE_HOME/omarchy/ilyazar.plugin-control/legacy-cache
-  && -f $XDG_STATE_HOME/omarchy/ilyazar.plugin-control/legacy-state
-  && -f $XDG_RUNTIME_DIR/omarchy-ilyazar.plugin-control/legacy-runtime ]]
-printf 'ok - legacy user roots migrate to the author namespace\n'
 grep -Fqx 'shell rescanPlugins' "$MOCK_SHELL_LOG"
 grep -Fqx 'plugin enable io.github.ilyazar.plugin-control' "$MOCK_LOG"
 grep -Fqx 'bar set io.github.ilyazar.plugin-control trayIconHidden true --json' \
@@ -595,17 +576,11 @@ jq -e '.ok == false and .acknowledged == false
 unset MOCK_EXIT
 printf 'ok - failed self removal keeps its checkout and snapshot\n'
 
-mkdir -p "$self_plugin/scripts" "$XDG_CONFIG_HOME/hypr" \
-  "$XDG_CONFIG_HOME/omarchy/plugin-control" \
-  "$XDG_CACHE_HOME/omarchy/plugin-control" \
-  "$XDG_STATE_HOME/omarchy/plugin-control"
+mkdir -p "$self_plugin/scripts" "$XDG_CONFIG_HOME/hypr"
 cp "$ROOT/scripts/remove-keybinding.rb" "$self_plugin/scripts/"
 touch "$XDG_CONFIG_HOME/omarchy/ilyazar.plugin-control/purge-config" \
   "$XDG_CACHE_HOME/omarchy/ilyazar.plugin-control/purge-cache" \
-  "$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/purge-state" \
-  "$XDG_CONFIG_HOME/omarchy/plugin-control/legacy-config" \
-  "$XDG_CACHE_HOME/omarchy/plugin-control/legacy-cache" \
-  "$XDG_STATE_HOME/omarchy/plugin-control/legacy-state"
+  "$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/purge-state"
 cat >"$XDG_CONFIG_HOME/hypr/bindings.lua" <<'LUA'
 o.bind(
   "CTRL + P",
@@ -633,10 +608,7 @@ done
 [[ ! -e $XDG_CONFIG_HOME/omarchy/ilyazar.plugin-control
   && ! -e $XDG_CACHE_HOME/omarchy/ilyazar.plugin-control
   && ! -e $XDG_STATE_HOME/omarchy/ilyazar.plugin-control
-  && ! -e $XDG_RUNTIME_DIR/omarchy-ilyazar.plugin-control
-  && ! -e $XDG_CONFIG_HOME/omarchy/plugin-control
-  && ! -e $XDG_CACHE_HOME/omarchy/plugin-control
-  && ! -e $XDG_STATE_HOME/omarchy/plugin-control ]]
+  && ! -e $XDG_RUNTIME_DIR/omarchy-ilyazar.plugin-control ]]
 grep -Fq 'omarchy-launch-terminal' "$XDG_CONFIG_HOME/hypr/bindings.lua"
 if grep -Fq 'io.github.ilyazar.plugin-control' \
   "$XDG_CONFIG_HOME/hypr/bindings.lua"; then

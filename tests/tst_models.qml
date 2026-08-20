@@ -8,7 +8,6 @@ TestCase {
 
   function test_parser() {
     compare(Fuzzy.parseQuery("plug-add: weather").mode, "add")
-    compare(Fuzzy.parseQuery("plug-install: weather").mode, "add")
     compare(Fuzzy.parseQuery("plug-remove : local").query, "local")
     compare(Fuzzy.parseQuery("plug-enable: local").mode, "enable")
     compare(Fuzzy.parseQuery("plug-disable: local").mode, "disable")
@@ -26,8 +25,6 @@ TestCase {
         installed: true, enabled: false, canDisable: true }
     ])
     compare(Fuzzy.search(records, "plug-add: weather", 50)
-      .results[0].id, "x.weather")
-    compare(Fuzzy.search(records, "plug-install: weather", 50)
       .results[0].id, "x.weather")
     compare(Fuzzy.search(records, "plug-remove: local", 50)
       .results[0].id, "x.local")
