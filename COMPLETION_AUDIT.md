@@ -75,6 +75,11 @@ This audit records release-readiness evidence for
   Ctrl+R supplies views, command copies, and anonymous hearts. Strict schema
   validation, atomic replacement, and ID joins preserve the last valid cache
   on failure and never invent zero values. No engagement POST is present.
+- [x] Marketplace detail metadata. Catalog normalization retains GitHub stars,
+  verification state, and the listing/version timestamps used by the website's
+  twelve-hour New and Updated badges. A normalizer version invalidates stale
+  conditional-request metadata once, so an unchanged upstream catalog still
+  gains newly supported fields after upgrade.
 - [x] Offline behavior. Malformed, failed, oversized, and unchanged catalog
   responses preserve the last valid cache. A valid empty catalog clears stale
   records, while an unverifiable submission candidate preserves the complete
@@ -200,10 +205,13 @@ This audit records release-readiness evidence for
   shared action dialog showed Cancel, dimmed Update, Disable, and Remove;
   resting on Update revealed its precise local-ahead explanation. Ctrl+I
   displayed cached views, copies, hearts, tags, and verification state. The
-  overlay was closed after the final capture.
-- [x] Preview. `preview.png` is an exact 720 by 539 crop of the live 0.2.0
-  action dialog. It contains no desktop background, was inspected at original
-  resolution, and is 69 KB.
+  The redesigned Ctrl+I view then showed larger grouped metadata; yellow star,
+  orange view/copy, and red-orange heart icons; green New/Verified badges; and
+  yellow Updated plus green Verified badges. Zero and nonzero stars both
+  rendered honestly. The overlay was closed after the final capture.
+- [x] Preview. `preview.png` is an exact 720 by 540 crop of the live 0.2.0
+  marketplace detail dialog. It contains no desktop background, was inspected
+  at original resolution, and is 64 KB.
 - [x] QML loading. The real Quickshell instantiation harness created the
   service, overlay, and bar-widget entry points with isolated XDG paths. It
   also proved a late-injected manifest starts the service and arms the watcher
