@@ -47,7 +47,10 @@ const records = Catalog.prepareRecords([
     installed: true,
     enabled: true,
     canDisable: true,
-    removable: true
+    removable: true,
+    gitManaged: true,
+    updateAvailable: true,
+    updateStatus: "available"
   },
   {
     id: "local.disabled",
@@ -88,6 +91,7 @@ test("prefix parsing is case-insensitive", () => {
   assert.equal(Fuzzy.parseQuery("Plug-Remove: notes").mode, "remove");
   assert.equal(Fuzzy.parseQuery("Plug-Enable: local").mode, "enable");
   assert.equal(Fuzzy.parseQuery("Plug-Disable: local").mode, "disable");
+  assert.equal(Fuzzy.parseQuery("Plug-Update: local").mode, "update");
 });
 
 test("install command remains an add alias", () => {
@@ -146,7 +150,8 @@ test("command-shaped selection is fuzzy and keeps add first", () => {
   }
   assert.deepEqual(Fuzzy.search(records, "plug", 50)
     .results.map((row) => row.commandCompletion),
-    ["plug-add: ", "plug-remove: ", "plug-enable: ", "plug-disable: "]);
+    ["plug-add: ", "plug-remove: ", "plug-enable: ", "plug-disable: ",
+      "plug-update: "]);
   assert.deepEqual(Fuzzy.search(records, "plug", 1)
     .results.map((row) => row.commandCompletion), ["plug-add: "]);
 });
@@ -209,6 +214,51 @@ test("enable and disable modes follow runtime switchability", () => {
     .results.map((row) => row.id), ["local.disabled"]);
   assert.deepEqual(Fuzzy.search(records, "plug-disable: ", 50)
     .results.map((row) => row.id), ["omarchy.clock", "local.notes"]);
+});
+
+test("update mode contains only checked fast-forward candidates", () => {
+  assert.deepEqual(Fuzzy.search(records, "plug-update: ", 50)
+    .results.map((row) => row.id), ["local.notes"]);
+  assert.deepEqual(Fuzzy.search(records, "plug-upd", 50)
+    .results.map((row) => row.commandCompletion), ["plug-update: "]);
+});
+
+test("update results follow action-driven record state", () => {
+  const candidate = {
+    id: "local.lifecycle",
+    name: "Lifecycle",
+    installed: true,
+    builtIn: false,
+    enabled: true,
+    canDisable: true,
+    removable: true,
+    updateAvailable: true,
+    updateStatus: "available"
+  };
+  function ids(record) {
+    return Fuzzy.search([record], "plug-update: ", 50).results
+      .map((row) => row.id);
+  }
+
+  assert.deepEqual(ids(candidate), [candidate.id]);
+  assert.deepEqual(ids({ ...candidate, enabled: false }), [candidate.id]);
+  assert.deepEqual(ids({ ...candidate, updateAvailable: false,
+    updateStatus: "current" }), []);
+  assert.deepEqual(ids({ ...candidate, installed: false }), []);
+  assert.deepEqual(ids({ ...candidate, updateAvailable: true,
+    updateStatus: "error" }), [candidate.id]);
+});
+
+test("inactive full bars can be enabled but active bars cannot be disabled", () => {
+  const bars = Catalog.prepareRecords([
+    { id: "bar.active", name: "Active", builtIn: true,
+      fullBar: true, enabled: true, canDisable: false },
+    { id: "bar.inactive", name: "Inactive", builtIn: true,
+      fullBar: true, enabled: false, canDisable: false }
+  ]);
+  assert.deepEqual(Fuzzy.search(bars, "plug-enable: ", 50)
+    .results.map((row) => row.id), ["bar.inactive"]);
+  assert.deepEqual(Fuzzy.search(bars, "plug-disable: ", 50).results, []);
 });
 
 test("exact name outranks prefix and fuzzy matches", () => {
@@ -299,6 +349,32 @@ test("marketplace provenance survives local presentation", () => {
   assert.equal(localBuiltin.marketplaceListed, false);
 });
 
+test("marketplace metrics remain optional and retain honest counts", () => {
+  const values = Catalog.prepareRecords([{
+    id: "x.metrics",
+    marketplaceListed: true,
+    metricsAvailable: true,
+    stars: 12,
+    verificationStatus: "verified",
+    views: 34,
+    copies: 5,
+    hearts: 6,
+    tags: ["shell"]
+  }, {
+    id: "x.no-metrics",
+    marketplaceListed: true,
+    views: 0,
+    copies: 0,
+    hearts: 0
+  }]);
+  assert.equal(values[0].stars, 12);
+  assert.equal(values[0].views, 34);
+  assert.equal(values[0].copies, 5);
+  assert.equal(values[0].hearts, 6);
+  assert.equal(values[1].metricsAvailable, false);
+  assert.equal(values[1].views, null);
+});
+
 test("validation drift creates a warning", () => {
   assert.equal(Catalog.warningState({
     upstreamCheckStatus: "passed",
@@ -341,4 +417,52 @@ test("palette view model keeps settings and records declarative", () => {
     .pluginName, "Example");
   assert.equal(Palette.removableRecord(records, SELF_ID).id, SELF_ID);
   assert.equal(Palette.removableRecord(records, "missing"), null);
+});
+
+test("shared action model follows every plugin state", () => {
+  function labels(record, readOnly) {
+    return Palette.actionOptions(record, readOnly)
+      .map((option) => option.label);
+  }
+
+  assert.deepEqual(labels({ id: "builtin.on", builtIn: true, enabled: true,
+    canDisable: true }), ["Cancel", "Disable"]);
+  assert.deepEqual(labels({ id: "builtin.off", builtIn: true, enabled: false,
+    canDisable: true }), ["Cancel", "Enable"]);
+  assert.deepEqual(labels({ id: "user.available", installable: true }),
+    ["Cancel", "Add"]);
+  assert.deepEqual(labels({ id: "user.on", installed: true, enabled: true,
+    canDisable: true, removable: true, updateStatus: "unknown" }),
+  ["Cancel", "Update", "Disable", "Remove"]);
+  assert.deepEqual(labels({ id: "user.off", installed: true, enabled: false,
+    canDisable: true, removable: true, updateStatus: "current" }),
+  ["Cancel", "Update", "Enable", "Remove"]);
+  assert.deepEqual(labels({ id: "bar.on", builtIn: true,
+    fullBar: true, enabled: true }),
+    ["Cancel"]);
+  assert.deepEqual(labels({ id: "bar.off", builtIn: true,
+    fullBar: true, enabled: false }),
+    ["Cancel", "Enable"]);
+  assert.deepEqual(labels({ id: "x.info" }, true), ["Close"]);
+});
+
+test("unavailable Update remains present with its explanation", () => {
+  const manual = Palette.actionOptions({
+    id: "manual.plugin",
+    installed: true,
+    removable: true,
+    updateStatus: "manual",
+    updateReason: "Manually copied/installed plugin. No Git repository to update."
+  }, false)[1];
+  assert.equal(manual.label, "Update");
+  assert.equal(manual.available, false);
+  assert.equal(manual.reason,
+    "Manually copied/installed plugin. No Git repository to update.");
+
+  for (const status of ["dirty", "ahead", "diverged", "unsupported",
+    "error"])
+    assert.equal(Palette.actionOptions({ id: "blocked." + status,
+      installed: true,
+      updateStatus: status, updateReason: status }, false)[1].available,
+    false);
 });

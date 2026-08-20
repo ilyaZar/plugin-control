@@ -26,13 +26,23 @@ rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Escape' "$ROOT/PluginControl.qml"
 rg -Fq '{ keyLabel: "[Ctrl+i]", label: "Info" }' \
   "$ROOT/PaletteFooter.qml"
+rg -Fq '{ keyLabel: "[Ctrl+u]", label: "Check updates" }' \
+  "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+w]",' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+g]", label: "GitHub source" }' \
+rg -Fq '{ keyLabel: "[Ctrl+g]", label: "GitHub" }' \
   "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+r]", label: "Refresh" }' \
   "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+s]", label: "Settings" }' \
+  "$ROOT/PaletteFooter.qml"
+ctrl_u_line="$(rg -nF '{ keyLabel: "[Ctrl+u]"' \
+  "$ROOT/PaletteFooter.qml" | cut -d: -f1)"
+ctrl_i_line="$(rg -nF '{ keyLabel: "[Ctrl+i]"' \
+  "$ROOT/PaletteFooter.qml" | cut -d: -f1)"
+(( ctrl_u_line < ctrl_i_line ))
+rg -Fq 'width: footerRow.width / 6' "$ROOT/PaletteFooter.qml"
+rg -Fq 'Style.font.caption - (compact ? 1 : 0)' \
   "$ROOT/PaletteFooter.qml"
 if rg -q 'Ctrl\+Shift|isContextShortcut' "$ROOT/PluginControl.qml"; then
   printf 'not ok - shifted palette shortcuts remain\n' >&2
@@ -58,14 +68,16 @@ rg -q 'commandCompletion' "$ROOT/PluginControl.qml"
 rg -q 'function clearCompletedCommandPrefix()' "$ROOT/PluginControl.qml"
 rg -Fq 'repository: String(value.repository' "$ROOT/PaletteViewModel.js"
 rg -Fq 'font.pixelSize: Style.font.caption' "$ROOT/PaletteResultRow.qml"
-rg -q 'pendingSnapshotId = pendingOperation === "browse"' \
+rg -q 'pendingSnapshotId = readOnly === true' \
   "$ROOT/PluginControl.qml"
 rg -q 'String\(selectedRecord.id || ""\), pendingSnapshotId' \
   "$ROOT/PluginControl.qml"
-rg -Fq '["add", "remove", "enable", "disable"]' \
+rg -Fq '["add", "remove", "update", "enable", "disable"]' \
+  "$ROOT/PluginControl.qml"
+rg -Fq '"omarchy plugin update " + id + " --yes"' \
   "$ROOT/ActionDialog.qml"
-rg -Fq 'return "omarchy plugin enable "' "$ROOT/ActionDialog.qml"
-rg -Fq 'return "omarchy plugin disable "' "$ROOT/ActionDialog.qml"
+rg -Fq 'return "omarchy plugin enable " + id' "$ROOT/ActionDialog.qml"
+rg -Fq 'return "omarchy plugin disable " + id' "$ROOT/ActionDialog.qml"
 if rg -q 'add-bar|omarchy bar put' "$ROOT/PluginControl.qml" \
     "$ROOT/ActionDialog.qml" "$ROOT/Service.qml"; then
   printf 'not ok - obsolete bar placement action remains\n' >&2
@@ -103,6 +115,12 @@ rg -Fq 'actionNoticeDurationMs: 10000' "$ROOT/Service.qml"
 rg -Fq 'refreshSuccessDurationMs: 10000' "$ROOT/Service.qml"
 if rg -q 'startupRefreshPending|requestRefresh\(false\)' "$ROOT/Service.qml"; then
   printf 'not ok - service automatically refreshes the catalog at startup\n' >&2
+  exit 1
+fi
+component_completed="$(sed -n '/Component.onCompleted:/,/^  }/p' \
+  "$ROOT/Service.qml")"
+if grep -q 'requestUpdateCheck' <<<"$component_completed"; then
+  printf 'not ok - service automatically checks updates at startup\n' >&2
   exit 1
 fi
 rg -Fq 'finishedUnacknowledged && isNewNotice' "$ROOT/Service.qml"
@@ -145,24 +163,37 @@ rg -Fq 'visible: root.paletteChromeVisible' "$ROOT/PluginControl.qml"
 rg -Fq 'height: root.activeHeaderHeight' "$ROOT/PluginControl.qml"
 rg -Fq 'height: root.activeFooterHeight' "$ROOT/PluginControl.qml"
 rg -Fq 'focus: root.settingsMenuOpen' "$ROOT/PluginControl.qml"
-rg -Fq 'if (pendingOperation === "browse") return' \
-  "$ROOT/PluginControl.qml"
 rg -q 'installInTerminal' "$ROOT/PluginControl.qml"
 rg -q 'omarchy-launch-terminal' "$ROOT/lib/backend/actions.sh"
-rg -q 'signal confirmed' "$ROOT/ActionDialog.qml"
-rg -Fq 'return "Remove Plugin Control itself?"' "$ROOT/ActionDialog.qml"
-rg -Fq 'if (selfRemoval) return "Yes, remove"' "$ROOT/ActionDialog.qml"
-rg -Fq 'readonly property string cancelLabel: selfRemoval ? "No"' \
+rg -q 'signal actionRequested\(string operation\)' "$ROOT/ActionDialog.qml"
+rg -Fq 'PaletteViewModel.actionOptions(plugin, readOnly)' \
   "$ROOT/ActionDialog.qml"
+rg -Fq 'interval: 1000' "$ROOT/ActionDialog.qml"
+rg -Fq 'action.available === false' "$ROOT/ActionDialog.qml"
+rg -Fq 'helpText = String(action.reason' "$ROOT/ActionDialog.qml"
 rg -Fq 'plugin.commit || plugin.listingValidatedCommit' \
   "$ROOT/ActionDialog.qml"
 rg -q 'ToggleSwitch \{' "$ROOT/ActionDialog.qml"
-rg -q 'Run in Omarchy terminal' "$ROOT/ActionDialog.qml"
+rg -q 'Run Add in Omarchy terminal' "$ROOT/ActionDialog.qml"
 rg -q 'selectedChoice' "$ROOT/ActionDialog.qml"
+rg -Fq 'Not listed on Omarchy Plugins' "$ROOT/ActionDialog.qml"
+rg -Fq 'Marketplace interactions: Views' "$ROOT/ActionDialog.qml"
+rg -Fq 'Command copies' "$ROOT/ActionDialog.qml"
+rg -Fq 'Anonymous hearts' "$ROOT/ActionDialog.qml"
+rg -Fq 'not a security audit' "$ROOT/ActionDialog.qml"
+rg -Fq 'does not mean "' "$ROOT/ActionDialog.qml"
+rg -Fq 'root.plugin.tags' "$ROOT/ActionDialog.qml"
 rg -q 'applyBootstrap' "$ROOT/Service.qml"
-rg -Fq 'return time + "  -  " + date' "$ROOT/PluginControl.qml"
-rg -Fq 'color: root.statusColor' "$ROOT/PluginControl.qml"
-rg -Fq 'opacity: root.statusOpacity' "$ROOT/PluginControl.qml"
+rg -Fq 'return time + " (" + date + ")"' "$ROOT/PluginControl.qml"
+rg -Fq 'text: root.leftStatusText' "$ROOT/PluginControl.qml"
+rg -Fq 'text: root.rightStatusText' "$ROOT/PluginControl.qml"
+rg -Fq 'horizontalAlignment: Text.AlignRight' "$ROOT/PluginControl.qml"
+rg -Fq '"Last update: "' "$ROOT/PluginControl.qml"
+rg -Fq '"Catalog refreshed: "' "$ROOT/PluginControl.qml"
+rg -Fq '"Checking for updates..."' "$ROOT/PluginControl.qml"
+rg -Fq '"Updating plugins..."' "$ROOT/lib/backend/actions.sh"
+rg -Fq '"Plugin already up-to-date!"' "$ROOT/lib/backend/actions.sh"
+rg -Fq '"All plugins are up to date!"' "$ROOT/PluginControl.qml"
 printf 'ok - footer source confirmation busy and bootstrap states\n'
 
 open_body="$(sed -n '/function open(payloadJson)/,/^  }/p' \

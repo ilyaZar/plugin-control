@@ -67,6 +67,12 @@ function stateLabel(record) {
   return "Browse only"
 }
 
+function count(value) {
+  var numeric = Number(value)
+  return isFinite(numeric) && numeric >= 0
+    ? Math.floor(numeric) : null
+}
+
 function normalizeRecord(value) {
   var record = copy(value)
   record.id = cleanText(record.id)
@@ -78,11 +84,21 @@ function normalizeRecord(value) {
   record.repository = cleanText(record.repository)
   record.category = cleanText(record.category)
   record.kind = cleanText(record.kind)
+  record.kinds = Array.isArray(record.kinds)
+    ? record.kinds.map(cleanText).filter(Boolean) : []
+  record.fullBar = record.fullBar === true
+    || record.kinds.indexOf("bar") >= 0
   record.source = cleanText(record.source) || "custom"
   record.sourceName = cleanText(record.sourceName)
   record.marketplaceListed = record.marketplaceListed === true
     || record.source === "marketplace"
   record.tags = Array.isArray(record.tags) ? record.tags.map(cleanText) : []
+  record.stars = count(record.stars)
+  record.verificationStatus = cleanText(record.verificationStatus)
+  record.metricsAvailable = record.metricsAvailable === true
+  record.views = record.metricsAvailable ? count(record.views) : null
+  record.copies = record.metricsAvailable ? count(record.copies) : null
+  record.hearts = record.metricsAvailable ? count(record.hearts) : null
   record.sourceRank = sourceRank(record)
   record.sourceLabel = sourceLabel(record)
   record.warning = warningState(record)
@@ -93,6 +109,13 @@ function normalizeRecord(value) {
   record.installable = record.installable === true && !record.installed
   record.removable = record.removable === true
     && record.builtIn !== true
+  record.gitManaged = record.gitManaged === true
+  record.dirty = record.dirty === true
+  record.updateAvailable = record.updateAvailable === true
+  record.updateStatus = cleanText(record.updateStatus) || "unknown"
+  record.updateReason = cleanText(record.updateReason)
+  record.localCommit = cleanText(record.localCommit)
+  record.remoteCommit = cleanText(record.remoteCommit)
   record.searchFields = [record.name, record.id, record.repository,
     record.author, record.tags.join(" "), record.category, record.kind,
     record.sourceLabel, record.description].map(searchText)

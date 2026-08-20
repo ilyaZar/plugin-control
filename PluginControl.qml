@@ -64,7 +64,8 @@ Item {
   readonly property int activeFooterHeight: paletteChromeVisible
     ? footerHeight : 0
   readonly property int statusHeight: paletteChromeVisible
-    && statusText.length > 0 ? Style.space(28) : 0
+    && (leftStatusText.length > 0 || rightStatusText.length > 0)
+    ? Style.space(28) : 0
   readonly property int visibleRows: Math.max(1,
     Math.min(6, filteredRecords.length || 1))
   readonly property int resultRowsHeight: visibleRows * rowHeight
@@ -75,8 +76,8 @@ Item {
     + activeHeaderHeight + resultRowsHeight
     + activeFooterHeight + statusHeight
     + Style.spacing.sm * chromeSpacingCount
-  readonly property int cardHeight: Math.min(Style.space(500),
-    Math.max(Style.space(actionDialog.opened ? 420
+  readonly property int cardHeight: Math.min(Style.space(600),
+    Math.max(Style.space(actionDialog.opened ? 520
       : (selfRemovalDialog.opened ? 280 : 220)),
       Math.min(desiredCardHeight,
         panel.height - restingY - Style.gapsOut)))
@@ -94,32 +95,67 @@ Item {
     && shortcutRecord.marketplaceListed === true
   readonly property string marketplaceShortcutLabel: shortcutHasPluginPage
     ? "Plugin website" : "Marketplace"
-  readonly property string statusText: {
+  readonly property bool actionDialogReadOnly: actionDialog.readOnly
+  readonly property string leftStatusText: {
     if (transientMessage) return transientMessage
     if (service && service.actionRunning)
       return String(service.actionState.message || "Working...")
+    if (service && service.checkingUpdates) return "Checking for updates..."
     if (service && service.actionState
         && service.actionState.acknowledged === false)
       return String(service.actionState.message || "Action finished.")
+    if (service && service.lastUpdateCheckError)
+      return "Update check incomplete: " + service.lastUpdateCheckError
+    if (service && service.lastSuccessfulUpdateCheck) {
+      var timestamp = "Last update: "
+        + formatStatusTimestamp(service.lastSuccessfulUpdateCheck)
+      if (service.updateCheckSuccessVisible
+          && service.lastUpdateCheckNotice)
+        return timestamp + "  " + service.lastUpdateCheckNotice
+      return timestamp
+    }
+    return "Updates not checked"
+  }
+  readonly property string rightStatusText: {
     if (service && service.refreshing) return "Refreshing catalog..."
     if (service && service.lastError) return service.lastError
     if (service && service.lastRefreshError)
       return "Offline/stale: " + service.lastRefreshError
     if (service && service.lastSuccessfulRefresh)
-      return "Cached catalog refreshed at: "
-        + formatRefreshTimestamp(service.lastSuccessfulRefresh)
-    return service && service.ready ? "Cached catalog ready" : "Loading local cache..."
+      return "Catalog refreshed: "
+        + formatStatusTimestamp(service.lastSuccessfulRefresh)
+    return service && service.ready ? "Catalog cache ready" : "Loading local cache..."
   }
+  readonly property bool leftStatusActive: service
+    && (service.checkingUpdates
+      || (service.actionRunning && ["Checking for updates...",
+        "Updating plugins..."].indexOf(leftStatusText) >= 0))
+  readonly property bool leftSuccessActive: service
+    && ((service.updateCheckSuccessVisible === true
+        && leftStatusText.indexOf("Last update: ") === 0)
+      || (service.actionState && service.actionState.running !== true
+        && service.actionState.acknowledged === false
+        && service.actionState.ok === true))
+  readonly property bool leftUrgent: service
+    && ((service.actionState && service.actionState.running !== true
+        && service.actionState.acknowledged === false
+        && service.actionState.ok === false)
+      || service.lastUpdateCheckError)
+  readonly property color leftStatusColor: leftStatusActive
+    ? shortcutColor : (leftSuccessActive ? successColor
+      : (leftUrgent ? urgent : foreground))
+  readonly property real leftStatusOpacity: leftStatusActive
+    || leftSuccessActive || leftUrgent ? 1 : 0.70
   readonly property bool refreshStatusActive:
-    statusText === "Refreshing catalog..."
+    rightStatusText === "Refreshing catalog..."
   readonly property bool refreshSuccessActive: service
     && service.refreshSuccessVisible === true
-    && statusText.indexOf("Cached catalog refreshed at: ") === 0
-  readonly property color statusColor: refreshStatusActive
+    && rightStatusText.indexOf("Catalog refreshed: ") === 0
+  readonly property color rightStatusColor: refreshStatusActive
     ? shortcutColor : (refreshSuccessActive ? successColor
-      : (statusText.indexOf("failed") >= 0
-        || statusText.indexOf("Offline") >= 0 ? urgent : foreground))
-  readonly property real statusOpacity: refreshStatusActive
+      : (rightStatusText.indexOf("failed") >= 0
+        || rightStatusText.indexOf("Offline") >= 0 ? urgent : foreground))
+  readonly property real rightStatusOpacity: refreshStatusActive
     || refreshSuccessActive ? 1 : 0.70
 
   function resolveTargetScreen() {
@@ -193,7 +229,8 @@ Item {
       refreshMs: service ? service.lastRefreshDurationMs : -1,
       recordCount: service ? service.catalogRecordCount : 0,
       cacheAgeSeconds: service ? service.cacheAgeSeconds() : -1,
-      cacheRefreshedAt: service ? service.lastSuccessfulRefresh : ""
+      cacheRefreshedAt: service ? service.lastSuccessfulRefresh : "",
+      updateCheckedAt: service ? service.lastSuccessfulUpdateCheck : ""
     })
   }
 
@@ -226,34 +263,28 @@ Item {
     positionSelection()
   }
 
-  function availableOperation(record) {
-    if (!record) return "browse"
-    if (["add", "remove", "enable", "disable"].indexOf(mode) >= 0)
-      return mode
-    var present = record.builtIn === true || record.installed === true
-    if (present && record.canDisable === true)
-      return record.enabled === false ? "enable" : "disable"
-    if (record.installable === true) return "add"
-    return "browse"
-  }
-
   function completeCommand(index) {
     if (index < 0 || index >= filteredRecords.length) return false
-    var completion = String(filteredRecords[index].commandCompletion || "")
+    var candidate = filteredRecords[index]
+    if (!candidate) return false
+    var completion = String(candidate.commandCompletion || "")
     if (!completion) return false
     queryInput.text = completion
     queryInput.cursorPosition = queryInput.text.length
     queryInput.forceActiveFocus()
+    if (String(candidate.operation || "") === "update"
+        && service) service.requestUpdateCheck()
     return true
   }
 
-  function openDialogFor(record, operation) {
+  function openDialogFor(record, readOnly) {
     if (!record || !record.id || record.commandCompletion) return false
     selectedRecord = JSON.parse(JSON.stringify(record))
-    pendingOperation = String(operation || "browse")
-    pendingSnapshotId = pendingOperation === "browse" ? ""
+    pendingOperation = "browse"
+    pendingSnapshotId = readOnly === true ? ""
       : (service && service.snapshot
-        ? String(service.snapshot.snapshotId || "") : "")
+          ? String(service.snapshot.snapshotId || "") : "")
+    actionDialog.readOnly = readOnly === true
     actionDialog.openDialog()
     return true
   }
@@ -266,18 +297,24 @@ Item {
     }
     if (completeCommand(index)) return
     var record = filteredRecords[index]
-    var operation = availableOperation(record)
-    if (operation === "browse") return
-    openDialogFor(record, operation)
+    openDialogFor(record, false)
   }
 
   function openSelectedInfo() {
-    return openDialogFor(shortcutRecord, "browse")
+    return openDialogFor(shortcutRecord, true)
   }
 
-  function confirmAction() {
+  function confirmAction(operation) {
     if (!selectedRecord || !service) return
-    if (pendingOperation === "browse") return
+    pendingOperation = String(operation || "")
+    if (["add", "remove", "update", "enable", "disable"]
+        .indexOf(pendingOperation) < 0) return
+    if (pendingOperation === "remove"
+        && String(selectedRecord.id || "") === pluginId) {
+      actionDialog.closeDialog()
+      openSelfRemovalDialog()
+      return
+    }
     if (!pendingSnapshotId) {
       transientMessage = "No actionable catalog snapshot is available."
       actionDialog.closeDialog()
@@ -288,7 +325,7 @@ Item {
     if (service.startAction(pendingOperation,
         String(selectedRecord.id || ""), pendingSnapshotId, executionMode)) {
       transientMessage = executionMode === "terminal"
-        ? "Opening Omarchy terminal..." : "Action queued..."
+        ? "Opening Omarchy terminal..." : ""
       actionDialog.closeDialog()
       if (executionMode === "terminal") dismiss()
       else queryInput.forceActiveFocus()
@@ -323,7 +360,7 @@ Item {
     return Number(value) < 10 ? "0" + Number(value) : String(Number(value))
   }
 
-  function formatRefreshTimestamp(value) {
+  function formatStatusTimestamp(value) {
     var instant = new Date(String(value || ""))
     if (!isFinite(instant.getTime())) return String(value || "")
     var time = padTimePart(instant.getHours()) + ":"
@@ -332,7 +369,7 @@ Item {
     var date = instant.getFullYear() + "-"
       + padTimePart(instant.getMonth() + 1) + "-"
       + padTimePart(instant.getDate())
-    return time + "  -  " + date
+    return time + " (" + date + ")"
   }
 
   function loadStatusColors(raw) {
@@ -463,7 +500,7 @@ Item {
     var text = String(value || "")
     return cursor === text.length && selectionStart === selectionEnd
       && ["plug-add:", "plug-install:", "plug-remove:", "plug-enable:",
-        "plug-disable:"].indexOf(text) >= 0
+        "plug-disable:", "plug-update:"].indexOf(text) >= 0
   }
 
   function clearCompletedCommandPrefix() {
@@ -471,6 +508,16 @@ Item {
         queryInput.selectionStart, queryInput.selectionEnd)) return false
     queryInput.text = ""
     queryInput.cursorPosition = 0
+    return true
+  }
+
+  function startTypedUpdateCommand() {
+    var current = String(queryInput.text || "")
+    if (/\s$/.test(current) || current.trim().toLowerCase()
+        !== "plug-update:") return false
+    queryInput.text = "plug-update: "
+    queryInput.cursorPosition = queryInput.text.length
+    if (service) service.requestUpdateCheck()
     return true
   }
 
@@ -508,7 +555,10 @@ Item {
       transientMessage = ""
       if (service) service.requestRefresh(true)
     } else if (isControlShortcut(event, Qt.Key_U)) {
-      queryInput.text = ""
+      transientMessage = ""
+      queryInput.text = "plug-update: "
+      queryInput.cursorPosition = queryInput.text.length
+      if (service) service.requestUpdateCheck()
     } else if (isControlShortcut(event, Qt.Key_Backspace)) {
       queryInput.text = deletePreviousWord(queryInput.text)
     } else if (event.modifiers === Qt.NoModifier
@@ -527,9 +577,9 @@ Item {
     } else if (event.key === Qt.Key_End) {
       select(displayModel.count - 1)
     } else if (!control && !alt && event.key === Qt.Key_Tab) {
-      completeCommand(selectedIndex)
+      if (!startTypedUpdateCommand()) completeCommand(selectedIndex)
     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-      activateIndex(selectedIndex)
+      if (!startTypedUpdateCommand()) activateIndex(selectedIndex)
     } else {
       return false
     }
@@ -635,7 +685,6 @@ Item {
         z: 20
         plugin: root.selectedRecord
         selfId: root.pluginId
-        operation: root.pendingOperation
         busy: root.service ? root.service.actionRunning : false
         installInTerminal: root.installInTerminal
         background: root.background
@@ -650,7 +699,9 @@ Item {
         onTerminalInstallToggled: function(enabled) {
           root.setInstallInTerminal(enabled)
         }
-        onConfirmed: root.confirmAction()
+        onActionRequested: function(operation) {
+          root.confirmAction(operation)
+        }
       }
 
       SelfRemovalDialog {
@@ -728,7 +779,7 @@ Item {
             Text {
               visible: !queryInput.text
               anchors.fill: parent
-              text: "Search plugins or type plug-add: / plug-remove:"
+              text: "Search plugins or type plug-add: / plug-update:"
               textFormat: Text.PlainText
               color: root.foreground
               opacity: 0.48
@@ -795,7 +846,13 @@ Item {
           Text {
             visible: displayModel.count === 0
             anchors.fill: parent
-            text: root.mode === "add"
+            text: root.mode === "update"
+              ? (root.service && root.service.checkingUpdates
+                ? "Checking installed plugins..."
+                : (root.service && root.service.lastUpdateCheckError
+                  ? "No safely updateable plugins found"
+                  : "All plugins are up to date!"))
+              : (root.mode === "add"
               ? "No plugins available to add match this query"
               : (root.mode === "remove"
                 ? "No removable local plugins match this query"
@@ -805,7 +862,7 @@ Item {
                     ? "No enabled plugins match this query"
                     : (root.mode === "command"
                       ? "No command matches this query"
-                      : "No plugins match this query"))))
+                      : "No plugins match this query")))))
             textFormat: Text.PlainText
             color: root.foreground
             opacity: 0.62
@@ -816,23 +873,52 @@ Item {
           }
         }
 
-        Text {
+        Item {
           visible: root.statusHeight > 0
           width: parent.width
           height: root.statusHeight
-          text: root.statusText
-          textFormat: Text.PlainText
-          color: root.statusColor
-          opacity: root.statusOpacity
-          font.family: Style.font.menuFamily
-          font.pixelSize: Style.font.body
-          elide: Text.ElideRight
-          verticalAlignment: Text.AlignVCenter
-          MouseArea {
-            anchors.fill: parent
-            enabled: root.service && root.service.actionState
-              && root.service.actionState.acknowledged === false
-            onClicked: root.dismissStatus()
+
+          Text {
+            anchors.left: parent.left
+            anchors.right: statusGap.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.leftStatusText
+            textFormat: Text.PlainText
+            color: root.leftStatusColor
+            opacity: root.leftStatusOpacity
+            font.family: Style.font.menuFamily
+            font.pixelSize: Style.font.body
+            elide: Text.ElideRight
+            verticalAlignment: Text.AlignVCenter
+
+            MouseArea {
+              anchors.fill: parent
+              enabled: root.service && root.service.actionState
+                && root.service.actionState.acknowledged === false
+              onClicked: root.dismissStatus()
+            }
+          }
+
+          Item {
+            id: statusGap
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: Style.spacing.sm
+            height: 1
+          }
+
+          Text {
+            anchors.left: statusGap.right
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.rightStatusText
+            textFormat: Text.PlainText
+            color: root.rightStatusColor
+            opacity: root.rightStatusOpacity
+            font.family: Style.font.menuFamily
+            font.pixelSize: Style.font.body
+            horizontalAlignment: Text.AlignRight
+            elide: Text.ElideLeft
+            verticalAlignment: Text.AlignVCenter
           }
         }
 
