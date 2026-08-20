@@ -10,6 +10,8 @@ Use at least one light theme and one dark theme. Keep a terminal open for
   enabled from this checkout.
 - [ ] Open and close the palette repeatedly with Ctrl+p and the bar icon;
   confirm focus always starts in search and only one overlay appears.
+- [ ] Confirm the empty search field uses this hint:
+  `Search plugins (or type "plug-..." for direct plugin commands).`
 - [ ] Confirm opening the palette performs no network request or update check.
 - [ ] Record one disposable Git-managed user plugin and one manually copied
   plugin for the action tests below.
@@ -33,8 +35,8 @@ Use at least one light theme and one dark theme. Keep a terminal open for
 - [ ] Remove the disposable plugin. Confirm it disappears from added-only
   command results and becomes available to Add when it is catalog-listed.
 - [ ] Confirm Cancel is initially selected in every mutating action menu.
-- [ ] Confirm Left, Right, Tab, Shift+Tab, Enter, Space, Escape, and mouse input
-  all operate the same action row.
+- [ ] Confirm Left, Right, Tab, Shift+Tab, Enter, Space, and Escape operate the
+  action row, while hovering it keeps the normal arrow pointer.
 - [ ] Repeat plugin selection through ordinary search and every applicable
   explicit command. Confirm the selected plugin gets the same full menu.
 - [ ] Select Plugin Control itself for removal, then cancel the special

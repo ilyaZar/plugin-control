@@ -884,7 +884,7 @@ Item {
             Text {
               visible: !queryInput.text
               anchors.fill: parent
-              text: "Search plugins or type plug-add: / plug-update:"
+              text: "Search plugins (or type \"plug-...\" for direct plugin commands)."
               textFormat: Text.PlainText
               color: root.foreground
               opacity: 0.48
