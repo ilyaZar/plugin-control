@@ -91,7 +91,7 @@ FocusScope {
         plugin.stars), color: marketplaceYellow,
       tooltip: "GitHub repository stars"
     })
-    if (metricsAvailable) {
+    if (metricsAvailable && plugin) {
       values.push({ label: "views", icon: "\uf441",
         value: CatalogModel.formatCount(plugin.views),
         color: marketplaceOrange, tooltip: "Marketplace detail views" })
