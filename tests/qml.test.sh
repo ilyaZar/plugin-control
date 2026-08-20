@@ -48,10 +48,6 @@ rg -Fq 'horizontalAlignment: Text.AlignHCenter' "$ROOT/PaletteFooter.qml"
 rg -Fq 'fontSizeMode: Text.HorizontalFit' "$ROOT/PaletteFooter.qml"
 rg -Fq 'Style.font.caption - (compact ? 1 : 0)' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq 'function semanticThemeColor(value, role, fallback)' \
-  "$ROOT/PluginControl.qml"
-rg -Fq 'red > blue + 8 && green > blue + 8' \
-  "$ROOT/PluginControl.qml"
 if rg -q 'Ctrl\+Shift|isContextShortcut' "$ROOT/PluginControl.qml"; then
   printf 'not ok - shifted palette shortcuts remain\n' >&2
   exit 1
@@ -209,9 +205,14 @@ rg -q 'previewCacheUrlPrefix' \
   "$ROOT/PluginControl.qml"
 rg -Fq 'id: previewLayer' "$ROOT/PluginControl.qml"
 rg -Fq 'Not listed on Omarchy Plugins' "$ROOT/ActionDialog.qml"
-rg -Fq 'marketplaceOrange: "#ff5a36"' "$ROOT/ActionDialog.qml"
-rg -Fq 'marketplaceGreen: "#b4c96f"' "$ROOT/ActionDialog.qml"
-rg -Fq 'marketplaceYellow: "#ffb000"' "$ROOT/ActionDialog.qml"
+rg -Fq 'marketplaceOrange: Color.accent' "$ROOT/ActionDialog.qml"
+rg -Fq 'marketplaceGreen: Color.accent' "$ROOT/ActionDialog.qml"
+rg -Fq 'marketplaceYellow: Color.accent' "$ROOT/ActionDialog.qml"
+rg -Fq 'marketplaceRed: Color.urgent' "$ROOT/ActionDialog.qml"
+rg -Fq 'readonly property color accent: Color.accent' \
+  "$ROOT/PluginControl.qml"
+rg -Fq 'color: marketplaceRed, tooltip: "Anonymous marketplace hearts"' \
+  "$ROOT/ActionDialog.qml"
 rg -Fq 'CatalogModel.activityState(' "$ROOT/ActionDialog.qml"
 rg -Fq 'tooltip: "GitHub repository stars"' "$ROOT/ActionDialog.qml"
 rg -Fq 'tooltip: "Marketplace detail views"' "$ROOT/ActionDialog.qml"

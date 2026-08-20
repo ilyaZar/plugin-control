@@ -551,20 +551,16 @@ ShellRoot {
         if (!overlay.handleKey(infoEvent) || overlay.selectedRecord !== null)
           console.error("PLUGIN_CONTROL_LOAD_ERROR command info boundary")
         overlay.loadStatusColors(
-          'yellow = "#EBCB8B"\ngreen = "#A3BE8C"')
-        if (String(overlay.shortcutColor).toLowerCase() !== "#ebcb8b"
-            || String(overlay.successColor).toLowerCase() !== "#a3be8c") {
+          'yellow = "#6FA4C9"\ngreen = "#5E95BC"\norange = "#8BC9EB"')
+        if (String(overlay.shortcutColor).toLowerCase() !== "#6fa4c9"
+            || String(overlay.successColor).toLowerCase() !== "#5e95bc"
+            || String(overlay.marketplaceOrange).toLowerCase() !== "#8bc9eb") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR theme status colors")
         }
-        overlay.loadStatusColors(
-          'yellow = "#6FA4C9"\ngreen = "#5E95BC"')
-        if (String(overlay.shortcutColor).toLowerCase() !== "#e5c07b"
-            || String(overlay.successColor).toLowerCase() !== "#98c379") {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR semantic status colors")
-        }
         overlay.loadStatusColors("")
-        if (String(overlay.shortcutColor).toLowerCase() !== "#e5c07b"
-            || String(overlay.successColor).toLowerCase() !== "#98c379") {
+        if (String(overlay.shortcutColor) !== String(overlay.accent)
+            || String(overlay.successColor) !== String(overlay.accent)
+            || String(overlay.marketplaceOrange) !== String(overlay.accent)) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR status color fallback")
         }
         overlay.filteredRecords = [{
@@ -737,14 +733,18 @@ ShellRoot {
             || dialog.metricItems.length !== 4
             || dialog.badgeItems.length !== 2
             || dialog.badgeItems[0].label !== "UPDATED"
-            || dialog.badgeItems[0].color.toString() !== "#ffb000"
+            || dialog.badgeItems[0].color.toString()
+              !== dialog.marketplaceYellow.toString()
             || dialog.badgeItems[1].label !== "VERIFIED"
-            || dialog.badgeItems[1].color.toString() !== "#b4c96f"
+            || dialog.badgeItems[1].color.toString()
+              !== dialog.marketplaceGreen.toString()
             || dialog.metricItems[0].label !== "stars"
             || dialog.metricItems[0].value !== "9"
-            || dialog.metricItems[0].color.toString() !== "#ffb000"
+            || dialog.metricItems[0].color.toString()
+              !== dialog.marketplaceYellow.toString()
             || dialog.metricItems[3].label !== "hearts"
-            || dialog.metricItems[3].color.toString() !== "#ff5a36"
+            || dialog.metricItems[3].color.toString()
+              !== dialog.marketplaceRed.toString()
             || dialog.verificationHelp.indexOf("not a security audit") < 0) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared action choices")
         }

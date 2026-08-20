@@ -6,7 +6,7 @@ Item {
 
   property string marketplaceLabel: "Marketplace"
   property color foreground: Color.menu.text
-  property color shortcutColor: "#e5c07b"
+  property color shortcutColor: Color.accent
   readonly property bool compact: width < Style.space(690)
   readonly property int footerFontSize: Math.max(9,
     Style.font.caption - (compact ? 1 : 0))

@@ -39,9 +39,9 @@ Item {
   property int previewWidth: 0
   property int previewHeight: 0
   property var savedSettings: ({})
-  property color shortcutColor: "#e5c07b"
-  property color successColor: "#98c379"
-  readonly property color marketplaceOrange: "#ff5a36"
+  property color shortcutColor: Color.accent
+  property color successColor: Color.accent
+  property color marketplaceOrange: Color.accent
 
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.ilyazar.plugin-control"
@@ -61,6 +61,7 @@ Item {
   readonly property color scrim: Color.menu.scrim
   readonly property color selectedBackground: Color.menu.selectedBackground
   readonly property color selectedText: Color.menu.selectedText
+  readonly property color accent: Color.accent
   readonly property color urgent: Color.urgent
   readonly property var borderSpec: Border.surfaceSpec(
     "menu", "border", borderColor, Math.max(1, Style.space(2)))
@@ -429,28 +430,16 @@ Item {
     return time + " (" + date + ")"
   }
 
-  function semanticThemeColor(value, role, fallback) {
-    var hex = String(value || "")
-    if (!hex.match(/^#[0-9A-Fa-f]{6}$/)) return fallback
-    var red = parseInt(hex.slice(1, 3), 16)
-    var green = parseInt(hex.slice(3, 5), 16)
-    var blue = parseInt(hex.slice(5, 7), 16)
-    if (role === "yellow" && red > blue + 8 && green > blue + 8)
-      return hex
-    if (role === "green" && green > red + 8 && green > blue + 8)
-      return hex
-    return fallback
-  }
-
   function loadStatusColors(raw) {
     var yellowMatch = String(raw || "").match(
       /^\s*(?:yellow|color3)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
     var greenMatch = String(raw || "").match(
       /^\s*(?:green|color2)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
-    shortcutColor = semanticThemeColor(yellowMatch && yellowMatch[1],
-      "yellow", "#e5c07b")
-    successColor = semanticThemeColor(greenMatch && greenMatch[1],
-      "green", "#98c379")
+    var orangeMatch = String(raw || "").match(
+      /^\s*orange\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
+    shortcutColor = yellowMatch ? yellowMatch[1] : accent
+    successColor = greenMatch ? greenMatch[1] : accent
+    marketplaceOrange = orangeMatch ? orangeMatch[1] : accent
   }
 
   function openWebsite(url) {
@@ -770,6 +759,10 @@ Item {
         selectedBackground: root.selectedBackground
         selectedText: root.selectedText
         warningColor: root.urgent
+        marketplaceOrange: root.marketplaceOrange
+        marketplaceGreen: root.successColor
+        marketplaceYellow: root.shortcutColor
+        marketplaceRed: root.urgent
         previewLoading: root.service ? root.service.previewLoading : false
         previewFailed: root.service && root.service.previewState
           && root.selectedRecord
@@ -1046,7 +1039,7 @@ Item {
 
       Rectangle {
         anchors.fill: parent
-        color: "#09090b"
+        color: root.background
         opacity: 0.97
       }
 

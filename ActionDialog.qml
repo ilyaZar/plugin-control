@@ -25,9 +25,10 @@ FocusScope {
   property color selectedText: Color.menu.selectedText
   property color warningColor: Color.urgent
   property string fontFamily: Style.font.menuFamily
-  readonly property color marketplaceOrange: "#ff5a36"
-  readonly property color marketplaceGreen: "#b4c96f"
-  readonly property color marketplaceYellow: "#ffb000"
+  property color marketplaceOrange: Color.accent
+  property color marketplaceGreen: Color.accent
+  property color marketplaceYellow: Color.accent
+  property color marketplaceRed: Color.urgent
 
   readonly property var actions: PaletteViewModel.actionOptions(plugin, readOnly)
   readonly property var selectedAction: selectedChoice >= 0
@@ -103,7 +104,7 @@ FocusScope {
         color: marketplaceOrange, tooltip: "Successful command copies" })
       values.push({ label: "hearts", icon: "\uf004",
         value: CatalogModel.formatCount(plugin.hearts),
-        color: marketplaceOrange, tooltip: "Anonymous marketplace hearts" })
+        color: marketplaceRed, tooltip: "Anonymous marketplace hearts" })
     }
     return values
   }
@@ -319,7 +320,7 @@ FocusScope {
         width: parent.width
         height: visible ? Style.space(250) : 0
         radius: Style.cornerRadius
-        color: "#09090b"
+        color: root.background
         border.width: Math.max(1, Style.space(1))
         border.color: Util.alpha(root.marketplaceOrange, 0.48)
         clip: true
