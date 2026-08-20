@@ -15,6 +15,7 @@ ruby "$TEST_DIR/channel_config.test.rb"
 "$TEST_DIR/catalog.test.sh"
 "$TEST_DIR/issues.test.sh"
 "$TEST_DIR/backend.test.sh"
+"$TEST_DIR/updates.test.sh"
 "$TEST_DIR/helpers.test.sh"
 "$TEST_DIR/qml.test.sh"
 

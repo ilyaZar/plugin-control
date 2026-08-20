@@ -24,6 +24,9 @@ jq -e '.records[0].installable == true' <<<"$valid" >/dev/null
 jq -e '.records[1].installable == false' <<<"$valid" >/dev/null
 jq -e '.records[0].listingValidatedCommit != .records[0].upstreamObservedCommit' \
   <<<"$valid" >/dev/null
+jq -e '.records[0].stars == 42
+  and .records[0].verificationStatus == "verified"' \
+  <<<"$valid" >/dev/null
 printf 'ok - marketplace-like catalog and browse-only rows\n'
 
 jq '.plugins += [{"name":"missing id"},
@@ -185,3 +188,100 @@ refresh_catalog_channel "$ROOT" "$channel"
 jq -e '.ok == true and (.records | length) == 0' \
   "$CHANNEL_CACHE/marketplace.json" >/dev/null
 printf 'ok - valid empty catalog clears stale records\n'
+
+cat >"$TEMP_ROOT/stats-valid.json" <<'JSON'
+{
+  "schemaVersion": 1,
+  "plugins": {
+    "io.example.weather": {"views": 123, "copies": 45, "hearts": 6}
+  }
+}
+JSON
+normalized_stats="$(normalize_marketplace_stats \
+  "$TEMP_ROOT/stats-valid.json" "2026-08-20T12:00:00Z")"
+jq -e '.schemaVersion == 1
+  and .retrievedAt == "2026-08-20T12:00:00Z"
+  and .plugins["io.example.weather"].views == 123
+  and .plugins["io.example.weather"].copies == 45
+  and .plugins["io.example.weather"].hearts == 6' \
+  <<<"$normalized_stats" >/dev/null
+for mutation in negative extra wrong-schema; do
+  case "$mutation" in
+    negative)
+      jq '.plugins["io.example.weather"].views = -1' \
+        "$TEMP_ROOT/stats-valid.json" >"$TEMP_ROOT/stats-invalid.json"
+      ;;
+    extra)
+      jq '.plugins["io.example.weather"].downloads = 9' \
+        "$TEMP_ROOT/stats-valid.json" >"$TEMP_ROOT/stats-invalid.json"
+      ;;
+    wrong-schema)
+      jq '.schemaVersion = 2' "$TEMP_ROOT/stats-valid.json" \
+        >"$TEMP_ROOT/stats-invalid.json"
+      ;;
+  esac
+  if normalize_marketplace_stats "$TEMP_ROOT/stats-invalid.json" \
+      "2026-08-20T12:00:00Z" >/dev/null 2>&1; then
+    printf 'not ok - invalid marketplace stats were accepted: %s\n' \
+      "$mutation" >&2
+    exit 1
+  fi
+done
+printf 'ok - marketplace metrics use a strict aggregate schema\n'
+
+printf '%s\n' "$normalized_stats" >"$MARKETPLACE_STATS_CACHE"
+stats_before="$(sha256sum "$MARKETPLACE_STATS_CACHE")"
+download_marketplace_stats() {
+  printf '{bad json' >"$1"
+  printf '200\n'
+}
+if refresh_marketplace_stats; then
+  printf 'not ok - malformed metrics replaced the last valid cache\n' >&2
+  exit 1
+fi
+[[ $(sha256sum "$MARKETPLACE_STATS_CACHE") == "$stats_before" ]]
+
+download_marketplace_stats() {
+  cp "$TEMP_ROOT/stats-valid.json" "$1"
+  printf '200\n'
+}
+refresh_marketplace_stats
+jq -e '.plugins["io.example.weather"].views == 123' \
+  "$MARKETPLACE_STATS_CACHE" >/dev/null
+printf 'ok - metric refresh retries and preserves the last valid cache\n'
+
+printf '%s\n' "$valid" >"$CHANNEL_CACHE/marketplace.json"
+installed_records() {
+  : >"$1"
+}
+rm -f -- "$SNAPSHOT_STATE"
+metrics_snapshot="$(build_snapshot "$ROOT")"
+jq -e '.records[] | select(.id == "io.example.weather")
+  | .metricsAvailable == true and .views == 123 and .copies == 45
+    and .hearts == 6 and .stars == 42
+    and .verificationStatus == "verified"' \
+  <<<"$metrics_snapshot" >/dev/null
+jq -e '.records[] | select(.id == "suite.example")
+  | .metricsAvailable == false
+    and (has("views") | not) and (has("copies") | not)
+    and (has("hearts") | not)' <<<"$metrics_snapshot" >/dev/null
+printf 'ok - snapshots join metrics by id without invented zero values\n'
+
+refresh_calls=0
+refresh_channel() {
+  return 0
+}
+refresh_marketplace_stats() {
+  refresh_calls=$((refresh_calls + 1))
+  return 1
+}
+refresh_command "$ROOT" --force >/dev/null
+refresh_command "$ROOT" --force >/dev/null
+(( refresh_calls == 2 ))
+jq -e '.lastRefreshError == ""' "$REFRESH_STATE" >/dev/null
+if rg -q -- '--request[[:space:]]+POST|-X[[:space:]]+POST' \
+    "$ROOT/lib/backend" "$ROOT"/*.qml; then
+  printf 'not ok - marketplace information emits engagement events\n' >&2
+  exit 1
+fi
+printf 'ok - Ctrl+R retries metrics silently without engagement posts\n'

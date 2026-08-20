@@ -94,11 +94,15 @@ init_paths() {
   CHANNEL_CACHE="$CACHE_ROOT/channels"
   SNAPSHOT_STATE="$STATE_ROOT/snapshot.json"
   REFRESH_STATE="$STATE_ROOT/refresh.json"
+  UPDATE_STATE="$STATE_ROOT/updates.json"
   ACTION_STATE="$STATE_ROOT/action.json"
   ACTION_LOG="$STATE_ROOT/action.log"
   ACTION_LOCK="$RUNTIME_ROOT/action.lock"
   REFRESH_LOCK="$RUNTIME_ROOT/refresh.lock"
+  UPDATE_LOCK="$RUNTIME_ROOT/update-check.lock"
+  UPDATE_STATE_LOCK="$RUNTIME_ROOT/update-state.lock"
   SNAPSHOT_LOCK="$RUNTIME_ROOT/snapshot.lock"
+  PLUGIN_LOCK_ROOT="$RUNTIME_ROOT/plugins"
 
   [[ $CONFIG_ROOT == /* && $CACHE_ROOT == /* && $STATE_ROOT == /*
     && $RUNTIME_ROOT == /* && $PLUGINS_ROOT == /*
@@ -121,7 +125,15 @@ init_paths() {
   migrate_user_root "$LEGACY_CACHE_ROOT" "$CACHE_ROOT"
   migrate_user_root "$LEGACY_STATE_ROOT" "$STATE_ROOT"
   migrate_user_root "$LEGACY_RUNTIME_ROOT" "$RUNTIME_ROOT"
-  mkdir -p -- "$CONFIG_ROOT" "$CHANNEL_CACHE" "$STATE_ROOT" "$RUNTIME_ROOT"
+  MARKETPLACE_STATS_CACHE="$CACHE_ROOT/marketplace-stats.json"
+  mkdir -p -- "$CONFIG_ROOT" "$CHANNEL_CACHE" "$STATE_ROOT" "$RUNTIME_ROOT" \
+    "$PLUGIN_LOCK_ROOT"
+}
+
+plugin_lock_path() {
+  local id="$1"
+  valid_plugin_id "$id" || return 1
+  printf '%s/%s.lock\n' "$PLUGIN_LOCK_ROOT" "$id"
 }
 
 migrate_user_root() {

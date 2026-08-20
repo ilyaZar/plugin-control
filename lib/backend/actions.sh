@@ -75,7 +75,8 @@ preflight_remove() {
     && ( -e $path || -L $path ) && -f $path/manifest.json ]] || return 1
   manifest_id="$(jq -r '.id // ""' "$path/manifest.json" 2>/dev/null || true)"
   [[ $manifest_id == "$id" ]] || return 1
-  if git -C "$path" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+  if [[ -d $path/.git || -f $path/.git ]] \
+    && git -C "$path" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
     && [[ -n $(git -C "$path" status --porcelain --untracked-files=normal 2>/dev/null) ]]; then
     return 2
   fi
@@ -109,6 +110,22 @@ submission_commit_current() {
 set_action_result() {
   ACTION_SUCCEEDED="$1"
   ACTION_MESSAGE="$2"
+}
+
+write_running_action_status() {
+  local message="$1"
+  local stage="$2"
+  local status
+  status="$(jq -cn --arg actionId "$CURRENT_ACTION_ID" \
+    --arg operation "$CURRENT_OPERATION" --arg pluginId "$CURRENT_PLUGIN_ID" \
+    --arg executionMode "$CURRENT_EXECUTION_MODE" \
+    --arg startedAt "$CURRENT_STARTED_AT" --arg message "$message" \
+    --arg stage "$stage" \
+    '{ok:true,running:true,acknowledged:false,actionId:$actionId,
+      operation:$operation,pluginId:$pluginId,executionMode:$executionMode,
+      handoff:false,startedAt:$startedAt,finishedAt:"",message:$message,
+      stage:$stage,output:""}')"
+  write_action_status "$status"
 }
 
 run_add_action() {
@@ -210,8 +227,8 @@ run_switch_action() {
   local success_message rc
   local -a command
 
-  if ! jq -e '(.builtIn == true or .installed == true)
-      and .canDisable == true' <<<"$record" >/dev/null; then
+  if ! jq -e '.builtIn == true or .installed == true' \
+      <<<"$record" >/dev/null; then
     set_action_result false \
       "The confirmed plugin does not support enable or disable."
     return
@@ -222,12 +239,23 @@ run_switch_action() {
         set_action_result false "The confirmed plugin is already enabled."
         return
       fi
+      if ! jq -e '.canDisable == true or .fullBar == true' \
+          <<<"$record" >/dev/null; then
+        set_action_result false \
+          "The confirmed plugin does not support enable or disable."
+        return
+      fi
       command=(omarchy plugin enable "$id")
       success_message="Plugin enabled."
       ;;
     disable)
       if ! jq -e '.enabled == true' <<<"$record" >/dev/null; then
         set_action_result false "The confirmed plugin is already disabled."
+        return
+      fi
+      if ! jq -e '.canDisable == true' <<<"$record" >/dev/null; then
+        set_action_result false \
+          "The confirmed plugin does not support enable or disable."
         return
       fi
       command=(omarchy plugin disable "$id")
@@ -242,6 +270,72 @@ run_switch_action() {
     set_action_result false \
       "Plugin state change failed with exit code $rc."
   fi
+}
+
+run_update_action() {
+  local record="$1"
+  local id="$2"
+  local output_file="$3"
+  local path expected manifest_id classification status reason rc current
+  local current_commit
+
+  if ! jq -e '.installed == true and .builtIn != true' \
+    <<<"$record" >/dev/null; then
+    set_action_result false \
+      "The confirmed plugin is not an added user plugin."
+    return
+  fi
+  path="$(jq -r '.installedPath // ""' <<<"$record")"
+  expected="$PLUGINS_ROOT/$id"
+  [[ -n $path && $path == "$expected" && $(dirname -- "$path") == "$PLUGINS_ROOT"
+    && ( -e $path || -L $path ) && -f $path/manifest.json ]] || {
+    set_action_result false \
+      "Update refused because the installed identity or path changed."
+    return
+  }
+  manifest_id="$(jq -r '.id // ""' "$path/manifest.json" 2>/dev/null || true)"
+  [[ $manifest_id == "$id" ]] || {
+    set_action_result false \
+      "Update refused because the installed identity or path changed."
+    return
+  }
+
+  write_running_action_status "Checking for updates..." checking
+  classification="$(classify_plugin_update "$id" "$path")" || true
+  [[ -n $classification ]] || classification="$(update_result "$id" error \
+    true false "" "" "The plugin could not be checked for updates.")"
+  store_update_record "$classification" || true
+  status="$(jq -r '.status // "error"' <<<"$classification")"
+  reason="$(jq -r '.reason // ""' <<<"$classification")"
+  case "$status" in
+    current)
+      set_action_result true "Plugin already up-to-date!"
+      ;;
+    available)
+      write_running_action_status "Updating plugins..." updating
+      if timeout --signal=TERM --kill-after=5s 300s \
+        omarchy plugin update "$id" --yes >"$output_file" 2>&1; then
+        current_commit="$(git -C "$path" rev-parse HEAD 2>/dev/null || true)"
+        current="$(jq -c --arg currentCommit "$current_commit" '
+          .status="current" | .updateAvailable=false | .reason=""
+          | .localCommit=$currentCommit | .remoteCommit=$currentCommit
+          | .checkedAt=$checkedAt
+        ' --arg checkedAt "$(utc_now)" <<<"$classification")"
+        store_update_record "$current" || true
+        set_action_result true "Plugin updated!"
+      else
+        rc=$?
+        set_action_result false "Plugin update failed with exit code $rc."
+      fi
+      ;;
+    manual|dirty|ahead|diverged|unsupported|error)
+      [[ -n $reason ]] || reason="The plugin cannot be updated safely."
+      set_action_result false "$reason"
+      ;;
+    *)
+      set_action_result false "The plugin update state is not supported."
+      ;;
+  esac
 }
 
 execute_action() {
@@ -263,6 +357,8 @@ execute_action() {
       "$execution_mode" "$output_file"
   elif [[ $operation == enable || $operation == disable ]]; then
     run_switch_action "$record" "$id" "$operation" "$output_file"
+  elif [[ $operation == update ]]; then
+    run_update_action "$record" "$id" "$output_file"
   fi
 }
 
@@ -280,6 +376,10 @@ finish_action() {
     output="$(sanitize_output "$output_file")"
   fi
   rm -f -- "$output_file"
+  if [[ $ACTION_SUCCEEDED == true \
+      && ( $operation == remove || $operation == remove-purge ) ]]; then
+    remove_update_record "$id" || true
+  fi
   if [[ $ACTION_SUCCEEDED == true && $operation == remove-purge \
       && $id == "$SELF_ID" ]]; then
     command -v omarchy-notification-send >/dev/null 2>&1 \
@@ -351,18 +451,36 @@ worker_command() {
     return 1
   fi
   started="$(utc_now)"
+  CURRENT_ACTION_ID="$action_id"
+  CURRENT_OPERATION="$operation"
+  CURRENT_PLUGIN_ID="$id"
+  CURRENT_EXECUTION_MODE="$execution_mode"
+  CURRENT_STARTED_AT="$started"
+  local running_message="Working..." running_stage="working"
+  if [[ $operation == update ]]; then
+    running_message="Checking for updates..."
+    running_stage="checking"
+  fi
   status="$(jq -cn --arg actionId "$action_id" --arg operation "$operation" \
     --arg pluginId "$id" --arg executionMode "$execution_mode" \
-    --arg startedAt "$started" \
+    --arg startedAt "$started" --arg message "$running_message" \
+    --arg stage "$running_stage" \
     '{ok:true,running:true,acknowledged:false,actionId:$actionId,
       operation:$operation,pluginId:$pluginId,executionMode:$executionMode,
-      handoff:false,startedAt:$startedAt,finishedAt:"",message:"Working...",
-      output:""}')"
+      handoff:false,startedAt:$startedAt,finishedAt:"",message:$message,
+      stage:$stage,output:""}')"
   write_action_status "$status" || return 1
   record="$(action_snapshot_record "$snapshot" "$id" 2>/dev/null || true)"
   output_file="$(mktemp "$RUNTIME_ROOT/.action-output.XXXXXX")"
-  execute_action "$root" "$record" "$snapshot" "$operation" "$id" \
-    "$execution_mode" "$output_file"
+  local plugin_lock
+  plugin_lock="$(plugin_lock_path "$id")" || return 1
+  exec 8>>"$plugin_lock"
+  if flock -w 35 8; then
+    execute_action "$root" "$record" "$snapshot" "$operation" "$id" \
+      "$execution_mode" "$output_file"
+  else
+    set_action_result false "The plugin is busy with another operation."
+  fi
   finish_action "$root" "$action_id" "$operation" "$id" \
     "$execution_mode" "$started" "$output_file"
 }
@@ -378,7 +496,7 @@ validate_action_request() {
   }
   [[ $operation == add || $operation == remove \
     || $operation == remove-purge || $operation == enable
-    || $operation == disable ]] || {
+    || $operation == disable || $operation == update ]] || {
     json_error "unsupported plugin operation"
     return 2
   }
@@ -437,7 +555,7 @@ stage_action_worker() {
     return 1
   }
   install -m 0700 -- "$SCRIPT_PATH" "$STAGED_WORKER"
-  for module in common config catalog snapshot actions lifecycle; do
+  for module in common config catalog updates snapshot actions lifecycle; do
     install -m 0600 -- "$BACKEND_ROOT/$module.sh" \
       "$STAGED_WORKER_ROOT/lib/backend/$module.sh"
   done

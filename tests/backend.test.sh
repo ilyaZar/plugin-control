@@ -352,6 +352,18 @@ fi
 wait_worker_release
 printf 'ok - runtime switchability gates state actions\n'
 
+printf '[{"id":"omarchy.bar","name":"Bar","kinds":["bar"],
+  "enabled":false,"canDisable":false,"firstParty":true}]\n' \
+  >"$MOCK_RUNTIME"
+snapshot="$(rebuild_snapshot)"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+helper action "$ROOT" enable omarchy.bar "$snapshot_id" background >/dev/null
+status="$(wait_action)"
+jq -e '.ok == true and .operation == "enable"' <<<"$status" >/dev/null
+grep -Fqx 'plugin enable omarchy.bar' "$MOCK_LOG"
+wait_worker_release
+printf 'ok - inactive full bars use native plugin enable\n'
+
 plugins_root="$XDG_CONFIG_HOME/omarchy/plugins"
 weather_local="$plugins_root/io.example.weather"
 mkdir -p "$weather_local"
@@ -453,7 +465,48 @@ if grep -Fqx 'plugin remove local.test --yes' "$MOCK_LOG"; then
 fi
 printf 'ok - dirty checkout removal is refused\n'
 
+worktree_seed="$TEMP_ROOT/worktree-remove-seed"
+worktree_plugin="$plugins_root/worktree.test"
+mkdir -p "$worktree_seed"
+cat >"$worktree_seed/manifest.json" <<'JSON'
+{
+  "schemaVersion": 1,
+  "id": "worktree.test",
+  "name": "Worktree Test",
+  "version": "1.0.0",
+  "author": "Test",
+  "description": "Removal worktree fixture",
+  "kinds": ["overlay"],
+  "entryPoints": {"overlay":"Plugin.qml"}
+}
+JSON
+printf 'import QtQuick\nItem {}\n' >"$worktree_seed/Plugin.qml"
+git -C "$worktree_seed" init -q
+git -C "$worktree_seed" add .
+git -C "$worktree_seed" -c user.name=Test \
+  -c user.email=test@example.invalid commit -qm initial
+git -C "$worktree_seed" worktree add -q --detach "$worktree_plugin" HEAD
+printf 'dirty\n' >>"$worktree_plugin/Plugin.qml"
+printf '[{"id":"worktree.test","name":"Worktree Test","kinds":["overlay"],
+  "enabled":true,"canDisable":true,"firstParty":false}]\n' \
+  >"$MOCK_RUNTIME"
+snapshot="$(rebuild_snapshot)"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+helper action "$ROOT" remove worktree.test "$snapshot_id" background \
+  >/dev/null
+status="$(wait_action)"
+jq -e '.ok == false and (.message | contains("local changes"))' \
+  <<<"$status" >/dev/null
+if grep -Fqx 'plugin remove worktree.test --yes' "$MOCK_LOG"; then
+  printf 'not ok - dirty Git worktree reached native removal\n' >&2
+  exit 1
+fi
+printf 'ok - dirty Git worktree removal is refused\n'
+
 git -C "$local_plugin" checkout -q -- Plugin.qml
+printf '[{"id":"local.test","name":"Local Test","kinds":["overlay"],
+  "enabled":true,"canDisable":true,"firstParty":false}]\n' \
+  >"$MOCK_RUNTIME"
 snapshot="$(rebuild_snapshot)"
 snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
 helper action "$ROOT" remove local.test "$snapshot_id" background >/dev/null
