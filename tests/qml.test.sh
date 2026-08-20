@@ -186,6 +186,9 @@ rg -Fq 'maximumLineCount: root.readOnly ? 100 : 2' \
 rg -Fq 'contentColumn.implicitHeight' "$ROOT/ActionDialog.qml"
 rg -Fq 'actionDialog.preferredReadOnlyHeight' "$ROOT/PluginControl.qml"
 rg -Fq 'fillMode: Image.PreserveAspectFit' "$ROOT/ActionDialog.qml"
+rg -Fq 'width: previewThumbnail.paintedWidth' "$ROOT/ActionDialog.qml"
+rg -Fq 'height: previewThumbnail.paintedHeight' "$ROOT/ActionDialog.qml"
+rg -Fq 'anchors.right: previewClickArea.right' "$ROOT/ActionDialog.qml"
 rg -Fq 'event.key === Qt.Key_Q' "$ROOT/ActionDialog.qml"
 rg -Fq 'if (actionDialog.readOnly || !selectedRecord || !service) return' \
   "$ROOT/PluginControl.qml"

@@ -353,11 +353,21 @@ FocusScope {
           font.pixelSize: Style.font.body
         }
 
-        Rectangle {
-          visible: root.previewReady
+        MouseArea {
+          id: previewClickArea
+          anchors.centerIn: previewThumbnail
+          width: previewThumbnail.paintedWidth
+          height: previewThumbnail.paintedHeight
+          enabled: root.previewReady
             && previewThumbnail.status === Image.Ready
-          anchors.right: parent.right
-          anchors.bottom: parent.bottom
+          cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+          onClicked: root.requestPreview()
+        }
+
+        Rectangle {
+          visible: previewClickArea.enabled
+          anchors.right: previewClickArea.right
+          anchors.bottom: previewClickArea.bottom
           anchors.margins: Style.spacing.sm
           width: previewHint.implicitWidth + Style.spacing.md
           height: Style.space(28)
@@ -376,14 +386,6 @@ FocusScope {
             font.pixelSize: Style.font.body
             font.bold: true
           }
-        }
-
-        MouseArea {
-          anchors.fill: parent
-          enabled: root.previewReady
-            && previewThumbnail.status === Image.Ready
-          cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-          onClicked: root.requestPreview()
         }
       }
 
