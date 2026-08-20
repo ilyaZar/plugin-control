@@ -4,15 +4,15 @@ Think of Sublime Text's classic Package Control or the VS Code Command Palette,
 but for Omarchy Quattro plugins.
 
 Press Ctrl+p (or click the tray icon), type a few letters to fuzzy-search, and
-press Enter to add or toggle a plugin.
+press Enter to open one consistent action menu for that plugin.
 
 ![Plugin Control command palette](preview.png)
 
 Plugin Control keeps the full [@HANCORE-linux](https://github.com/HANCORE-linux)
 [community marketplace](https://omarchyplugins.com/) and local plugin state in a
-small cache, then filters it in process on every keypress.
-Startup reads only that local cache. Press Ctrl+r when you want to refresh it
-from the configured catalog sources.
+small cache, then filters it in process on every keypress. Startup reads only
+that local cache. Press Ctrl+r when you want to refresh catalog and marketplace
+metrics data from the configured sources.
 
 ## Install
 
@@ -37,12 +37,20 @@ binding is active. Change the first string if that disrupts your setup.
 ## Use
 
 Start typing to search plugin names, IDs, descriptions, authors, and tags. Enter
-opens the selected plugin's available action; Ctrl+i shows details without
-changing anything.
+opens the same action menu whether the plugin came from ordinary search or an
+explicit command. Ctrl+i opens the same information read-only.
 
-Without a command prefix, Enter adds an available plugin or toggles a
-switchable plugin between enabled and disabled. Removal stays behind the
-explicit remove command.
+The menu reflects the selected plugin's current state:
+
+- a built-in plugin offers Cancel and Enable or Disable
+- an added user plugin offers Cancel, Update, Enable or Disable, and Remove
+- an available user plugin offers Cancel and Add
+- an active full bar offers only Cancel; an inactive full bar can be enabled
+
+Enable and Disable are the UI terms for the native Omarchy operation. For a
+built-in bar widget, that operation may add or remove its bar placement. Plugin
+Control always delegates the change to `omarchy plugin enable` or
+`omarchy plugin disable`.
 
 Use these commands to narrow the action first:
 
@@ -50,31 +58,66 @@ Use these commands to narrow the action first:
 - `plug-remove:` shows removable local plugins
 - `plug-enable:` shows disabled switchable plugins
 - `plug-disable:` shows enabled switchable plugins
+- `plug-update:` checks first, then shows safely updateable plugins
 
-In 0.1.7, `plug-add:` is the preferred spelling. `plug-install:` remains an
-accepted alias for it.
+`plug-add:` is the preferred spelling. `plug-install:` remains an accepted
+alias for it.
 
-Commands are not pinned. Type `add`, `remove`, `enable`, or `disable` to bring
-one forward, then press Tab or Enter to complete it. Search restarts after the
-colon. Backspace edits a plugin name normally; at an empty completed prefix,
-one press removes the trailing space and the next clears the command.
+Commands are not pinned. Type `add`, `remove`, `enable`, `disable`, or `update`
+to bring one forward, then press Tab or Enter to complete it. Search restarts
+after the colon. Completing `plug-update:` starts its read-only check. Backspace
+edits a plugin name normally; at an empty completed prefix, one press removes
+the trailing space and the next clears the command.
+
+Ctrl+u is the direct update-check path. It enters `plug-update:`, fetches each
+added Git plugin's upstream `HEAD`, and lists only safe fast-forward updates.
+It never updates a plugin by itself. Select a result, choose Update, and Plugin
+Control invokes the native command:
+
+```bash
+omarchy plugin update <plugin-id> --yes
+```
+
+Already-current plugins report `Plugin already up-to-date!` when Update is
+chosen. Update remains visible but dimmed for manually copied plugins, dirty
+checkouts, and ahead or diverged Git histories. Rest on the dimmed action for
+one second, or activate it, to see the reason. A failed check keeps any safe
+results that were found and preserves the last fully successful check time.
 
 Useful keys:
 
-| Keys                                       | Action                                      |
-| ------------------------------------------ | ------------------------------------------- |
-| `Ctrl+p` or `Escape`                       | Close the palette from the plugin list      |
-| `Up`, `Down`, `Page Up`, `Page Down`       | Move the selection                          |
-| `Home` or `End`                            | Jump to the first or last result            |
-| `Enter`                                    | Complete a command or confirm an action     |
-| `Tab`                                      | Complete the selected command               |
-| `Ctrl+Backspace`                           | Remove the previous word                    |
-| `Ctrl+u`                                   | Clear the query                             |
-| `Ctrl+r`                                   | Refresh the catalog                         |
-| `Ctrl+i`                                   | Show details for the selected plugin        |
-| `Ctrl+w`                                   | Open the plugin website                     |
-| `Ctrl+g`                                   | Open the plugin source repository           |
-| `Ctrl+s`                                   | Open settings; `Escape` returns to the list |
+| Keys                                 | Action                                  |
+| ------------------------------------ | --------------------------------------- |
+| `Ctrl+p` or `Escape`                 | Close from the plugin list              |
+| `Up`, `Down`, `Page Up`, `Page Down` | Move the selection                      |
+| `Home` or `End`                      | Jump to the first or last result        |
+| `Enter`                              | Complete or confirm                     |
+| `Tab`                                | Complete the selected command           |
+| `Ctrl+Backspace`                     | Remove the previous word                |
+| `Ctrl+u`                             | Check for updateable plugins            |
+| `Ctrl+r`                             | Refresh catalog and metrics             |
+| `Ctrl+i`                             | Show read-only plugin details           |
+| `Ctrl+w`                             | Open the plugin website                 |
+| `Ctrl+g`                             | Open the source repository              |
+| `Ctrl+s`                             | Open settings; `Escape` returns         |
+
+The status row keeps update and action feedback on the left and catalog
+refresh feedback on the right. Running work is yellow, a successful result is
+green for ten seconds, and settled timestamps are grey.
+
+## Plugin information
+
+Ctrl+i keeps the selected plugin read-only and shows its author, version,
+source, repository, reviewed commit when known, tags, and listing state.
+Marketplace-listed user plugins also show stars, verification state, views,
+command copies, and anonymous hearts when those values are cached. Verification
+describes marketplace checks associated with the listed commit; it is not a
+security audit.
+
+Marketplace interaction totals are fetched once per explicit Ctrl+r refresh.
+If that request fails, Plugin Control silently retains the last valid values
+and retries on the next refresh. Missing totals remain unknown rather than
+being displayed as zero.
 
 ## Demo
 
@@ -83,7 +126,9 @@ Click either preview to play the video.
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://ilyazar.github.io/plugin-control/demo/video_plugin_control_add_remove_enable_disable.mp4">
+      <a
+        href="https://ilyazar.github.io/plugin-control/demo/video_plugin_control_add_remove_enable_disable.mp4"
+      >
         <img
           src="demo/video_plugin_control_add_remove_enable_disable.png"
           alt="Add, remove, enable, and disable plugins"
@@ -98,7 +143,9 @@ Click either preview to play the video.
       </p>
     </td>
     <td width="50%" valign="top">
-      <a href="https://ilyazar.github.io/plugin-control/demo/video_plugin_control_settings.mp4">
+      <a
+        href="https://ilyazar.github.io/plugin-control/demo/video_plugin_control_settings.mp4"
+      >
         <img
           src="demo/video_plugin_control_settings.png"
           alt="Refresh the catalog and configure Plugin Control"
