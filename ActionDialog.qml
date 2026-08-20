@@ -142,7 +142,6 @@ FocusScope {
     helpDelay.stop()
     contentFlick.contentY = 0
     opened = true
-    Qt.callLater(forceActiveFocus)
   }
 
   function closeDialog() {
@@ -222,12 +221,6 @@ FocusScope {
   }
 
   visible: opened
-  focus: opened
-
-  Keys.priority: Keys.BeforeItem
-  Keys.onPressed: function(event) {
-    if (root.handleKey(event)) event.accepted = true
-  }
 
   Timer {
     id: helpDelay

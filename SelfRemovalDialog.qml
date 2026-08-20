@@ -19,7 +19,6 @@ FocusScope {
   function openDialog() {
     selectedChoice = 2
     opened = true
-    Qt.callLater(forceActiveFocus)
   }
 
   function closeDialog() {
@@ -57,12 +56,6 @@ FocusScope {
   }
 
   visible: opened
-  focus: opened
-
-  Keys.priority: Keys.BeforeItem
-  Keys.onPressed: function(event) {
-    if (root.handleKey(event)) event.accepted = true
-  }
 
   Rectangle {
     anchors.fill: parent

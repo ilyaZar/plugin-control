@@ -220,8 +220,8 @@ Item {
     if (payload.settings === true) showSettingsMenu()
     else rebuildResults()
     Qt.callLater(function() {
-      if (actionDialog.opened) actionDialog.forceActiveFocus()
-      else if (settingsMenuOpen) resultList.forceActiveFocus()
+      if (modalDialogOpened || settingsMenuOpen)
+        submenuKeyCatcher.forceActiveFocus()
       else queryInput.forceActiveFocus()
       if (service) service.recordFocusReady()
     })
@@ -319,6 +319,7 @@ Item {
     actionDialog.readOnly = readOnly === true
     if (readOnly === true && service) service.requestPreview(selectedRecord)
     actionDialog.openDialog()
+    Qt.callLater(submenuKeyCatcher.forceActiveFocus)
     return true
   }
 
@@ -351,7 +352,7 @@ Item {
     previewWidth = Math.max(0, Math.min(10000, Number(width || 0)))
     previewHeight = Math.max(0, Math.min(10000, Number(height || 0)))
     previewOpen = true
-    Qt.callLater(previewLayer.forceActiveFocus)
+    Qt.callLater(submenuKeyCatcher.forceActiveFocus)
     return true
   }
 
@@ -359,7 +360,7 @@ Item {
     if (!previewOpen) return
     previewOpen = false
     previewUrl = ""
-    Qt.callLater(actionDialog.forceActiveFocus)
+    Qt.callLater(submenuKeyCatcher.forceActiveFocus)
   }
 
   function handlePreviewKey(event) {
@@ -490,7 +491,7 @@ Item {
     queryInput.text = ""
     selectedIndex = 0
     rebuildResults()
-    resultList.forceActiveFocus()
+    Qt.callLater(submenuKeyCatcher.forceActiveFocus)
   }
 
   function closeSettingsMenu() {
@@ -527,6 +528,7 @@ Item {
       selectedRecord = JSON.parse(JSON.stringify(record))
       pendingSnapshotId = String(service.snapshot.snapshotId)
       selfRemovalDialog.openDialog()
+      Qt.callLater(submenuKeyCatcher.forceActiveFocus)
       return true
     }
     transientMessage = "Plugin Control is not available for removal."
@@ -542,7 +544,8 @@ Item {
         ? "Cleaning user data and removing Plugin Control..."
         : "Removing Plugin Control and preserving user data..."
       selfRemovalDialog.closeDialog()
-      resultList.forceActiveFocus()
+      if (settingsMenuOpen) submenuKeyCatcher.forceActiveFocus()
+      else queryInput.forceActiveFocus()
     }
   }
 
@@ -838,7 +841,7 @@ Item {
         warningColor: root.urgent
         onCanceled: {
           closeDialog()
-          if (root.settingsMenuOpen) resultList.forceActiveFocus()
+          if (root.settingsMenuOpen) submenuKeyCatcher.forceActiveFocus()
           else queryInput.forceActiveFocus()
         }
         onRemoveRequested: function(deleteUserData) {
@@ -943,19 +946,12 @@ Item {
 
           ListView {
             id: resultList
-            focus: root.settingsMenuOpen
             anchors.fill: parent
             visible: displayModel.count > 0
             model: displayModel
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             spacing: Style.space(2)
-            Keys.priority: Keys.BeforeItem
-            Keys.onPressed: function(event) {
-              if (root.settingsMenuOpen && root.handleKey(event))
-                event.accepted = true
-            }
-
             delegate: PaletteResultRow {
               width: ListView.view.width
               selected: index === root.selectedIndex
@@ -1109,12 +1105,6 @@ Item {
       visible: root.previewOpen
       anchors.fill: parent
       z: 100
-      focus: visible
-
-      Keys.priority: Keys.BeforeItem
-      Keys.onPressed: function(event) {
-        if (root.handlePreviewKey(event)) event.accepted = true
-      }
 
       Rectangle {
         anchors.fill: parent
