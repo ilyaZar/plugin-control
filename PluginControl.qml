@@ -429,13 +429,28 @@ Item {
     return time + " (" + date + ")"
   }
 
+  function semanticThemeColor(value, role, fallback) {
+    var hex = String(value || "")
+    if (!hex.match(/^#[0-9A-Fa-f]{6}$/)) return fallback
+    var red = parseInt(hex.slice(1, 3), 16)
+    var green = parseInt(hex.slice(3, 5), 16)
+    var blue = parseInt(hex.slice(5, 7), 16)
+    if (role === "yellow" && red > blue + 8 && green > blue + 8)
+      return hex
+    if (role === "green" && green > red + 8 && green > blue + 8)
+      return hex
+    return fallback
+  }
+
   function loadStatusColors(raw) {
     var yellowMatch = String(raw || "").match(
       /^\s*(?:yellow|color3)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
     var greenMatch = String(raw || "").match(
       /^\s*(?:green|color2)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
-    shortcutColor = yellowMatch ? yellowMatch[1] : "#e5c07b"
-    successColor = greenMatch ? greenMatch[1] : "#98c379"
+    shortcutColor = semanticThemeColor(yellowMatch && yellowMatch[1],
+      "yellow", "#e5c07b")
+    successColor = semanticThemeColor(greenMatch && greenMatch[1],
+      "green", "#98c379")
   }
 
   function openWebsite(url) {

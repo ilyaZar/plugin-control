@@ -551,10 +551,16 @@ ShellRoot {
         if (!overlay.handleKey(infoEvent) || overlay.selectedRecord !== null)
           console.error("PLUGIN_CONTROL_LOAD_ERROR command info boundary")
         overlay.loadStatusColors(
-          'yellow = "#A1B2C3"\ngreen = "#4D5E6F"')
-        if (String(overlay.shortcutColor).toLowerCase() !== "#a1b2c3"
-            || String(overlay.successColor).toLowerCase() !== "#4d5e6f") {
+          'yellow = "#EBCB8B"\ngreen = "#A3BE8C"')
+        if (String(overlay.shortcutColor).toLowerCase() !== "#ebcb8b"
+            || String(overlay.successColor).toLowerCase() !== "#a3be8c") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR theme status colors")
+        }
+        overlay.loadStatusColors(
+          'yellow = "#6FA4C9"\ngreen = "#5E95BC"')
+        if (String(overlay.shortcutColor).toLowerCase() !== "#e5c07b"
+            || String(overlay.successColor).toLowerCase() !== "#98c379") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR semantic status colors")
         }
         overlay.loadStatusColors("")
         if (String(overlay.shortcutColor).toLowerCase() !== "#e5c07b"
