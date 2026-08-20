@@ -466,14 +466,21 @@ ShellRoot {
         var checkedAt = "2026-08-16T12:08:30Z"
         var updateSnapshot = JSON.stringify({
           ok: true,
-          records: [],
+          records: [{
+            id: "io.example.warning",
+            name: "Warning plugin",
+            installed: true,
+            builtIn: false,
+            updateStatus: "error",
+            updateReason: "This Git checkout has no origin remote to check."
+          }],
           updates: {
             lastSuccessfulCheck: checkedAt,
             lastCheckAttempt: checkedAt,
             lastCheckError: "",
             lastCheckNotice: "1 dirty checkout(s)",
             checkDurationMs: 51,
-            counts: { available: 0, dirty: 1, failed: 0 }
+            counts: { available: 0, dirty: 1, failed: 1 }
           }
         })
         if (!root.serviceObject.applySnapshot(updateSnapshot, 0,
@@ -483,6 +490,11 @@ ShellRoot {
             || overlay.leftStatusText.indexOf("dirty checkout") < 0
             || !root.serviceObject.updateCheckSuccessVisible
             || root.serviceObject.updateCheckSuccessDurationMs !== 10000
+            || root.serviceObject.updateWarnings.length !== 1
+            || !overlay.hasUpdateWarnings
+            || overlay.updateWarningText.indexOf("Warning plugin") < 0
+            || overlay.updateWarningText.indexOf("io.example.warning") < 0
+            || overlay.updateWarningText.indexOf("no origin remote") < 0
             || String(overlay.leftStatusColor)
               !== String(overlay.successColor)
             || overlay.leftStatusOpacity !== 1) {
@@ -495,6 +507,28 @@ ShellRoot {
             || overlay.leftStatusOpacity !== 0.70) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR update settled status")
         }
+        root.serviceObject.updateCheckBaselineTimestamp = checkedAt
+        var completeCheckedAt = "2026-08-16T12:09:30Z"
+        var completeUpdateSnapshot = JSON.stringify({
+          ok: true,
+          records: [],
+          updates: {
+            lastSuccessfulCheck: completeCheckedAt,
+            lastCheckAttempt: completeCheckedAt,
+            lastCheckError: "",
+            lastCheckNotice: "",
+            checkDurationMs: 45,
+            counts: { available: 0, failed: 0 }
+          }
+        })
+        if (!root.serviceObject.applySnapshot(completeUpdateSnapshot, 0,
+              false, true)
+            || root.serviceObject.updateWarnings.length !== 0
+            || overlay.hasUpdateWarnings
+            || overlay.updateWarningText !== "") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR complete update warning")
+        }
+        root.serviceObject.clearUpdateCheckSuccess()
         overlay.selectedRecord = null
         root.serviceObject.snapshot = { snapshotId: "snapshot-test" }
         overlay.filteredRecords = [{

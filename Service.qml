@@ -67,6 +67,31 @@ Item {
   readonly property bool actionRunning: actionStarting
     || (actionState && actionState.running === true)
   readonly property string moduleName: "io.github.ilyazar.plugin-control"
+  readonly property var updateWarnings: {
+    var values = []
+    for (var i = 0; i < records.length; i++) {
+      var record = records[i]
+      if (String(record.updateStatus || "") !== "error"
+          || !String(record.updateReason || "")) continue
+      values.push({
+        id: String(record.id || ""),
+        name: String(record.name || record.id || "Unknown plugin"),
+        reason: String(record.updateReason)
+      })
+    }
+    return values
+  }
+  readonly property string updateWarningText: {
+    var lines = ["Update check warnings"]
+    for (var i = 0; i < updateWarnings.length; i++) {
+      var warning = updateWarnings[i]
+      lines.push("")
+      lines.push(warning.name + (warning.id
+        ? " (" + warning.id + ")" : ""))
+      lines.push(warning.reason)
+    }
+    return lines.join("\n")
+  }
 
   signal actionFinished(var state)
 

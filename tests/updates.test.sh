@@ -170,18 +170,22 @@ jq -e '.status == "error" and (.reason | contains("Fetching"))' \
   "$TEMP_ROOT/fetch-failure.json" >/dev/null
 printf 'ok - update classification covers safe and unsafe Git states\n'
 
-if helper check-updates "$ROOT" >"$TEMP_ROOT/partial.json"; then
-  printf 'not ok - partial update check reported full success\n' >&2
+if ! helper check-updates "$ROOT" >"$TEMP_ROOT/partial.json"; then
+  printf 'not ok - warning update check reported failure\n' >&2
   exit 1
 fi
-jq -e '.updates.lastSuccessfulCheck == ""
+jq -e '.updates.lastSuccessfulCheck != ""
+  and .updates.lastCheckError == ""
   and .updates.counts.failed == 1
+  and any(.records[]; .id == "test.fetchfail"
+    and .updateStatus == "error"
+    and (.updateReason | contains("Fetching")))
   and any(.records[]; .id == "test.available"
     and .updateAvailable == true)
   and all(.records[]; .id != "test.ahead" or .updateAvailable == false)
   and all(.records[]; .id != "test.diverged" or .updateAvailable == false)' \
   "$TEMP_ROOT/partial.json" >/dev/null
-printf 'ok - partial checks retain actionable results without advancing time\n'
+printf 'ok - warning checks retain actionable results and complete normally\n'
 
 git -C "$PLUGINS_ROOT/test.fetchfail" remote set-url origin \
   "$TEMP_ROOT/remotes/test.fetchfail.git"
@@ -201,17 +205,18 @@ printf 'ok - full checks record timestamps and exclusion counts\n'
 
 git -C "$PLUGINS_ROOT/test.current" remote set-url origin \
   "$TEMP_ROOT/missing-again.git"
-if helper check-updates "$ROOT" >"$TEMP_ROOT/later-partial.json"; then
-  printf 'not ok - later partial update check reported full success\n' >&2
+if ! helper check-updates "$ROOT" >"$TEMP_ROOT/later-partial.json"; then
+  printf 'not ok - later warning update check reported failure\n' >&2
   exit 1
 fi
-jq -e --arg timestamp "$successful_at" \
-  '.updates.lastSuccessfulCheck == $timestamp
+jq -e \
+  '.updates.lastSuccessfulCheck != ""
+    and .updates.lastCheckError == ""
     and .updates.counts.failed == 1' \
   "$TEMP_ROOT/later-partial.json" >/dev/null
 git -C "$PLUGINS_ROOT/test.current" remote set-url origin \
   "$TEMP_ROOT/remotes/test.current.git"
-printf 'ok - failed checks preserve the last successful timestamp\n'
+printf 'ok - later warning checks advance the successful timestamp\n'
 
 plugin_lock="$(plugin_lock_path test.current)"
 # $1 belongs to the child shell.

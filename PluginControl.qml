@@ -114,6 +114,10 @@ Item {
   readonly property string marketplaceShortcutLabel: shortcutHasPluginPage
     ? "Plugin website" : "Marketplace"
   readonly property bool actionDialogReadOnly: actionDialog.readOnly
+  readonly property bool hasUpdateWarnings: service
+    && service.updateWarnings && service.updateWarnings.length > 0
+  readonly property string updateWarningText: hasUpdateWarnings
+    ? String(service.updateWarningText || "") : ""
   readonly property string leftStatusText: {
     if (transientMessage) return transientMessage
     if (service && service.actionRunning)
@@ -977,24 +981,63 @@ Item {
           width: parent.width
           height: root.statusHeight
 
-          Text {
+          Item {
+            id: leftStatusArea
             anchors.left: parent.left
             anchors.right: statusGap.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.leftStatusText
-            textFormat: Text.PlainText
-            color: root.leftStatusColor
-            opacity: root.leftStatusOpacity
-            font.family: Style.font.menuFamily
-            font.pixelSize: Style.font.body
-            elide: Text.ElideRight
-            verticalAlignment: Text.AlignVCenter
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
 
-            MouseArea {
-              anchors.fill: parent
-              enabled: root.service && root.service.actionState
-                && root.service.actionState.acknowledged === false
-              onClicked: root.dismissStatus()
+            Text {
+              id: leftStatusLabel
+              anchors.left: parent.left
+              anchors.right: updateWarningIcon.visible
+                ? updateWarningIcon.left : parent.right
+              anchors.rightMargin: updateWarningIcon.visible
+                ? Style.spacing.sm : 0
+              anchors.verticalCenter: parent.verticalCenter
+              text: root.leftStatusText
+              textFormat: Text.PlainText
+              color: root.leftStatusColor
+              opacity: root.leftStatusOpacity
+              font.family: Style.font.menuFamily
+              font.pixelSize: Style.font.body
+              elide: Text.ElideRight
+              verticalAlignment: Text.AlignVCenter
+
+              MouseArea {
+                anchors.fill: parent
+                enabled: root.service && root.service.actionState
+                  && root.service.actionState.acknowledged === false
+                onClicked: root.dismissStatus()
+              }
+            }
+
+            Text {
+              id: updateWarningIcon
+              visible: root.hasUpdateWarnings
+                && !(root.service && root.service.checkingUpdates)
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              text: "\uf071"
+              textFormat: Text.PlainText
+              color: root.shortcutColor
+              font.family: Style.font.family
+              font.pixelSize: Style.font.icon
+
+              MouseArea {
+                id: updateWarningHover
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.ArrowCursor
+              }
+
+              PanelToolTip {
+                visible: updateWarningHover.containsMouse
+                text: root.updateWarningText
+                panelBorder: root.shortcutColor
+                fontFamily: Style.font.menuFamily
+              }
             }
           }
 

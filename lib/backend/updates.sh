@@ -231,11 +231,10 @@ check_updates_command() (
     return 1
   fi
 
-  local started now previous installed results
-  local active=0 rc=0
+  local started now installed results
+  local active=0 expected_count=0
   started="$(date +%s%3N)"
   now="$(epoch_now)"
-  previous="$(load_update_state)"
   stage="$(mktemp -d "$RUNTIME_ROOT/update-check.XXXXXX")"
   installed="$stage/installed.jsonl"
   results="$stage/results.jsonl"
@@ -250,48 +249,37 @@ check_updates_command() (
     id="$(jq -r '.id' <<<"$record")"
     path="$(jq -r '.installedPath // ""' <<<"$record")"
     [[ -n $path ]] || continue
+    expected_count=$((expected_count + 1))
     output="$stage/result-$id.json"
     check_plugin_update "$id" "$path" "$output" &
     active=$((active + 1))
     if (( active >= UPDATE_CHECK_JOBS )); then
-      wait || rc=1
+      wait || true
       active=0
     fi
   done < <(jq -c 'select(.installed == true and .builtIn != true)' \
     "$installed")
-  wait || rc=1
+  wait || true
 
   local result_file
   for result_file in "$stage"/result-*.json; do
     [[ -f $result_file ]] || continue
     cat "$result_file" >>"$results"
   done
-  local records_json counts error_text notice_text attempted_at successful_at
-  records_json="$(jq -sc 'sort_by(.id)' "$results")"
+  local records_json counts notice_text attempted_at
+  if ! records_json="$(jq -sc 'sort_by(.id)' "$results")" \
+    || (( $(jq -r 'length' <<<"$records_json") != expected_count )); then
+    json_error "one or more installed plugins could not be inspected"
+    return 1
+  fi
   counts="$(update_counts <<<"$records_json")"
-  if (( $(jq -r '.failed' <<<"$counts") > 0 )); then
-    rc=1
-  fi
-  local failed_count
-  failed_count="$(jq -r '.failed' <<<"$counts")"
-  error_text=""
-  if (( failed_count > 0 )); then
-    error_text="$failed_count plugin(s) could not be checked"
-  fi
   notice_text="$(update_check_notice_text "$counts")"
   attempted_at="$(utc_now)"
-  successful_at="$(jq -r '.lastSuccessfulCheck // ""' <<<"$previous")"
-  local successful_epoch
-  successful_epoch="$(jq -r '.lastSuccessfulEpoch // 0' <<<"$previous")"
-  if (( rc == 0 )); then
-    successful_at="$attempted_at"
-    successful_epoch="$now"
-  fi
   local duration state
   duration=$(( $(date +%s%3N) - started ))
-  state="$(jq -cn --arg lastSuccessfulCheck "$successful_at" \
-    --argjson lastSuccessfulEpoch "$successful_epoch" \
-    --arg lastCheckAttempt "$attempted_at" --arg lastCheckError "$error_text" \
+  state="$(jq -cn --arg lastSuccessfulCheck "$attempted_at" \
+    --argjson lastSuccessfulEpoch "$now" \
+    --arg lastCheckAttempt "$attempted_at" --arg lastCheckError "" \
     --arg lastCheckNotice "$notice_text" \
     --argjson checkDurationMs "$duration" --argjson counts "$counts" \
     --argjson records "$records_json" \
@@ -306,5 +294,4 @@ check_updates_command() (
   rm -rf -- "$stage"
   stage=""
   printf '%s\n' "$snapshot"
-  (( rc == 0 ))
 )
