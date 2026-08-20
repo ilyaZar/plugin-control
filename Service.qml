@@ -26,6 +26,7 @@ Item {
   property var previewQueuedRecord: null
   property bool actionStarting: false
   property bool animationsEnabled: true
+  property bool backgroundDim: false
   property string lastError: ""
   property string lastRefreshError: ""
   property string lastSuccessfulRefresh: ""
@@ -117,12 +118,15 @@ Item {
     if (!parsed || parsed.ok !== true || parsed.usingLastGood === true
         || !parsed.config || parsed.config.version !== 2) return false
     var settings = parsed.config.settings
-    var value = settings ? settings["tray-icon-hidden"] : undefined
-    if (typeof value !== "boolean") return false
+    var trayHidden = settings ? settings["tray-icon-hidden"] : undefined
+    var dimBackground = settings ? settings.background_dim : undefined
+    if (typeof trayHidden !== "boolean"
+        || typeof dimBackground !== "boolean") return false
+    backgroundDim = dimBackground
     if (!pluginRegistry
         || typeof pluginRegistry.setBarWidget !== "function") return false
     var error = String(pluginRegistry.setBarWidget(
-      moduleName, "trayIconHidden", value, {}) || "")
+      moduleName, "trayIconHidden", trayHidden, {}) || "")
     if (error) {
       lastError = "Could not apply tray icon visibility."
       return false
@@ -198,6 +202,8 @@ Item {
     }
 
     snapshot = parsed
+    backgroundDim = parsed.config && parsed.config.settings
+      ? parsed.config.settings.background_dim === true : false
     applyRecords(parsed.records)
     lastRefreshError = parsed.cache
       ? String(parsed.cache.lastRefreshError || "") : ""

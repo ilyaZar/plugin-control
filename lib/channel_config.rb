@@ -21,7 +21,7 @@ module PluginControl
   TOP_KEYS = %w[
     version refresh_minutes allow_unlisted_installs settings channels
   ].freeze
-  SETTINGS_KEYS = %w[tray-icon-hidden].freeze
+  SETTINGS_KEYS = %w[tray-icon-hidden background_dim].freeze
   CHANNEL_KEYS = %w[
     id name type enabled catalog_url website_url repository required_labels
     excluded_labels
@@ -215,7 +215,10 @@ module PluginControl
     {
       "tray-icon-hidden" => exact_boolean(
         settings["tray-icon-hidden"],
-        "settings.tray-icon-hidden")
+        "settings.tray-icon-hidden"),
+      "background_dim" => exact_boolean(
+        settings["background_dim"],
+        "settings.background_dim")
     }
   end
 

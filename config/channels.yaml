@@ -8,6 +8,7 @@ allow_unlisted_installs: false
 
 settings:
   tray-icon-hidden: false
+  background_dim: false
 
 channels:
   - id: marketplace

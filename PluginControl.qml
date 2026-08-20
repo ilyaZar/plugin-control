@@ -58,6 +58,9 @@ Item {
   readonly property color background: Color.menu.background
   readonly property color foreground: Color.menu.text
   readonly property color borderColor: Color.menu.border
+  readonly property color scrim: Color.menu.scrim
+  readonly property bool backgroundDim: service
+    && service.backgroundDim === true
   readonly property color selectedBackground: Color.menu.selectedBackground
   readonly property color selectedText: Color.menu.selectedText
   readonly property color accent: Color.accent
@@ -715,6 +718,13 @@ Item {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: root.surfaceVisible
       ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+    Rectangle {
+      anchors.fill: parent
+      visible: root.backgroundDim
+      color: root.scrim
+      opacity: card.reveal
+    }
 
     MouseArea {
       anchors.fill: parent

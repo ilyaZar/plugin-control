@@ -341,8 +341,9 @@ snapshot_is_current() {
     and (.records | type == "array")
     and .config.version == 2
     and (.config.settings | type == "object")
-    and (.config.settings | keys == ["tray-icon-hidden"])
+    and (.config.settings | keys == ["background_dim", "tray-icon-hidden"])
     and (.config.settings["tray-icon-hidden"] | type == "boolean")
+    and (.config.settings.background_dim | type == "boolean")
   ' "$path" >/dev/null 2>&1
 }
 
