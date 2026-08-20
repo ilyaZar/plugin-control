@@ -220,7 +220,9 @@ before_list_calls="$(grep -c '^plugin list --json$' "$MOCK_LOG" || true)"
 helper action "$ROOT" add io.example.weather "$snapshot_id" background \
   | jq -e '.started == true' >/dev/null
 status="$(wait_action)"
-jq -e '.ok == true and .operation == "add"' <<<"$status" >/dev/null
+jq -e '.ok == true and .operation == "add"
+  and .message == "Plugin Weather added and enabled."' \
+  <<<"$status" >/dev/null
 grep -Fqx 'plugin add https://github.com/example/weather --enable --yes' \
   "$MOCK_LOG"
 [[ ! -e /tmp/plugin-control-must-not-run ]]
@@ -234,7 +236,9 @@ helper action "$ROOT" add io.example.weather "$snapshot_id" terminal \
   | jq -e '.started == true' >/dev/null
 status="$(wait_action)"
 jq -e '.ok == true and .operation == "add"
-  and .executionMode == "terminal"' <<<"$status" >/dev/null
+  and .executionMode == "terminal"
+  and .message == "Plugin Weather added and enabled in the Omarchy terminal."' \
+  <<<"$status" >/dev/null
 grep -Fqx 'plugin add https://github.com/example/weather --enable' \
   "$MOCK_TERMINAL_LOG"
 if grep -F 'plugin add ' "$MOCK_TERMINAL_LOG" | grep -Fq -- '--yes'; then
@@ -496,7 +500,9 @@ snapshot="$(rebuild_snapshot)"
 snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
 helper action "$ROOT" remove local.test "$snapshot_id" background >/dev/null
 status="$(wait_action)"
-jq -e '.ok == true and .operation == "remove"' <<<"$status" >/dev/null
+jq -e '.ok == true and .operation == "remove"
+  and .message == "Plugin Local Test removed."' \
+  <<<"$status" >/dev/null
 grep -Fqx 'plugin remove local.test --yes' "$MOCK_LOG"
 wait_worker_release
 printf 'ok - native remove argv uses the confirmed plugin ID\n'
@@ -560,7 +566,8 @@ helper action "$self_plugin" remove io.github.ilyazar.plugin-control \
 status="$(wait_action)"
 wait_worker_release
 jq -e '.ok == true and .acknowledged == true
-  and (.message | contains("shell refresh error"))' <<<"$status" >/dev/null
+  and .message == "Plugin Control removed, but Omarchy reported a shell refresh error."' \
+  <<<"$status" >/dev/null
 [[ ! -e $self_plugin && -d $self_plugin.removed && ! -e $snapshot_state ]]
 unset MOCK_REMOVE_PATH MOCK_EXIT
 printf 'ok - deleted self checkout survives a final native rescan error\n'
