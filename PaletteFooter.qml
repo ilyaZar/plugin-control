@@ -25,11 +25,11 @@ Item {
 
     Repeater {
       model: [
-        { keyLabel: "[Ctrl+u]", label: "Check updates" },
-        { keyLabel: "[Ctrl+i]", label: "Info" },
+        { keyLabel: "[Ctrl+u]", label: "Check for plugin updates" },
+        { keyLabel: "[Ctrl+i]", label: "Plugin info" },
         { keyLabel: "[Ctrl+w]", label: root.marketplaceLabel },
-        { keyLabel: "[Ctrl+g]", label: "GitHub" },
-        { keyLabel: "[Ctrl+r]", label: "Refresh" },
+        { keyLabel: "[Ctrl+g]", label: "GitHub plugin source" },
+        { keyLabel: "[Ctrl+r]", label: "Refresh cache" },
         { keyLabel: "[Ctrl+s]", label: "Settings" }
       ]
 
@@ -39,10 +39,12 @@ Item {
         height: footerRow.height
 
         Column {
-          anchors.centerIn: parent
+          width: parent.width
+          anchors.verticalCenter: parent.verticalCenter
           spacing: Style.space(2)
 
           Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
             width: keyText.implicitWidth + Style.spacing.sm
             height: Style.space(22)
             radius: Style.space(4)
@@ -63,13 +65,16 @@ Item {
           }
 
           Text {
-            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width - Style.space(4)
             text: modelData.label
             textFormat: Text.PlainText
             color: root.foreground
             opacity: 0.72
+            horizontalAlignment: Text.AlignHCenter
             font.family: Style.font.menuFamily
             font.pixelSize: root.footerFontSize
+            fontSizeMode: Text.HorizontalFit
+            minimumPixelSize: Math.max(8, root.footerFontSize - 2)
           }
         }
       }
