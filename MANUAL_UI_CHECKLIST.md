@@ -152,6 +152,9 @@ Use at least one light theme and one dark theme. Keep a terminal open for
   catalog status remains right-aligned on the same row.
 - [ ] After a successful check, confirm
   `Last update: HH:MM:SS (YYYY-MM-DD)` is green for ten seconds, then grey.
+- [ ] With one uncheckable Git plugin, confirm the check still succeeds and a
+  yellow warning icon appears. Hover it and confirm the plugin name, ID, and
+  complete reason are shown. Confirm the icon is absent after a clean check.
 - [ ] During Ctrl+r, confirm `Refreshing catalog...` is yellow on the right.
 - [ ] After refresh, confirm
   `Catalog refreshed: HH:MM:SS (YYYY-MM-DD)` is green for ten seconds, then
@@ -164,6 +167,8 @@ Use at least one light theme and one dark theme. Keep a terminal open for
   date widths do not clip controls or push the dialog off screen.
 - [ ] Confirm all focus indicators, selected/dimmed contrast, mouse hit targets,
   and warning/success colors remain clear.
+- [ ] In plugin actions and Ctrl+i details, confirm the pointer stays an arrow
+  everywhere except over the painted preview image, where it becomes a hand.
 
 ## Final preservation check
 

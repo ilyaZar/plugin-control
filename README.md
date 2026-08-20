@@ -78,8 +78,9 @@ omarchy plugin update <plugin-id> --yes
 Already-current plugins report `Plugin already up-to-date!` when Update is
 chosen. Update remains visible but dimmed for manually copied plugins, dirty
 checkouts, and ahead or diverged Git histories. Rest on the dimmed action for
-one second, or activate it, to see the reason. A failed check keeps any safe
-results that were found and preserves the last fully successful check time.
+one second, or activate it, to see the reason. If one plugin cannot be checked,
+the scan still completes and a yellow warning icon exposes that plugin's full
+reason. Only failures that prevent the scan itself from completing are red.
 
 Useful keys:
 
