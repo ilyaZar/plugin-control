@@ -595,26 +595,6 @@ Item {
       || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_Q)
   }
 
-  function closeActiveSubmenu() {
-    if (previewOpen) {
-      closePreview()
-      return true
-    }
-    if (selfRemovalDialog.opened) {
-      selfRemovalDialog.canceled()
-      return true
-    }
-    if (actionDialog.opened) {
-      actionDialog.canceled()
-      return true
-    }
-    if (settingsMenuOpen) {
-      closeSettingsMenu()
-      return true
-    }
-    return false
-  }
-
   function handleKey(event) {
     if (previewOpen) return handlePreviewKey(event)
     if (selfRemovalDialog.opened) return selfRemovalDialog.handleKey(event)
@@ -745,18 +725,17 @@ Item {
     WlrLayershell.keyboardFocus: root.surfaceVisible
       ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    Shortcut {
-      enabled: root.modalDialogOpened || root.settingsMenuOpen
-      sequence: "Escape"
-      context: Qt.WindowShortcut
-      onActivated: root.closeActiveSubmenu()
-    }
+    Item {
+      id: submenuKeyCatcher
+      anchors.fill: parent
+      visible: root.modalDialogOpened || root.settingsMenuOpen
+      focus: visible
+      z: 100
 
-    Shortcut {
-      enabled: root.modalDialogOpened || root.settingsMenuOpen
-      sequence: "Q"
-      context: Qt.WindowShortcut
-      onActivated: root.closeActiveSubmenu()
+      Keys.priority: Keys.BeforeItem
+      Keys.onPressed: function(event) {
+        if (root.handleKey(event)) event.accepted = true
+      }
     }
 
     Rectangle {
