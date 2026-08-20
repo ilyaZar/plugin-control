@@ -233,7 +233,9 @@ if (( $(rg -c 'cursorShape: root.pointerInteractive' \
     "$ROOT/PaletteResultRow.qml") != 2 )); then
   fail "result row hit areas must share dialog pointer state"
 fi
-rg -Fq 'pointerInteractive: !root.actionDialog.opened' \
+rg -Fq 'readonly property bool modalDialogOpened: actionDialog.opened' \
+  "$ROOT/PluginControl.qml"
+rg -Fq 'pointerInteractive: !root.modalDialogOpened' \
   "$ROOT/PluginControl.qml"
 rg -Fq 'id: previewClickArea' "$ROOT/ActionDialog.qml"
 rg -Fq 'cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor' \
