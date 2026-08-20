@@ -228,11 +228,12 @@ QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner \
   -input tests/tst_models.qml -import .
 tests/qml.test.sh
 omarchy plugin validate .
-omarchy-plugin-publishing preflight .
+/home/iz/.codex/skills/omarchy-plugin-publishing/scripts/preflight.sh .
 ```
 
 ShellCheck 0.11.0 reported no findings. The publishing preflight and official
-Omarchy validator reported 0 errors.
+Omarchy validator reported 0 errors. Preflight warnings only request preview
+ownership confirmation and note that the local feature branch has no upstream.
 
 ## Cleanup and shared-state preservation
 
