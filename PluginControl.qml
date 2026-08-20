@@ -991,11 +991,10 @@ Item {
             Text {
               id: leftStatusLabel
               anchors.left: parent.left
-              anchors.right: updateWarningIcon.visible
-                ? updateWarningIcon.left : parent.right
-              anchors.rightMargin: updateWarningIcon.visible
-                ? Style.spacing.sm : 0
               anchors.verticalCenter: parent.verticalCenter
+              width: Math.min(implicitWidth, Math.max(0, parent.width
+                - (updateWarningIcon.visible
+                  ? updateWarningIcon.implicitWidth + Style.spacing.sm : 0)))
               text: root.leftStatusText
               textFormat: Text.PlainText
               color: root.leftStatusColor
@@ -1017,7 +1016,8 @@ Item {
               id: updateWarningIcon
               visible: root.hasUpdateWarnings
                 && !(root.service && root.service.checkingUpdates)
-              anchors.right: parent.right
+              anchors.left: leftStatusLabel.right
+              anchors.leftMargin: Style.spacing.sm
               anchors.verticalCenter: parent.verticalCenter
               text: "\uf071"
               textFormat: Text.PlainText
