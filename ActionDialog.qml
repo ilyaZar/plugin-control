@@ -606,18 +606,26 @@ FocusScope {
             border.color: Util.alpha(modelData.color, 0.46)
 
             Row {
+              id: metricContent
               anchors.centerIn: parent
+              height: Math.max(metricIcon.implicitHeight,
+                metricLabel.implicitHeight)
               spacing: Style.space(7)
 
               Text {
+                id: metricIcon
+                height: metricContent.height
                 text: metricChip.modelData.icon
                 textFormat: Text.PlainText
                 color: metricChip.modelData.color
                 font.family: Style.font.family
                 font.pixelSize: Style.font.iconLarge
+                verticalAlignment: Text.AlignVCenter
               }
 
               Text {
+                id: metricLabel
+                height: metricContent.height
                 text: metricChip.modelData.value + "  "
                   + metricChip.modelData.label
                 textFormat: Text.PlainText
@@ -625,6 +633,7 @@ FocusScope {
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.subtitle
                 font.bold: true
+                verticalAlignment: Text.AlignVCenter
               }
             }
 
