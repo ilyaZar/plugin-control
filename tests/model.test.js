@@ -369,6 +369,30 @@ test("marketplace metrics remain optional and retain honest counts", () => {
   assert.equal(values[1].views, null);
 });
 
+test("marketplace activity badges mirror the website twelve-hour rules", () => {
+  const now = Date.parse("2026-08-20T11:00:00Z");
+  assert.equal(Catalog.activityState({
+    listedAt: "2026-08-20T08:00:00Z"
+  }, now), "new");
+  assert.equal(Catalog.activityState({
+    listedAt: "2026-08-20T08:00:00Z",
+    versionUpdatedAt: "2026-08-20T09:00:00Z"
+  }, now), "updated");
+  assert.equal(Catalog.activityState({
+    addedAt: "2026-08-20"
+  }, now), "new");
+  assert.equal(Catalog.activityState({
+    listedAt: "2026-08-19T22:59:59Z"
+  }, now), "");
+  assert.equal(Catalog.activityState({
+    builtIn: true,
+    versionUpdatedAt: "2026-08-20T11:00:00Z"
+  }, now), "");
+  assert.equal(Catalog.formatCount(999), "999");
+  assert.equal(Catalog.formatCount(1200), "1.2k");
+  assert.equal(Catalog.formatCount(15000), "15k");
+});
+
 test("validation drift creates a warning", () => {
   assert.equal(Catalog.warningState({
     upstreamCheckStatus: "passed",

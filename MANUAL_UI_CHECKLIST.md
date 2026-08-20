@@ -102,9 +102,20 @@ Use at least one light theme and one dark theme. Keep a terminal open for
 
 - [ ] Press Ctrl+i on a listed user plugin. Confirm Close is the only action and
   no mutation can be triggered.
+- [ ] Confirm the dialog uses a larger plugin title, clear metadata groups,
+  bordered metric chips, and enough whitespace to avoid a wall of text.
 - [ ] Confirm author, version, source, repository, reviewed commit when known,
   tags, stars, verification state, views, command copies, and anonymous hearts
   match the cached upstream data.
+- [ ] Confirm GitHub stars use a yellow star; views and command copies use
+  orange icons; anonymous hearts use the marketplace red-orange heart.
+- [ ] Confirm a zero-star repository displays a yellow `0 stars` chip rather
+  than hiding the GitHub metric.
+- [ ] Confirm Verified and New use marketplace green, while Unverified uses
+  marketplace red-orange and Updated uses marketplace yellow.
+- [ ] Confirm Updated wins over New when both timestamps are recent. Confirm
+  both badges disappear after the marketplace's twelve-hour window and are
+  absent for built-ins.
 - [ ] Hover the verification label. Confirm the explanation says verification
   is associated with marketplace checks and is not a security audit.
 - [ ] Confirm an unverified listing is not described as malicious or unsafe.

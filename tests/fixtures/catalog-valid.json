@@ -17,6 +17,9 @@
       "tags": ["weather", "bar"],
       "stars": 42,
       "verificationStatus": "verified",
+      "addedAt": "2026-08-20",
+      "listedAt": "2026-08-20T08:00:00.000Z",
+      "versionUpdatedAt": "2026-08-20T09:00:00.000Z",
       "kind": "Bar widget",
       "status": "Available",
       "listingValidatedCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -35,6 +38,10 @@
       "installAvailable": false,
       "category": "Desktop",
       "tags": [],
+      "stars": 0,
+      "verificationStatus": "unverified",
+      "addedAt": "2026-08-19",
+      "listedAt": "2026-08-19T10:00:00.000Z",
       "kind": "Suite",
       "status": "Manual setup"
     }

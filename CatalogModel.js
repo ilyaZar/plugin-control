@@ -73,6 +73,36 @@ function count(value) {
     ? Math.floor(numeric) : null
 }
 
+function formatCount(value) {
+  var numeric = count(value)
+  if (numeric === null) return ""
+  if (numeric < 1000) return String(numeric)
+  if (numeric < 10000)
+    return (numeric / 1000).toFixed(1).replace(/\.0$/, "") + "k"
+  if (numeric < 1000000) return Math.round(numeric / 1000) + "k"
+  return (numeric / 1000000).toFixed(1).replace(/\.0$/, "") + "m"
+}
+
+function timestamp(value) {
+  var parsed = Date.parse(cleanText(value))
+  return isFinite(parsed) ? parsed : NaN
+}
+
+function activityState(record, nowValue) {
+  if (!record || record.builtIn === true) return ""
+  var now = Number(nowValue)
+  if (!isFinite(now)) now = Date.now()
+  var windowMs = 12 * 60 * 60 * 1000
+  var updated = timestamp(record.versionUpdatedAt)
+  if (isFinite(updated) && now >= updated && now - updated < windowMs)
+    return "updated"
+  var listed = timestamp(record.listedAt)
+  if (!isFinite(listed) && cleanText(record.addedAt))
+    listed = timestamp(cleanText(record.addedAt) + "T00:00:00Z")
+  return isFinite(listed) && now >= listed && now - listed < windowMs
+    ? "new" : ""
+}
+
 function normalizeRecord(value) {
   var record = copy(value)
   record.id = cleanText(record.id)
@@ -95,6 +125,9 @@ function normalizeRecord(value) {
   record.tags = Array.isArray(record.tags) ? record.tags.map(cleanText) : []
   record.stars = count(record.stars)
   record.verificationStatus = cleanText(record.verificationStatus)
+  record.addedAt = cleanText(record.addedAt)
+  record.listedAt = cleanText(record.listedAt)
+  record.versionUpdatedAt = cleanText(record.versionUpdatedAt)
   record.metricsAvailable = record.metricsAvailable === true
   record.views = record.metricsAvailable ? count(record.views) : null
   record.copies = record.metricsAvailable ? count(record.copies) : null
@@ -134,6 +167,8 @@ function prepareRecords(records) {
 
 if (typeof module !== "undefined") {
   module.exports = {
+    activityState: activityState,
+    formatCount: formatCount,
     warningState: warningState,
     prepareRecords: prepareRecords
   }

@@ -15,6 +15,16 @@ def valid_repository:
 def optional_string($key; $maximum):
   (has($key) | not) or .[$key] == null or (.[$key] | safe_string($maximum));
 
+def valid_optional_date($key):
+  (has($key) | not) or .[$key] == null
+  or (.[$key] | safe_string(10)
+      and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}$"));
+
+def valid_optional_timestamp($key):
+  (has($key) | not) or .[$key] == null
+  or (.[$key] | safe_string(40)
+      and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"));
+
 def valid_optional_repository:
   (.repo == null) or (.repo == "") or (.repo | valid_repository);
 
@@ -58,6 +68,9 @@ def row_valid:
   and optional_string("listingValidatedCommit"; 80)
   and optional_string("upstreamObservedCommit"; 80)
   and optional_string("upstreamCheckStatus"; 80)
+  and valid_optional_date("addedAt")
+  and valid_optional_timestamp("listedAt")
+  and valid_optional_timestamp("versionUpdatedAt")
   and ((.sourceType // "") | IN("builtin", "community"))
   and valid_tags
   and valid_release
@@ -84,6 +97,9 @@ def normalized_record($channel_name; $channel_source; $channel_rank):
       tags: (.tags // []),
       stars: (.stars // null),
       verificationStatus: (.verificationStatus // ""),
+      addedAt: (.addedAt // ""),
+      listedAt: (.listedAt // ""),
+      versionUpdatedAt: (.versionUpdatedAt // ""),
       kind: (.kind // ""),
       builtIn: $builtin,
       source: (if $builtin then "builtin" else $channel_source end),
