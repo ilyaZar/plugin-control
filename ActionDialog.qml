@@ -822,17 +822,6 @@ FocusScope {
             font.pixelSize: Style.font.title
           }
 
-          MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onEntered: root.selectChoice(actionButton.index, false)
-            onClicked: {
-              root.selectChoice(actionButton.index,
-                actionButton.modelData.available === false)
-              root.choose()
-            }
-          }
         }
       }
     }
