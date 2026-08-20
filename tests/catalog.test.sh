@@ -29,6 +29,12 @@ jq -e '.records[0].stars == 42
   and .records[0].addedAt == "2026-08-20"
   and .records[0].listedAt == "2026-08-20T08:00:00.000Z"
   and .records[0].versionUpdatedAt == "2026-08-20T09:00:00.000Z"
+  and .records[0].previewImage
+    == "assets/img/plugins/7-example-weather-detail.webp"
+  and .records[0].previewWidth == 1600
+  and .records[0].previewThumbnail
+    == "assets/img/plugins/7-example-weather-card.webp"
+  and .records[0].previewThumbnailHeight == 405
   and .records[1].stars == 0' \
   <<<"$valid" >/dev/null
 printf 'ok - marketplace-like catalog and browse-only rows\n'
@@ -62,9 +68,12 @@ jq '.plugins[0].sourceType="builtin" | .plugins[0].builtIn=true' \
 custom="$(jq -c --arg channelName Custom \
   --arg channelSource custom --argjson channelRank 10 \
   -f "$ROOT/lib/catalog.jq" "$TEMP_ROOT/custom-builtin.json")"
-jq -e '.records[0].builtIn == false and .records[0].source == "custom"' \
+jq -e '.records[0].builtIn == false and .records[0].source == "custom"
+  and .records[0].previewImage == ""
+  and .records[0].previewThumbnail == ""
+  and (.records[0] | has("previewWidth") | not)' \
   <<<"$custom" >/dev/null
-printf 'ok - custom catalogs cannot impersonate native built-ins\n'
+printf 'ok - custom catalogs cannot impersonate marketplace presentation\n'
 
 export HOME="$TEMP_ROOT/home"
 export XDG_CONFIG_HOME="$TEMP_ROOT/config"
@@ -180,7 +189,7 @@ download_catalog() {
   : >"$3"
   printf '304\n'
 }
-printf '%s\n' '{"normalizerVersion":2,"etag":"\"current\""}' \
+printf '%s\n' '{"normalizerVersion":3,"etag":"\"current\""}' \
   >"$CHANNEL_CACHE/marketplace.meta.json"
 refresh_catalog_channel "$ROOT" "$channel"
 [[ $(sha256sum "$CHANNEL_CACHE/marketplace.json") == "$before" ]]
@@ -192,10 +201,10 @@ download_catalog() {
   printf 'ETag: "new"\n' >"$3"
   printf '200\n'
 }
-printf '%s\n' '{"normalizerVersion":1,"etag":"\"stale\""}' \
+printf '%s\n' '{"normalizerVersion":2,"etag":"\"stale\""}' \
   >"$CHANNEL_CACHE/marketplace.meta.json"
 refresh_catalog_channel "$ROOT" "$channel"
-jq -e '.normalizerVersion == 2 and .etag == "\"new\""' \
+jq -e '.normalizerVersion == 3 and .etag == "\"new\""' \
   "$CHANNEL_CACHE/marketplace.meta.json" >/dev/null
 jq -e '.records[0].stars == 42
   and .records[0].versionUpdatedAt == "2026-08-20T09:00:00.000Z"' \

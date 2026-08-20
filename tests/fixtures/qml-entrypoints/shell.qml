@@ -12,6 +12,10 @@ ShellRoot {
   property int dialogCanceledCount: 0
   property int dialogConfirmedCount: 0
   property string lastDialogOperation: ""
+  property int previewRequestedCount: 0
+  property string lastPreviewUrl: ""
+  property int lastPreviewWidth: 0
+  property int lastPreviewHeight: 0
   property int removalCanceledCount: 0
   property int removalPreserveCount: 0
   property int removalPurgeCount: 0
@@ -353,9 +357,14 @@ ShellRoot {
         overlay.filteredRecords = [{
           id: "io.example.docs",
           name: "Docs",
-          description: "Browse-only plugin details",
+          description: "Browse-only plugin details remain complete in the "
+            + "information view instead of using the shortened result-row copy.",
           installable: false,
-          installed: false
+          installed: false,
+          previewImageUrl: "https://omarchyplugins.com/assets/img/plugins/7-example-docs-detail.webp",
+          previewThumbnailUrl: "https://omarchyplugins.com/assets/img/plugins/7-example-docs-card.webp",
+          previewWidth: 1600,
+          previewHeight: 900
         }]
         overlay.selectedIndex = 0
         overlay.selectedRecord = null
@@ -368,6 +377,17 @@ ShellRoot {
             || !overlay.selectedRecord
             || overlay.selectedRecord.id !== "io.example.docs") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR info shortcut")
+        }
+        if (!overlay.openPreview(
+              overlay.selectedRecord.previewImageUrl,
+              overlay.selectedRecord.name, 1600, 900)
+            || !overlay.previewOpen
+            || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Q })
+            || overlay.previewOpen
+            || !overlay.actionDialogReadOnly
+            || overlay.openPreview("https://example.com/preview.webp",
+              "Unsafe", 1600, 900)) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR info preview")
         }
         if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
           console.error("PLUGIN_CONTROL_LOAD_ERROR info dialog close")
@@ -616,9 +636,21 @@ ShellRoot {
           root.dialogConfirmedCount++
           root.lastDialogOperation = operation
         })
+        dialog.previewRequested.connect(function(url, name, width, height) {
+          root.previewRequestedCount++
+          root.lastPreviewUrl = url
+          root.lastPreviewWidth = width
+          root.lastPreviewHeight = height
+        })
         dialog.plugin = {
           id: "io.example.info",
-          description: "Plugin information",
+          name: "Information",
+          description: "Plugin information keeps the complete marketplace "
+            + "description available in the dedicated read-only view.",
+          previewImageUrl: "https://omarchyplugins.com/assets/img/plugins/7-example-info-detail.webp",
+          previewThumbnailUrl: "https://omarchyplugins.com/assets/img/plugins/7-example-info-card.webp",
+          previewWidth: 1600,
+          previewHeight: 900,
           listingValidatedCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
         dialog.readOnly = true
@@ -626,12 +658,27 @@ ShellRoot {
               !== "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             || dialog.actions.length !== 1
             || dialog.actions[0].label !== "Close"
-            || dialog.operationText !== "No system change") {
+            || dialog.operationText !== "No system change"
+            || !dialog.hasPreview || dialog.terminalAllowed
+            || dialog.selectedMutates) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR reviewed commit")
+        }
+        dialog.requestPreview()
+        if (root.previewRequestedCount !== 1
+            || root.lastPreviewUrl
+              !== "https://omarchyplugins.com/assets/img/plugins/7-example-info-detail.webp"
+            || root.lastPreviewWidth !== 1600
+            || root.lastPreviewHeight !== 900) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR preview request")
         }
         dialog.openDialog()
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
-        dialog.closeDialog()
+        dialog.openDialog()
+        dialog.handleKey({ modifiers: 0, key: Qt.Key_Space })
+        dialog.openDialog()
+        dialog.handleKey({ modifiers: 0, key: Qt.Key_Q })
+        dialog.openDialog()
+        dialog.handleKey({ modifiers: 0, key: Qt.Key_Escape })
 
         dialog.readOnly = false
         dialog.plugin = {
@@ -685,7 +732,7 @@ ShellRoot {
           console.error("PLUGIN_CONTROL_LOAD_ERROR update action selection")
         }
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
-        if (root.dialogCanceledCount !== 1
+        if (root.dialogCanceledCount !== 4
             || root.dialogConfirmedCount !== 1
             || root.lastDialogOperation !== "update") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared action dispatch")

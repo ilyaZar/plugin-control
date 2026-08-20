@@ -103,6 +103,14 @@ function activityState(record, nowValue) {
     ? "new" : ""
 }
 
+function marketplaceAssetUrl(value, variant) {
+  var path = cleanText(value)
+  var suffix = variant === "card" ? "card" : "detail"
+  var pattern = new RegExp("^assets/img/plugins/[A-Za-z0-9._-]+-"
+    + suffix + "\\.webp$")
+  return pattern.test(path) ? "https://omarchyplugins.com/" + path : ""
+}
+
 function normalizeRecord(value) {
   var record = copy(value)
   record.id = cleanText(record.id)
@@ -128,6 +136,15 @@ function normalizeRecord(value) {
   record.addedAt = cleanText(record.addedAt)
   record.listedAt = cleanText(record.listedAt)
   record.versionUpdatedAt = cleanText(record.versionUpdatedAt)
+  record.previewImageUrl = record.marketplaceListed
+    ? marketplaceAssetUrl(record.previewImage, "detail") : ""
+  record.previewThumbnailUrl = record.marketplaceListed
+    ? marketplaceAssetUrl(record.previewThumbnail, "card")
+      || record.previewImageUrl : ""
+  record.previewWidth = count(record.previewWidth)
+  record.previewHeight = count(record.previewHeight)
+  record.previewThumbnailWidth = count(record.previewThumbnailWidth)
+  record.previewThumbnailHeight = count(record.previewThumbnailHeight)
   record.metricsAvailable = record.metricsAvailable === true
   record.views = record.metricsAvailable ? count(record.views) : null
   record.copies = record.metricsAvailable ? count(record.copies) : null
@@ -169,6 +186,7 @@ if (typeof module !== "undefined") {
   module.exports = {
     activityState: activityState,
     formatCount: formatCount,
+    marketplaceAssetUrl: marketplaceAssetUrl,
     warningState: warningState,
     prepareRecords: prepareRecords
   }

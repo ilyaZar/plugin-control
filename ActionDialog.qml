@@ -50,6 +50,16 @@ FocusScope {
     plugin, Date.now())
   readonly property bool starsAvailable: root.listedUserPlugin && plugin
     && plugin.stars !== null && plugin.stars !== undefined
+  readonly property string previewImageUrl: String(plugin
+    && plugin.previewImageUrl || "")
+  readonly property string previewThumbnailUrl: String(plugin
+    && plugin.previewThumbnailUrl || previewImageUrl)
+  readonly property int previewWidth: Number(plugin
+    && plugin.previewWidth || 0)
+  readonly property int previewHeight: Number(plugin
+    && plugin.previewHeight || 0)
+  readonly property bool hasPreview: readOnly
+    && previewImageUrl.length > 0 && previewThumbnailUrl.length > 0
   readonly property var badgeItems: {
     var values = []
     if (activityState === "updated") values.push({
@@ -113,12 +123,14 @@ FocusScope {
 
   signal actionRequested(string operation)
   signal canceled()
+  signal previewRequested(string url, string name, int width, int height)
   signal terminalInstallToggled(bool enabled)
 
   function openDialog() {
     selectedChoice = 0
     helpText = ""
     helpDelay.stop()
+    contentFlick.contentY = 0
     opened = true
     Qt.callLater(forceActiveFocus)
   }
@@ -150,6 +162,10 @@ FocusScope {
   function choose() {
     var action = selectedAction
     if (!action) return
+    if (readOnly) {
+      canceled()
+      return
+    }
     if (action.available === false) {
       selectChoice(selectedChoice, true)
       return
@@ -163,7 +179,9 @@ FocusScope {
 
   function handleKey(event) {
     if (!opened) return false
-    if (event.key === Qt.Key_Escape) {
+    if (event.key === Qt.Key_Escape
+        || (readOnly && event.modifiers === Qt.NoModifier
+          && event.key === Qt.Key_Q)) {
       canceled()
       return true
     }
@@ -185,6 +203,13 @@ FocusScope {
       return true
     }
     return true
+  }
+
+  function requestPreview() {
+    if (!hasPreview) return
+    previewRequested(previewImageUrl,
+      String(plugin && plugin.name || "Plugin preview"),
+      previewWidth, previewHeight)
   }
 
   visible: opened
@@ -211,10 +236,25 @@ FocusScope {
     color: root.background
     radius: Style.cornerRadius
 
-    Column {
-      anchors.fill: parent
-      anchors.margins: Style.spacing.panelPadding
-      spacing: Style.space(7)
+    Flickable {
+      id: contentFlick
+      anchors.top: parent.top
+      anchors.right: parent.right
+      anchors.bottom: actionRow.top
+      anchors.left: parent.left
+      anchors.topMargin: Style.spacing.panelPadding
+      anchors.rightMargin: Style.spacing.panelPadding
+      anchors.bottomMargin: Style.space(7)
+      anchors.leftMargin: Style.spacing.panelPadding
+      contentWidth: width
+      contentHeight: contentColumn.implicitHeight
+      clip: true
+      boundsBehavior: Flickable.StopAtBounds
+
+      Column {
+        id: contentColumn
+        width: contentFlick.width
+        spacing: Style.space(7)
 
       Text {
         width: parent.width
@@ -261,8 +301,74 @@ FocusScope {
         font.pixelSize: Style.font.subtitle
         lineHeight: 1.25
         wrapMode: Text.Wrap
-        maximumLineCount: 2
-        elide: Text.ElideRight
+        maximumLineCount: root.readOnly ? 100 : 2
+        elide: root.readOnly ? Text.ElideNone : Text.ElideRight
+      }
+
+      Rectangle {
+        visible: root.hasPreview
+        width: parent.width
+        height: visible ? Style.space(250) : 0
+        radius: Style.cornerRadius
+        color: "#09090b"
+        border.width: Math.max(1, Style.space(1))
+        border.color: Util.alpha(root.marketplaceOrange, 0.48)
+        clip: true
+
+        Image {
+          id: previewThumbnail
+          anchors.fill: parent
+          anchors.margins: Math.max(1, Style.space(1))
+          source: root.opened && root.hasPreview
+            ? root.previewThumbnailUrl : ""
+          asynchronous: true
+          cache: true
+          fillMode: Image.PreserveAspectFit
+          mipmap: true
+        }
+
+        Text {
+          anchors.centerIn: parent
+          visible: previewThumbnail.status === Image.Loading
+            || previewThumbnail.status === Image.Error
+          text: previewThumbnail.status === Image.Error
+            ? "Preview could not be loaded" : "Loading preview..."
+          textFormat: Text.PlainText
+          color: root.foreground
+          opacity: 0.72
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.body
+        }
+
+        Rectangle {
+          anchors.right: parent.right
+          anchors.bottom: parent.bottom
+          anchors.margins: Style.spacing.sm
+          width: previewHint.implicitWidth + Style.spacing.md
+          height: Style.space(28)
+          radius: Style.space(4)
+          color: Util.alpha(root.background, 0.90)
+          border.width: Math.max(1, Style.space(1))
+          border.color: Util.alpha(root.marketplaceOrange, 0.62)
+
+          Text {
+            id: previewHint
+            anchors.centerIn: parent
+            text: "\uf065  Enlarge"
+            textFormat: Text.PlainText
+            color: root.marketplaceOrange
+            font.family: Style.font.family
+            font.pixelSize: Style.font.body
+            font.bold: true
+          }
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          enabled: previewThumbnail.status === Image.Ready
+          cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+          onClicked: root.requestPreview()
+        }
       }
 
       Rectangle {
@@ -653,58 +759,60 @@ FocusScope {
         }
       }
 
-      Item {
-        width: parent.width
-        height: Math.max(0, parent.height - y - Style.space(42))
       }
+    }
 
-      Row {
-        id: actionRow
-        width: parent.width
-        height: Style.space(38)
-        spacing: Style.spacing.sm
+    Row {
+      id: actionRow
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      anchors.left: parent.left
+      anchors.rightMargin: Style.spacing.panelPadding
+      anchors.bottomMargin: Style.spacing.panelPadding
+      anchors.leftMargin: Style.spacing.panelPadding
+      height: Style.space(38)
+      spacing: Style.spacing.sm
 
-        Repeater {
-          model: root.actions
+      Repeater {
+        model: root.actions
 
-          delegate: Rectangle {
-            id: actionButton
-            required property var modelData
-            required property int index
-            width: (actionRow.width - actionRow.spacing
-              * Math.max(0, root.actions.length - 1))
-              / Math.max(1, root.actions.length)
-            height: parent.height
-            radius: Style.cornerRadius
-            color: root.selectedChoice === index
-              ? root.selectedBackground : "transparent"
-            opacity: modelData.available === false
-              && root.selectedChoice !== index ? 0.42 : 1
+        delegate: Rectangle {
+          id: actionButton
+          required property var modelData
+          required property int index
+          width: (actionRow.width - actionRow.spacing
+            * Math.max(0, root.actions.length - 1))
+            / Math.max(1, root.actions.length)
+          height: parent.height
+          radius: Style.cornerRadius
+          color: root.selectedChoice === index
+            ? root.selectedBackground : "transparent"
+          opacity: modelData.available === false
+            && root.selectedChoice !== index ? 0.42 : 1
 
-            Text {
-              anchors.centerIn: parent
-              text: root.busy && root.selectedChoice === actionButton.index
-                && actionButton.modelData.operation !== "cancel"
-                && actionButton.modelData.operation !== "close"
-                ? "Working..." : actionButton.modelData.label
-              color: root.selectedChoice === actionButton.index
-                ? root.selectedText
-                : (actionButton.modelData.dangerous === true
-                  ? root.warningColor : root.foreground)
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.title
-            }
+          Text {
+            anchors.centerIn: parent
+            text: root.busy && root.selectedChoice === actionButton.index
+              && actionButton.modelData.operation !== "cancel"
+              && actionButton.modelData.operation !== "close"
+              ? "Working..." : actionButton.modelData.label
+            color: root.selectedChoice === actionButton.index
+              ? root.selectedText
+              : (actionButton.modelData.dangerous === true
+                ? root.warningColor : root.foreground)
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.title
+          }
 
-            MouseArea {
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onEntered: root.selectChoice(actionButton.index, false)
-              onClicked: {
-                root.selectChoice(actionButton.index,
-                  actionButton.modelData.available === false)
-                root.choose()
-              }
+          MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onEntered: root.selectChoice(actionButton.index, false)
+            onClicked: {
+              root.selectChoice(actionButton.index,
+                actionButton.modelData.available === false)
+              root.choose()
             }
           }
         }
