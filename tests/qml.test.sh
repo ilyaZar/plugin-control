@@ -237,6 +237,8 @@ rg -Fq 'readonly property bool modalDialogOpened: actionDialog.opened' \
   "$ROOT/PluginControl.qml"
 rg -Fq 'pointerInteractive: !root.modalDialogOpened' \
   "$ROOT/PluginControl.qml"
+rg -Fq 'text: "Search plugins (or type \"plug-...\" for direct plugin commands)."' \
+  "$ROOT/PluginControl.qml"
 rg -Fq 'id: previewClickArea' "$ROOT/ActionDialog.qml"
 rg -Fq 'cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor' \
   "$ROOT/ActionDialog.qml"
