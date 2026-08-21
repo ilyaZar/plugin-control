@@ -212,10 +212,14 @@ This audit records release-readiness evidence for
   shared action dialog showed Cancel, dimmed Update, Disable, and Remove;
   resting on Update revealed its precise local-ahead explanation. Ctrl+I
   displayed cached views, copies, hearts, tags, and verification state. The
-  The redesigned Ctrl+I view then showed larger grouped metadata; yellow star,
+  redesigned Ctrl+I view then showed larger grouped metadata; yellow star,
   orange view/copy, and red-orange heart icons; green New/Verified badges; and
-  yellow Updated plus green Verified badges. Zero and nonzero stars both
-  rendered honestly. The overlay was closed after the final capture.
+  yellow Updated plus green Verified badges. The live Screen Time listing
+  showed its complete description and marketplace preview with Close as the
+  only action. The on-demand PNG cache removed Qt's WebP decoding error, and a
+  clean restart plus a final open/close cycle produced no plugin QML errors.
+  Zero and nonzero stars both rendered honestly. The overlay was closed after
+  the final capture.
 - [x] Preview. `preview.png` is an exact 720 by 540 crop of the live 0.2.0
   marketplace detail dialog. It contains no desktop background, was inspected
   at original resolution, and is 64 KB.
