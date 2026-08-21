@@ -58,7 +58,6 @@ Item {
   readonly property color background: Color.menu.background
   readonly property color foreground: Color.menu.text
   readonly property color borderColor: Color.menu.border
-  readonly property color scrim: Color.menu.scrim
   readonly property color selectedBackground: Color.menu.selectedBackground
   readonly property color selectedText: Color.menu.selectedText
   readonly property color accent: Color.accent
@@ -717,12 +716,6 @@ Item {
     WlrLayershell.keyboardFocus: root.surfaceVisible
       ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    Rectangle {
-      anchors.fill: parent
-      color: root.scrim
-      opacity: card.reveal
-    }
-
     MouseArea {
       anchors.fill: parent
       hoverEnabled: true
@@ -889,6 +882,9 @@ Item {
               color: root.foreground
               opacity: 0.48
               font: queryInput.font
+              fontSizeMode: Text.HorizontalFit
+              minimumPixelSize: Math.max(Style.font.body,
+                queryInput.font.pixelSize - 1)
               verticalAlignment: Text.AlignVCenter
               elide: Text.ElideRight
             }

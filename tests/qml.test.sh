@@ -239,6 +239,10 @@ rg -Fq 'pointerInteractive: !root.modalDialogOpened' \
   "$ROOT/PluginControl.qml"
 rg -Fq 'text: "Search plugins (or type \"plug-...\" for direct plugin commands)."' \
   "$ROOT/PluginControl.qml"
+rg -Fq 'fontSizeMode: Text.HorizontalFit' "$ROOT/PluginControl.qml"
+if rg -q 'Color\.menu\.scrim|color: root\.scrim' "$ROOT/PluginControl.qml"; then
+  fail "palette must not dim the workspace"
+fi
 rg -Fq 'id: previewClickArea' "$ROOT/ActionDialog.qml"
 rg -Fq 'cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor' \
   "$ROOT/ActionDialog.qml"
