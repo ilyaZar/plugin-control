@@ -544,7 +544,6 @@ FocusScope {
         visible: root.marketplaceListed && root.plugin
           && Array.isArray(root.plugin.tags) && root.plugin.tags.length > 0
         width: parent.width
-        height: visible ? Style.space(24) : 0
         spacing: Style.space(4)
 
         Repeater {
