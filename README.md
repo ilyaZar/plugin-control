@@ -93,7 +93,7 @@ Click either preview to play the video.
       <p>
         Shows how quickly plugins can be added, removed, enabled, and disabled,
         using the
-        <a href="https://github.com/ilyaZar/btop-quattro-plugin">btop plugin</a>
+        <a href="https://github.com/ilyaZar/omarchy-btop-activity">btop plugin</a>
         as an example.
       </p>
     </td>
