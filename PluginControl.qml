@@ -122,6 +122,31 @@ Item {
     && service.updateWarnings && service.updateWarnings.length > 0
   readonly property string updateWarningText: hasUpdateWarnings
     ? String(service.updateWarningText || "") : ""
+  readonly property bool hasRefreshWarnings: service
+    && service.refreshWarnings && service.refreshWarnings.length > 0
+  readonly property string refreshWarningText: {
+    if (!hasRefreshWarnings) return ""
+    var lines = [service.refreshWarnings.length === 1
+      ? "Catalog refresh warning" : "Catalog refresh warnings"]
+    for (var i = 0; i < service.refreshWarnings.length; i++) {
+      var warning = service.refreshWarnings[i]
+      var fallback = String(warning.fallback || "")
+      lines.push("")
+      lines.push(String(warning.channelName || warning.channelId
+        || "Catalog source"))
+      if (fallback === "cache") {
+        lines.push("Could not refresh this source. Using its last valid cache.")
+        var retrievedAt = String(warning.cacheRetrievedAt || "")
+        if (retrievedAt)
+          lines.push("Last valid catalog: " + formatStatusTimestamp(retrievedAt))
+      } else if (fallback === "bundled") {
+        lines.push("Could not refresh this source. Using the bundled catalog.")
+      } else {
+        lines.push("Could not refresh this source. No cached records are available.")
+      }
+    }
+    return lines.join("\n")
+  }
   readonly property string leftStatusText: {
     if (transientMessage) return transientMessage
     if (service && service.actionRunning)
@@ -145,8 +170,6 @@ Item {
   readonly property string rightStatusText: {
     if (service && service.refreshing) return "Refreshing catalog..."
     if (service && service.lastError) return service.lastError
-    if (service && service.lastRefreshError)
-      return "Offline/stale: " + service.lastRefreshError
     if (service && service.lastSuccessfulRefresh)
       return "Catalog refreshed: "
         + formatStatusTimestamp(service.lastSuccessfulRefresh)
@@ -177,12 +200,13 @@ Item {
   readonly property bool refreshSuccessActive: service
     && service.refreshSuccessVisible === true
     && rightStatusText.indexOf("Catalog refreshed: ") === 0
+  readonly property bool refreshStatusUrgent: service
+    && service.refreshing !== true && String(service.lastError || "") !== ""
   readonly property color rightStatusColor: refreshStatusActive
     ? shortcutColor : (refreshSuccessActive ? successColor
-      : (rightStatusText.indexOf("failed") >= 0
-        || rightStatusText.indexOf("Offline") >= 0 ? urgent : foreground))
+      : (refreshStatusUrgent ? urgent : foreground))
   readonly property real rightStatusOpacity: refreshStatusActive
-    || refreshSuccessActive ? 1 : 0.70
+    || refreshSuccessActive || refreshStatusUrgent ? 1 : 0.70
 
   function resolveTargetScreen() {
     var focused = Hyprland.focusedMonitor
@@ -1077,19 +1101,58 @@ Item {
             height: 1
           }
 
-          Text {
+          Item {
+            id: rightStatusArea
             anchors.left: statusGap.right
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.rightStatusText
-            textFormat: Text.PlainText
-            color: root.rightStatusColor
-            opacity: root.rightStatusOpacity
-            font.family: Style.font.menuFamily
-            font.pixelSize: Style.font.body
-            horizontalAlignment: Text.AlignRight
-            elide: Text.ElideLeft
-            verticalAlignment: Text.AlignVCenter
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+
+            Text {
+              id: rightStatusLabel
+              anchors.left: parent.left
+              anchors.right: refreshWarningIcon.visible
+                ? refreshWarningIcon.left : parent.right
+              anchors.rightMargin: refreshWarningIcon.visible
+                ? Style.spacing.sm : 0
+              anchors.verticalCenter: parent.verticalCenter
+              text: root.rightStatusText
+              textFormat: Text.PlainText
+              color: root.rightStatusColor
+              opacity: root.rightStatusOpacity
+              font.family: Style.font.menuFamily
+              font.pixelSize: Style.font.body
+              horizontalAlignment: Text.AlignRight
+              elide: Text.ElideLeft
+              verticalAlignment: Text.AlignVCenter
+            }
+
+            Text {
+              id: refreshWarningIcon
+              visible: root.hasRefreshWarnings
+                && !(root.service && root.service.refreshing)
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              text: "\uf071"
+              textFormat: Text.PlainText
+              color: root.shortcutColor
+              font.family: Style.font.family
+              font.pixelSize: Style.font.icon
+
+              MouseArea {
+                id: refreshWarningHover
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.ArrowCursor
+              }
+
+              PanelToolTip {
+                visible: refreshWarningHover.containsMouse
+                text: root.refreshWarningText
+                panelBorder: root.shortcutColor
+                fontFamily: Style.font.menuFamily
+              }
+            }
           }
         }
 

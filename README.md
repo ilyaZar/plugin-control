@@ -102,7 +102,12 @@ Useful keys:
 
 The status row keeps update and action feedback on the left and catalog
 refresh feedback on the right. Running work is yellow, a successful result is
-green for ten seconds, and settled timestamps are grey.
+green for ten seconds, and settled timestamps are grey. If a catalog source is
+temporarily unavailable, Plugin Control keeps the previous timestamp and
+places a yellow warning icon beside it. Hover the icon to see which source
+failed and whether the last valid cache or bundled catalog is being used. Red
+is reserved for failures that prevent Plugin Control from producing usable
+catalog data.
 
 ## Plugin information
 

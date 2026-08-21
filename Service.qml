@@ -28,7 +28,7 @@ Item {
   property bool animationsEnabled: true
   property bool backgroundDim: false
   property string lastError: ""
-  property string lastRefreshError: ""
+  property var refreshWarnings: []
   property string lastSuccessfulRefresh: ""
   property string refreshBaselineTimestamp: ""
   property bool refreshSuccessVisible: false
@@ -205,8 +205,8 @@ Item {
     backgroundDim = parsed.config && parsed.config.settings
       ? parsed.config.settings.background_dim === true : false
     applyRecords(parsed.records)
-    lastRefreshError = parsed.cache
-      ? String(parsed.cache.lastRefreshError || "") : ""
+    refreshWarnings = parsed.cache && Array.isArray(parsed.cache.refreshWarnings)
+      ? parsed.cache.refreshWarnings : []
     lastSuccessfulRefresh = parsed.cache
       ? String(parsed.cache.lastSuccessfulRefresh || "") : ""
     lastRefreshDurationMs = parsed.cache
@@ -220,7 +220,8 @@ Item {
     lastError = ""
     if (refreshResult === true) {
       clearRefreshSuccess()
-      if (exitCode === 0 && !lastRefreshError && lastSuccessfulRefresh
+      if (exitCode === 0 && refreshWarnings.length === 0
+          && lastSuccessfulRefresh
           && lastSuccessfulRefresh !== refreshBaselineTimestamp) {
         refreshSuccessVisible = true
         refreshSuccessTimer.restart()

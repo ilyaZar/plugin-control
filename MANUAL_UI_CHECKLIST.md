@@ -166,6 +166,15 @@ Use at least one light theme and one dark theme. Keep a terminal open for
 - [ ] After refresh, confirm
   `Catalog refreshed: HH:MM:SS (YYYY-MM-DD)` is green for ten seconds, then
   grey.
+- [ ] Make one catalog source unavailable while retaining its valid cache.
+  Confirm Ctrl+r returns to the previous grey catalog timestamp with a yellow
+  warning icon instead of red failure text. Hover the icon and confirm it names
+  the source, says that the last valid cache is in use, and shows its timestamp.
+- [ ] Repeat without a downloaded marketplace cache. Confirm the settled status
+  says `Catalog cache ready`, the yellow warning explains that the bundled
+  catalog is in use, and Plugin Control remains searchable.
+- [ ] Confirm a later complete refresh removes the catalog warning icon and
+  performs the normal ten-second green success transition.
 - [ ] Confirm update and catalog statuses can coexist without overlap at normal
   width and remain understandable at minimum width.
 - [ ] Inspect the action dialog, dimmed help, metrics, status row, and footer in
