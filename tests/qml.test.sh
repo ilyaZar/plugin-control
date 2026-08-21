@@ -200,6 +200,8 @@ if awk 'found || /id: actionButton/ { found = 1; print }' \
   fail "action footer must remain keyboard-only"
 fi
 rg -Fq 'event.key === Qt.Key_Q' "$ROOT/ActionDialog.qml"
+rg -Fq 'border.color: root.marketplaceYellow' "$ROOT/ActionDialog.qml"
+rg -Fq 'font.bold: root.readOnly' "$ROOT/ActionDialog.qml"
 rg -Fq 'event.key === Qt.Key_Q' "$ROOT/SelfRemovalDialog.qml"
 rg -q 'function closeActiveSubmenu\(\)' "$ROOT/PluginControl.qml"
 rg -Fq 'sequence: "Escape"' "$ROOT/PluginControl.qml"

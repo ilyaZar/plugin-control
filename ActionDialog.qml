@@ -814,6 +814,9 @@ FocusScope {
           radius: Style.cornerRadius
           color: root.selectedChoice === index
             ? root.selectedBackground : "transparent"
+          border.width: root.readOnly && root.selectedChoice === index
+            ? Math.max(1, Style.space(1)) : 0
+          border.color: root.marketplaceYellow
           opacity: modelData.available === false
             && root.selectedChoice !== index ? 0.42 : 1
 
@@ -829,6 +832,7 @@ FocusScope {
                 ? root.warningColor : root.foreground)
             font.family: root.fontFamily
             font.pixelSize: Style.font.title
+            font.bold: root.readOnly
           }
 
         }
