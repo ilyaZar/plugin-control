@@ -73,7 +73,8 @@ Use at least one light theme and one dark theme. Keep a terminal open for
 - [ ] Choose Update and confirm `Updating plugins...` appears in yellow only
   after confirmation, then `Plugin updated!` appears in green.
 - [ ] Confirm the local plugin commit advanced through
-  `omarchy plugin update <id> --yes` and the plugin left update results.
+  `omarchy plugin update <id> --yes`, the shell restarted, and the plugin left
+  update results.
 - [ ] Choose Update on a current Git plugin without first running Ctrl+u.
   Confirm it reports `Plugin already up-to-date!` and never shows
   `Updating plugins...`.

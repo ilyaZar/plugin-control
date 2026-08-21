@@ -257,7 +257,8 @@ status="$(wait_action)"
 jq -e '.ok == true and .operation == "update"
   and .message == "Plugin updated!"' <<<"$status" >/dev/null
 grep -Fqx 'plugin update test.available --yes' "$MOCK_LOG"
-printf 'ok - available updates use the exact native updater argv\n'
+grep -Fqx 'restart shell' "$MOCK_LOG"
+printf 'ok - available updates use the native updater then restart the shell\n'
 
 for id in test.current test.dirty test.ahead test.diverged test.manual; do
   : >"$MOCK_LOG"
@@ -266,8 +267,8 @@ for id in test.current test.dirty test.ahead test.diverged test.manual; do
   helper action "$ROOT" update "$id" "$snapshot_id" background \
     | jq -e '.started == true' >/dev/null
   status="$(wait_action)"
-  if grep -Fq 'plugin update ' "$MOCK_LOG"; then
-    printf 'not ok - unsafe or current plugin reached native update: %s\n' \
+  if grep -Eq '^(plugin update |restart shell$)' "$MOCK_LOG"; then
+    printf 'not ok - unsafe or current plugin reached update execution: %s\n' \
       "$id" >&2
     exit 1
   fi

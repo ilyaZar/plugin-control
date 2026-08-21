@@ -121,7 +121,8 @@ FocusScope {
     if (selectedOperation === "remove")
       return "omarchy plugin remove " + id + " --yes"
     if (selectedOperation === "update")
-      return "omarchy plugin update " + id + " --yes"
+      return "omarchy plugin update " + id
+        + " --yes && omarchy restart shell"
     if (selectedOperation === "enable")
       return "omarchy plugin enable " + id
     if (selectedOperation === "disable")
