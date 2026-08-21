@@ -83,6 +83,11 @@ rg -Fq '["add", "remove", "update", "enable", "disable"]' \
   "$ROOT/PluginControl.qml"
 rg -Fq '+ " --yes && omarchy restart shell"' \
   "$ROOT/ActionDialog.qml"
+[[ $(rg -c 'omarchy restart shell' "$ROOT/ActionDialog.qml") == 2 ]]
+rg -Fq '? "omarchy plugin add <repository> --enable"' \
+  "$ROOT/ActionDialog.qml"
+rg -Fq ': "omarchy plugin add <repository> --enable --yes")' \
+  "$ROOT/ActionDialog.qml"
 rg -Fq 'return "omarchy plugin enable " + id' "$ROOT/ActionDialog.qml"
 rg -Fq 'return "omarchy plugin disable " + id' "$ROOT/ActionDialog.qml"
 if rg -q 'add-bar|omarchy bar put' "$ROOT/PluginControl.qml" \

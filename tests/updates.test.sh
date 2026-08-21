@@ -32,6 +32,14 @@ if [[ $* == "plugin list --json" ]]; then
   exit 0
 fi
 printf '%s\n' "$*" >>"$MOCK_LOG"
+if [[ $* == plugin\ update\ * && ${MOCK_UPDATE_EXIT:-0} != 0 ]]; then
+  printf 'mock plugin update failure\n' >&2
+  exit "$MOCK_UPDATE_EXIT"
+fi
+if [[ $* == "restart shell" && ${MOCK_RESTART_EXIT:-0} != 0 ]]; then
+  printf 'mock shell restart failure\n' >&2
+  exit "$MOCK_RESTART_EXIT"
+fi
 exit "${MOCK_EXIT:-0}"
 MOCK
 chmod 0755 "$MOCK_BIN/omarchy"
@@ -62,8 +70,10 @@ wait_action() {
 write_plugin() {
   local path="$1"
   local id="$2"
+  local name="${3:-$2}"
   mkdir -p "$path"
-  jq -n --arg id "$id" '{schemaVersion:1,id:$id,name:$id,
+  jq -n --arg id "$id" --arg name "$name" \
+    '{schemaVersion:1,id:$id,name:$name,
     version:"1.0.0",author:"Test",description:"Update fixture",
     kinds:["overlay"],entryPoints:{overlay:"Plugin.qml"}}' \
     >"$path/manifest.json"
@@ -72,13 +82,14 @@ write_plugin() {
 
 make_checkout() {
   local id="$1"
+  local name="${2:-$1}"
   local origin="$TEMP_ROOT/remotes/$id.git"
   local seed="$TEMP_ROOT/seeds/$id"
   local checkout="$PLUGINS_ROOT/$id"
   mkdir -p "$TEMP_ROOT/remotes" "$TEMP_ROOT/seeds" "$PLUGINS_ROOT"
   git init -q --bare "$origin"
   git init -q "$seed"
-  write_plugin "$seed" "$id"
+  write_plugin "$seed" "$id" "$name"
   git -C "$seed" add .
   git -C "$seed" -c user.name=Test -c user.email=test@example.invalid \
     commit -qm initial
@@ -112,7 +123,11 @@ commit_local() {
 ids=(test.current test.available test.ahead test.diverged test.dirty \
   test.fetchfail)
 for id in "${ids[@]}"; do
-  make_checkout "$id"
+  if [[ $id == "test.available" ]]; then
+    make_checkout "$id" "Available Test"
+  else
+    make_checkout "$id"
+  fi
 done
 write_plugin "$PLUGINS_ROOT/test.manual" test.manual
 mkdir -p "$PLUGINS_ROOT/test.parent-repo"
@@ -133,6 +148,9 @@ git -C "$PLUGINS_ROOT/test.fetchfail" remote set-url origin \
 jq -n --args '$ARGS.positional | map({id:.,name:.,kinds:["overlay"],
   enabled:true,canDisable:true,firstParty:false})' \
   "${ids[@]}" test.manual >"$MOCK_RUNTIME"
+jq 'map(if .id == "test.available" then .name = "Available Test" else . end)' \
+  "$MOCK_RUNTIME" >"$MOCK_RUNTIME.tmp"
+mv "$MOCK_RUNTIME.tmp" "$MOCK_RUNTIME"
 
 jq -e '.status == "current" and .updateAvailable == false' \
   <<<"$(classify_plugin_update test.current \
@@ -255,10 +273,52 @@ helper action "$ROOT" update test.available "$snapshot_id" background \
   | jq -e '.started == true' >/dev/null
 status="$(wait_action)"
 jq -e '.ok == true and .operation == "update"
-  and .message == "Plugin updated!"' <<<"$status" >/dev/null
-grep -Fqx 'plugin update test.available --yes' "$MOCK_LOG"
-grep -Fqx 'restart shell' "$MOCK_LOG"
+  and .message == "Plugin Available Test updated!"' <<<"$status" >/dev/null
+mapfile -t update_calls < <(grep -E '^(plugin update |restart shell$)' "$MOCK_LOG")
+[[ ${#update_calls[@]} == 2
+  && ${update_calls[0]} == 'plugin update test.available --yes'
+  && ${update_calls[1]} == 'restart shell' ]]
 printf 'ok - available updates use the native updater then restart the shell\n'
+
+: >"$MOCK_LOG"
+export MOCK_RESTART_EXIT=9
+snapshot="$(helper cached "$ROOT")"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+helper action "$ROOT" update test.available "$snapshot_id" background \
+  | jq -e '.started == true' >/dev/null
+status="$(wait_action)"
+jq -e '.ok == false and .operation == "update"
+  and (.message | contains("Plugin Available Test updated"))
+  and (.message | contains("activation is incomplete"))
+  and (.message | contains("omarchy restart shell"))
+  and (.output | contains("mock shell restart failure"))' \
+  <<<"$status" >/dev/null
+mapfile -t update_calls < <(grep -E '^(plugin update |restart shell$)' "$MOCK_LOG")
+[[ ${#update_calls[@]} == 2
+  && ${update_calls[0]} == 'plugin update test.available --yes'
+  && ${update_calls[1]} == 'restart shell' ]]
+jq -e '.records[] | select(.id == "test.available")
+  | .status == "current" and .updateAvailable == false' \
+  "$UPDATE_STATE" >/dev/null
+unset MOCK_RESTART_EXIT
+printf 'ok - updated checkout remains current when shell activation fails\n'
+
+: >"$MOCK_LOG"
+export MOCK_UPDATE_EXIT=7
+snapshot="$(helper cached "$ROOT")"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+helper action "$ROOT" update test.available "$snapshot_id" background \
+  | jq -e '.started == true' >/dev/null
+status="$(wait_action)"
+jq -e '.ok == false and (.message | contains("exit code 7"))' \
+  <<<"$status" >/dev/null
+grep -Fqx 'plugin update test.available --yes' "$MOCK_LOG"
+if grep -Fqx 'restart shell' "$MOCK_LOG"; then
+  printf 'not ok - failed native update restarted the shell\n' >&2
+  exit 1
+fi
+unset MOCK_UPDATE_EXIT
+printf 'ok - failed native update never restarts the shell\n'
 
 for id in test.current test.dirty test.ahead test.diverged test.manual; do
   : >"$MOCK_LOG"

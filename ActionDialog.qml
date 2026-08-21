@@ -115,9 +115,10 @@ FocusScope {
       + "the plugin is malicious."
   readonly property string operationText: {
     var id = String(plugin && plugin.id || "")
-    if (selectedOperation === "add") return terminalInstall
+    if (selectedOperation === "add") return (terminalInstall
       ? "omarchy plugin add <repository> --enable"
-      : "omarchy plugin add <repository> --enable --yes"
+      : "omarchy plugin add <repository> --enable --yes")
+        + " && omarchy restart shell"
     if (selectedOperation === "remove")
       return "omarchy plugin remove " + id + " --yes"
     if (selectedOperation === "update")

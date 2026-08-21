@@ -49,6 +49,10 @@ if [[ $* == "plugin remove io.github.ilyazar.plugin-control --yes" \
     && -n ${MOCK_REMOVE_PATH:-} ]]; then
   mv -T -- "$MOCK_REMOVE_PATH" "$MOCK_REMOVE_PATH.removed"
 fi
+if [[ $* == "restart shell" && ${MOCK_RESTART_EXIT:-0} != 0 ]]; then
+  printf 'mock shell restart failure\n' >&2
+  exit "$MOCK_RESTART_EXIT"
+fi
 output_bytes="${MOCK_OUTPUT_BYTES:-0}"
 if [[ $output_bytes =~ ^[0-9]+$ ]] && (( output_bytes > 0 )); then
   printf '\033[31m'
@@ -217,6 +221,7 @@ jq -e '.ok == false and (.error | contains("unsupported"))' \
 printf 'ok - backend accepts only the canonical add operation\n'
 
 before_list_calls="$(grep -c '^plugin list --json$' "$MOCK_LOG" || true)"
+restart_calls_before="$(grep -c '^restart shell$' "$MOCK_LOG" || true)"
 helper action "$ROOT" add io.example.weather "$snapshot_id" background \
   | jq -e '.started == true' >/dev/null
 status="$(wait_action)"
@@ -225,13 +230,16 @@ jq -e '.ok == true and .operation == "add"
   <<<"$status" >/dev/null
 grep -Fqx 'plugin add https://github.com/example/weather --enable --yes' \
   "$MOCK_LOG"
+restart_calls_after="$(grep -c '^restart shell$' "$MOCK_LOG" || true)"
+(( restart_calls_after - restart_calls_before == 1 ))
 [[ ! -e /tmp/plugin-control-must-not-run ]]
-printf 'ok - native add argv ignores remote command strings\n'
+printf 'ok - background add uses native argv and restarts exactly once\n'
 wait_worker_release
 after_list_calls="$(grep -c '^plugin list --json$' "$MOCK_LOG" || true)"
 (( after_list_calls > before_list_calls ))
 printf 'ok - successful action refreshes installed state\n'
 
+restart_calls_before="$restart_calls_after"
 helper action "$ROOT" add io.example.weather "$snapshot_id" terminal \
   | jq -e '.started == true' >/dev/null
 status="$(wait_action)"
@@ -245,8 +253,27 @@ if grep -F 'plugin add ' "$MOCK_TERMINAL_LOG" | grep -Fq -- '--yes'; then
   printf 'not ok - terminal add bypassed native prompts\n' >&2
   exit 1
 fi
+restart_calls_after="$(grep -c '^restart shell$' "$MOCK_LOG" || true)"
+(( restart_calls_after - restart_calls_before == 1 ))
 wait_worker_release
-printf 'ok - terminal add streams the native interactive command\n'
+printf 'ok - terminal add streams native prompts and restarts exactly once\n'
+
+restart_calls_before="$restart_calls_after"
+export MOCK_RESTART_EXIT=9
+helper action "$ROOT" add io.example.weather "$snapshot_id" background \
+  | jq -e '.started == true' >/dev/null
+status="$(wait_action)"
+jq -e '.ok == false and .operation == "add"
+  and (.message | contains("was added and enabled"))
+  and (.message | contains("activation is incomplete"))
+  and (.message | contains("omarchy restart shell"))
+  and (.output | contains("mock shell restart failure"))' \
+  <<<"$status" >/dev/null
+restart_calls_after="$(grep -c '^restart shell$' "$MOCK_LOG" || true)"
+(( restart_calls_after - restart_calls_before == 1 ))
+unset MOCK_RESTART_EXIT
+wait_worker_release
+printf 'ok - add reports a successful mutation with failed activation\n'
 
 if helper action "$ROOT" remove io.example.weather "$snapshot_id" terminal \
   >"$TEMP_ROOT/terminal-remove.json" 2>/dev/null; then
@@ -415,6 +442,7 @@ jq -e '.records[] | select(.id == "local.test")
     and .canDisable == true and .enabled == true' \
   <<<"$snapshot" >/dev/null
 
+restart_calls_before="$(grep -c '^restart shell$' "$MOCK_LOG" || true)"
 helper action "$ROOT" disable local.test "$snapshot_id" background >/dev/null
 status="$(wait_action)"
 jq -e '.ok == true and .operation == "disable"
@@ -435,6 +463,8 @@ jq -e '.ok == true and .operation == "enable"
   <<<"$status" >/dev/null
 grep -Fqx 'plugin enable local.test' "$MOCK_LOG"
 wait_worker_release
+[[ $(grep -c '^restart shell$' "$MOCK_LOG" || true) == \
+  "$restart_calls_before" ]]
 printf 'ok - third-party plugins use native enable and disable actions\n'
 
 printf '[{"id":"local.test","name":"Local Test","kinds":["overlay"],
@@ -649,18 +679,21 @@ printf 'ok - action output is sanitized and bounded\n'
 
 wait_worker_release
 export MOCK_EXIT=1
+restart_calls_before="$(grep -c '^restart shell$' "$MOCK_LOG" || true)"
 helper action "$ROOT" add io.example.weather "$snapshot_id" background >/dev/null
 status="$(wait_action)"
 jq -e '.ok == false and (.message | contains("failed"))' \
   <<<"$status" >/dev/null
 wait_worker_release
+[[ $(grep -c '^restart shell$' "$MOCK_LOG" || true) == \
+  "$restart_calls_before" ]]
 if find "$XDG_STATE_HOME/omarchy/ilyazar.plugin-control/worker" \
   -name 'plugin-control-*' -o -name 'snapshot-*.json' | grep -q .; then
   printf 'not ok - failed action left worker staging files\n' >&2
   exit 1
 fi
 unset MOCK_EXIT
-printf 'ok - failed action worker staging is cleaned\n'
+printf 'ok - failed add skips restart and cleans worker staging\n'
 
 helper ack "$(jq -r '.actionId' <<<"$status")" \
   | jq -e '.acknowledged == true' >/dev/null

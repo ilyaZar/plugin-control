@@ -31,7 +31,8 @@ Use at least one light theme and one dark theme. Keep a terminal open for
 - [ ] Select an inactive full bar and confirm Cancel and Enable are available.
 - [ ] Select an available user plugin and confirm only Cancel and Add appear.
 - [ ] Add that plugin and confirm the menu becomes Cancel, Update,
-  Enable/Disable, and Remove after the snapshot refreshes.
+  Enable/Disable, and Remove after the shell restarts and the snapshot
+  refreshes.
 - [ ] Disable and re-enable the added plugin. Confirm the action label and
   result row update without reopening Plugin Control.
 - [ ] Remove the disposable plugin. Confirm it disappears from added-only
@@ -71,7 +72,7 @@ Use at least one light theme and one dark theme. Keep a terminal open for
 - [ ] Open that result and confirm the full added-plugin action menu appears,
   not an Update-only dialog.
 - [ ] Choose Update and confirm `Updating plugins...` appears in yellow only
-  after confirmation, then `Plugin updated!` appears in green.
+  after confirmation, then `Plugin <name> updated!` appears in green.
 - [ ] Confirm the local plugin commit advanced through
   `omarchy plugin update <id> --yes`, the shell restarted, and the plugin left
   update results.
