@@ -128,12 +128,27 @@ write_running_action_status() {
   write_action_status "$status"
 }
 
+plugin_action_subject() {
+  local record="$1"
+  local name
+  name="$(jq -r '
+    (if (.name // "") != "" then .name else (.id // "plugin") end)
+    | gsub("[\\r\\n\\t]+"; " ") | gsub("  +"; " ")
+  ' <<<"$record")"
+  if [[ $name == Plugin\ * ]]; then
+    printf '%s\n' "$name"
+  else
+    printf 'Plugin %s\n' "$name"
+  fi
+}
+
 run_add_action() {
   local record="$1"
   local snapshot="$2"
   local execution_mode="$3"
   local output_file="$4"
-  local repository source allow_unlisted rc
+  local plugin_subject repository source allow_unlisted rc
+  plugin_subject="$(plugin_action_subject "$record")"
   repository="$(jq -r '.repository // ""' <<<"$record")"
   source="$(jq -r '.source // ""' <<<"$record")"
   allow_unlisted="$(jq -r '.config.allow_unlisted_installs // false' \
@@ -156,7 +171,7 @@ run_add_action() {
   elif [[ $execution_mode == terminal ]]; then
     if omarchy plugin add "$repository" --enable; then
       set_action_result true \
-        "Plugin added and enabled in the Omarchy terminal."
+        "$plugin_subject added and enabled in the Omarchy terminal."
     else
       rc=$?
       set_action_result false "Plugin add failed with exit code $rc."
@@ -164,7 +179,7 @@ run_add_action() {
   elif timeout --signal=TERM --kill-after=5s 300s \
     omarchy plugin add "$repository" --enable --yes \
       >"$output_file" 2>&1; then
-    set_action_result true "Plugin added and enabled."
+    set_action_result true "$plugin_subject added and enabled."
   else
     rc=$?
     set_action_result false "Plugin add failed with exit code $rc."
@@ -178,7 +193,9 @@ run_remove_action() {
   local operation="$4"
   local execution_mode="$5"
   local output_file="$6"
-  local rc
+  local plugin_subject rc
+
+  plugin_subject="$(plugin_action_subject "$record")"
 
   if preflight_remove "$record" "$id"; then
     :
@@ -205,14 +222,14 @@ run_remove_action() {
     if [[ $operation == remove-purge ]]; then
       set_action_result true "Plugin Control and its user data were removed."
     else
-      set_action_result true "Plugin removed."
+      set_action_result true "$plugin_subject removed."
     fi
   else
     rc=$?
     if [[ $id == "$SELF_ID" && ! -e $PLUGINS_ROOT/$id
         && ! -L $PLUGINS_ROOT/$id ]]; then
       set_action_result true \
-        "Plugin removed, but Omarchy reported a shell refresh error."
+        "$plugin_subject removed, but Omarchy reported a shell refresh error."
     else
       set_action_result false "Plugin removal failed with exit code $rc."
     fi
@@ -224,7 +241,7 @@ run_switch_action() {
   local id="$2"
   local operation="$3"
   local output_file="$4"
-  local plugin_name success_message rc
+  local plugin_subject success_message rc
   local -a command
 
   if ! jq -e '.builtIn == true or .installed == true' \
@@ -233,8 +250,7 @@ run_switch_action() {
       "The confirmed plugin does not support enable or disable."
     return
   fi
-  plugin_name="$(jq -r '.name // empty' <<<"$record")"
-  [[ -n $plugin_name ]] || plugin_name="$id"
+  plugin_subject="$(plugin_action_subject "$record")"
   case "$operation" in
     enable)
       if ! jq -e '.enabled == false' <<<"$record" >/dev/null; then
@@ -248,7 +264,7 @@ run_switch_action() {
         return
       fi
       command=(omarchy plugin enable "$id")
-      success_message="Plugin $plugin_name enabled."
+      success_message="$plugin_subject enabled."
       ;;
     disable)
       if ! jq -e '.enabled == true' <<<"$record" >/dev/null; then
@@ -261,7 +277,7 @@ run_switch_action() {
         return
       fi
       command=(omarchy plugin disable "$id")
-      success_message="Plugin $plugin_name disabled."
+      success_message="$plugin_subject disabled."
       ;;
   esac
   if timeout --signal=TERM --kill-after=2s 30s \
