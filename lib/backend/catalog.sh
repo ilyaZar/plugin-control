@@ -52,6 +52,62 @@ download_catalog() {
   "${request[@]}"
 }
 
+download_marketplace_stats() {
+  local body="$1"
+  curl --silent --show-error --location \
+    --proto '=https' --proto-redir '=https' \
+    --connect-timeout 5 --max-time 20 --max-filesize 1048576 \
+    --output "$body" --write-out '%{http_code}' -- \
+    "https://api.omarchyplugins.com/v1/stats"
+}
+
+normalize_marketplace_stats() {
+  local raw="$1"
+  local retrieved_at="$2"
+  jq -ce --arg retrievedAt "$retrieved_at" '
+    def valid_id:
+      type == "string" and length <= 128
+      and test("^[A-Za-z0-9][A-Za-z0-9._-]*$")
+      and (contains("..") | not);
+    def valid_count:
+      type == "number" and floor == . and . >= 0 and . <= 1000000000000;
+    if type != "object" or .schemaVersion != 1
+      or (.plugins | type) != "object"
+      or (.plugins | length) > 5000
+      or (all(.plugins | to_entries[];
+        (.key | valid_id)
+        and (.value | type == "object"
+          and keys == ["copies", "hearts", "views"]
+          and (.copies | valid_count)
+          and (.hearts | valid_count)
+          and (.views | valid_count))) | not)
+    then error("invalid marketplace stats")
+    else {schemaVersion:1,retrievedAt:$retrievedAt,plugins:.plugins}
+    end
+  ' "$raw"
+}
+
+refresh_marketplace_stats() {
+  local stage body normalized status
+  stage="$(mktemp -d "$RUNTIME_ROOT/marketplace-stats.XXXXXX")"
+  body="$stage/stats.json"
+  status="$(download_marketplace_stats "$body")" || status="000"
+  if [[ $status != 200 ]]; then
+    rm -rf -- "$stage"
+    return 1
+  fi
+  normalized="$(normalize_marketplace_stats "$body" "$(utc_now)" \
+    2>/dev/null)" || {
+    rm -rf -- "$stage"
+    return 1
+  }
+  atomic_write_text "$MARKETPLACE_STATS_CACHE" "$normalized" || {
+    rm -rf -- "$stage"
+    return 1
+  }
+  rm -rf -- "$stage"
+}
+
 refresh_catalog_channel() {
   local root="$1"
   local channel="$2"
@@ -125,7 +181,7 @@ github_get() {
     --connect-timeout 5 --max-time 20 --max-filesize 1048576 \
     --header 'Accept: application/vnd.github+json' \
     --header 'X-GitHub-Api-Version: 2022-11-28' \
-    --header 'User-Agent: plugin-control/0.1.0' \
+    --header 'User-Agent: plugin-control/0.2.0' \
     --output "$output" -- "$url"
 }
 
@@ -140,7 +196,7 @@ github_get_conditional() {
     --connect-timeout 5 --max-time 20 --max-filesize 1048576
     --header 'Accept: application/vnd.github+json'
     --header 'X-GitHub-Api-Version: 2022-11-28'
-    --header 'User-Agent: plugin-control/0.1.0'
+    --header 'User-Agent: plugin-control/0.2.0'
     --output "$output" --dump-header "$headers"
     --write-out '%{http_code}'
   )

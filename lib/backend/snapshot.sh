@@ -4,26 +4,38 @@ manifest_record() {
   local can_disable="$3"
   local path="$4"
   local manifest="$path/manifest.json"
-  local dirty=false repository=""
+  local dirty=false git_managed=false native_update_supported=false
+  local repository="" local_commit=""
   [[ -f $manifest ]] || return 1
   [[ "$(jq -r '.id // ""' "$manifest" 2>/dev/null)" == "$id" ]] || return 1
-  if git -C "$path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if [[ -d $path/.git || -f $path/.git ]] \
+    && git -C "$path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git_managed=true
+    [[ -d $path/.git ]] && native_update_supported=true
     [[ -z $(git -C "$path" status --porcelain --untracked-files=normal 2>/dev/null) ]] || dirty=true
+    local_commit="$(git -C "$path" rev-parse HEAD 2>/dev/null || true)"
     repository="$(git -C "$path" remote get-url origin 2>/dev/null || true)"
     repository="$(normalize_github_url "$repository" 2>/dev/null || true)"
   fi
 
   jq -c \
     --arg id "$id" --arg path "$path" --arg repository "$repository" \
+    --arg localCommit "$local_commit" \
     --argjson enabled "$enabled" --argjson canDisable "$can_disable" \
-    --argjson dirty "$dirty" '
+    --argjson dirty "$dirty" --argjson gitManaged "$git_managed" \
+    --argjson nativeUpdateSupported "$native_update_supported" \
+    --arg manualReason "$MANUAL_UPDATE_REASON" \
+    --arg dirtyReason "$DIRTY_UPDATE_REASON" \
+    --arg unsupportedReason "$UNSUPPORTED_UPDATE_REASON" '
       {
         id:$id,
         name:(.name // $id),
         description:(.description // ""),
         author:(.author // ""),
         version:(.version // ""),
+        kinds:(.kinds // []),
         kind:((.kinds // []) | join(" + ")),
+        fullBar:((.kinds // []) | index("bar") != null),
         repository:$repository,
         source:"local",
         sourceName:"Local checkout",
@@ -35,6 +47,18 @@ manifest_record() {
         installable:false,
         removable:true,
         dirty:$dirty,
+        gitManaged:$gitManaged,
+        nativeUpdateSupported:$nativeUpdateSupported,
+        localCommit:$localCommit,
+        updateAvailable:false,
+        updateStatus:(if $dirty then "dirty"
+          elif $gitManaged and ($nativeUpdateSupported | not)
+            then "unsupported"
+          elif $gitManaged then "unknown" else "manual" end),
+        updateReason:(if $dirty then $dirtyReason
+          elif $gitManaged and ($nativeUpdateSupported | not)
+            then $unsupportedReason
+          elif $gitManaged then "" else $manualReason end),
         installedPath:$path
       }
       | with_entries(select(.value != ""))
@@ -59,7 +83,10 @@ installed_records() {
     | {
         id,
         name:(.name // .id),
+        kinds:(.kinds // []),
         kind:((.kinds // []) | if type == "array" then join(" + ") else "" end),
+        fullBar:((.kinds // []) | if type == "array"
+          then index("bar") != null else false end),
         builtIn:true,
         source:"builtin",
         sourceName:"Omarchy built-in",
@@ -111,8 +138,9 @@ build_snapshot() (
   flock 6
   local config="${2:-}"
   [[ -n $config ]] || config="$(load_config "$root")" || return 1
-  local stage records_jsonl installed_jsonl merged_file diagnostics_file
-  local config_file refresh_file snapshot_file snapshot_id
+  local stage records_jsonl installed_jsonl merged_file base_merged_file
+  local diagnostics_file config_file refresh_file update_file stats_file
+  local snapshot_file snapshot_id
   stage="$(mktemp -d "$RUNTIME_ROOT/snapshot.XXXXXX")"
   records_jsonl="$stage/records.jsonl"
   installed_jsonl="$stage/installed.jsonl"
@@ -144,16 +172,19 @@ build_snapshot() (
   }
   cat "$installed_jsonl" >>"$records_jsonl"
 
+  base_merged_file="$stage/records-base.json"
   merged_file="$stage/records.json"
   diagnostics_file="$stage/diagnostics.json"
   config_file="$stage/config.json"
   refresh_file="$stage/refresh.json"
+  update_file="$stage/updates.json"
+  stats_file="$stage/stats.json"
   snapshot_file="$stage/snapshot.json"
   jq -sc '
     group_by(.id)
     | map(sort_by(.sourceRank // 0) | reduce .[] as $record ({}; . * $record))
     | sort_by((.name // .id | ascii_downcase), .id)
-  ' "$records_jsonl" >"$merged_file"
+  ' "$records_jsonl" >"$base_merged_file"
   jq -sc '
     group_by(.id)
     | map({id:.[0].id,repositories:([.[].repository // ""] | map(select(length > 0)) | unique)})
@@ -161,6 +192,40 @@ build_snapshot() (
       | {type:"repository-collision",id,repositories})
   ' "$records_jsonl" >"$diagnostics_file"
   printf '%s\n' "$config" >"$config_file"
+
+  load_update_state >"$update_file"
+  if [[ -f $MARKETPLACE_STATS_CACHE && ! -L $MARKETPLACE_STATS_CACHE ]] \
+    && jq -e '.schemaVersion == 1 and (.plugins | type == "object")' \
+      "$MARKETPLACE_STATS_CACHE" >/dev/null 2>&1; then
+    jq -c . "$MARKETPLACE_STATS_CACHE" >"$stats_file"
+  else
+    printf '{"schemaVersion":1,"plugins":{}}\n' >"$stats_file"
+  fi
+  jq -c --slurpfile updates "$update_file" --slurpfile stats "$stats_file" '
+    ($updates[0].records // []
+      | map({key:.id,value:.}) | from_entries) as $updatesById
+    | ($stats[0].plugins // {}) as $statsById
+    | map(
+        . as $record
+        | ($updatesById[.id] // null) as $update
+        | ($statsById[.id] // null) as $metrics
+        | if .installed == true and .gitManaged == true
+            and .dirty != true and $update != null
+            and $update.gitManaged == true
+            and $update.localCommit == .localCommit
+          then . + {
+            updateAvailable:($update.updateAvailable == true),
+            updateStatus:($update.status // "unknown"),
+            updateReason:($update.reason // ""),
+            remoteCommit:($update.remoteCommit // ""),
+            updateCheckedAt:($update.checkedAt // "")
+          }
+          else . end
+        | if .marketplaceListed == true and $metrics != null
+          then . + {metricsAvailable:true,
+            views:$metrics.views,copies:$metrics.copies,hearts:$metrics.hearts}
+          else . + {metricsAvailable:false} end)
+  ' "$base_merged_file" >"$merged_file"
   snapshot_id="$(jq -cnS \
     --slurpfile records "$merged_file" --slurpfile config "$config_file" \
     '{records:$records[0],config:$config[0]}' \
@@ -177,11 +242,18 @@ build_snapshot() (
     --slurpfile records "$merged_file" \
     --slurpfile diagnostics "$diagnostics_file" \
     --slurpfile config "$config_file" --slurpfile refresh "$refresh_file" \
+    --slurpfile updates "$update_file" \
     '{ok:true,snapshotId:$snapshotId,generatedAt:$generatedAt,
       records:$records[0],diagnostics:$diagnostics[0],config:$config[0],
       cache:{lastSuccessfulRefresh:($refresh[0].lastSuccessfulRefresh // ""),
         lastRefreshError:($refresh[0].lastRefreshError // ""),
-        refreshDurationMs:($refresh[0].refreshDurationMs // 0)}}' \
+        refreshDurationMs:($refresh[0].refreshDurationMs // 0)},
+      updates:{lastSuccessfulCheck:($updates[0].lastSuccessfulCheck // ""),
+        lastCheckAttempt:($updates[0].lastCheckAttempt // ""),
+        lastCheckError:($updates[0].lastCheckError // ""),
+        lastCheckNotice:($updates[0].lastCheckNotice // ""),
+        checkDurationMs:($updates[0].checkDurationMs // 0),
+        counts:($updates[0].counts // {})}}' \
     >"$snapshot_file"
   atomic_write_stream "$SNAPSHOT_STATE" <"$snapshot_file"
   cat "$snapshot_file"
@@ -223,6 +295,11 @@ refresh_command() {
         errors+=("$channel_name refresh failed; using its last valid cache")
       fi
     done < <(jq -c '.channels[] | select(.enabled == true)' <<<"$config")
+    if jq -e 'any(.channels[];
+        .enabled == true and .id == "marketplace")' \
+      <<<"$config" >/dev/null; then
+      refresh_marketplace_stats || true
+    fi
   fi
 
   local ended duration error_text="" successful_at="" successful_epoch="$last_epoch"

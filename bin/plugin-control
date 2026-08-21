@@ -10,7 +10,7 @@ readonly SCRIPT_PATH
 BACKEND_ROOT="$(realpath -m -- "$(dirname -- "$SCRIPT_PATH")/../lib/backend")"
 readonly BACKEND_ROOT
 
-for backend_module in common config catalog snapshot actions lifecycle; do
+for backend_module in common config catalog updates snapshot actions lifecycle; do
   # Workers use the same modules from their staged private directory.
   # shellcheck disable=SC1090
   source "$BACKEND_ROOT/$backend_module.sh"
@@ -18,7 +18,7 @@ done
 unset backend_module
 
 usage() {
-  json_error "usage: plugin-control <cached|refresh|ensure-config|config-status|status|action|ack|benchmark> ..."
+  json_error "usage: plugin-control <cached|refresh|check-updates|ensure-config|config-status|status|action|ack|benchmark> ..."
 }
 
 main() {
@@ -79,6 +79,10 @@ main() {
       root="$(source_root "$1")"
       shift
       refresh_command "$root" "${1:-}"
+      ;;
+    check-updates)
+      (( $# == 1 )) || { usage; return 2; }
+      check_updates_command "$(source_root "$1")"
       ;;
     ensure-config)
       (( $# == 1 )) || { usage; return 2; }

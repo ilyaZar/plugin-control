@@ -30,6 +30,16 @@ def valid_release:
       and optional_string("tag"; 160)
       and optional_string("url"; 2048));
 
+def valid_optional_count($key):
+  (has($key) | not) or .[$key] == null
+  or (.[$key] | type == "number" and floor == . and . >= 0
+      and . <= 1000000000000);
+
+def valid_verification:
+  (.verificationStatus == null)
+  or (.verificationStatus | type == "string"
+      and IN("verified", "unverified"));
+
 def row_valid:
   type == "object"
   and (.id | valid_id)
@@ -50,7 +60,9 @@ def row_valid:
   and optional_string("upstreamCheckStatus"; 80)
   and ((.sourceType // "") | IN("builtin", "community"))
   and valid_tags
-  and valid_release;
+  and valid_release
+  and valid_optional_count("stars")
+  and valid_verification;
 
 def normalized_repository:
   (.repo // "")
@@ -70,6 +82,8 @@ def normalized_record($channel_name; $channel_source; $channel_rank):
       repository: $repository,
       category: (.category // ""),
       tags: (.tags // []),
+      stars: (.stars // null),
+      verificationStatus: (.verificationStatus // ""),
       kind: (.kind // ""),
       builtIn: $builtin,
       source: (if $builtin then "builtin" else $channel_source end),
@@ -87,7 +101,8 @@ def normalized_record($channel_name; $channel_source; $channel_rank):
       upstreamObservedCommit: (.upstreamObservedCommit // ""),
       upstreamCheckStatus: (.upstreamCheckStatus // "unknown"),
       releaseTag: (.repositoryRelease.tag // "")
-    };
+    }
+  | with_entries(select(.value != null));
 
 if type != "object" then
   {ok: false, error: "catalog root must be an object", records: [], errors: []}
