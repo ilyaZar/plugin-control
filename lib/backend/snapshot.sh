@@ -64,6 +64,14 @@ manifest_record() {
       | with_entries(select(.value != ""))
     ' "$manifest"
 }
+
+channel_cache_valid() {
+  local cache="$1"
+  [[ -f $cache && ! -L $cache ]] \
+    && jq -e '.ok == true and (.records | type == "array")' \
+      "$cache" >/dev/null 2>&1
+}
+
 installed_records() {
   local output="$1"
   local stage="$2"
@@ -150,8 +158,7 @@ build_snapshot() (
   while IFS= read -r channel; do
     channel_id="$(jq -r '.id' <<<"$channel")"
     cache="$CHANNEL_CACHE/$channel_id.json"
-    if [[ -f $cache && ! -L $cache ]] && jq -e '.ok == true and (.records | type == "array")' \
-      "$cache" >/dev/null 2>&1; then
+    if channel_cache_valid "$cache"; then
       if [[ $channel_id == marketplace ]]; then
         jq -c '.records[] | .marketplaceListed = true' "$cache" \
           >>"$records_jsonl"
@@ -246,7 +253,8 @@ build_snapshot() (
     '{ok:true,snapshotId:$snapshotId,generatedAt:$generatedAt,
       records:$records[0],diagnostics:$diagnostics[0],config:$config[0],
       cache:{lastSuccessfulRefresh:($refresh[0].lastSuccessfulRefresh // ""),
-        lastRefreshError:($refresh[0].lastRefreshError // ""),
+        refreshWarnings:(($refresh[0].refreshWarnings // [])
+          | if type == "array" then . else [] end),
         refreshDurationMs:($refresh[0].refreshDurationMs // 0)},
       updates:{lastSuccessfulCheck:($updates[0].lastSuccessfulCheck // ""),
         lastCheckAttempt:($updates[0].lastCheckAttempt // ""),
@@ -275,24 +283,48 @@ refresh_command() {
     return 1
   fi
 
-  local started now last_epoch=0 ttl refresh_needed=true
+  local started now last_epoch=0 last_successful_at=""
+  local ttl refresh_needed=true
   started="$(date +%s%3N)"
   now="$(epoch_now)"
   ttl=$(( $(jq -r '.refresh_minutes' <<<"$config") * 60 ))
-  if [[ $force != --force && -f $REFRESH_STATE && ! -L $REFRESH_STATE ]]; then
+  if [[ -f $REFRESH_STATE && ! -L $REFRESH_STATE ]]; then
     last_epoch="$(jq -r '.lastSuccessfulEpoch // 0' "$REFRESH_STATE" 2>/dev/null || printf 0)"
-    if [[ $last_epoch =~ ^[0-9]+$ ]] && (( now - last_epoch < ttl )); then
+    last_successful_at="$(jq -r '.lastSuccessfulRefresh // ""' \
+      "$REFRESH_STATE" 2>/dev/null || true)"
+  fi
+  [[ $last_epoch =~ ^[0-9]+$ ]] || last_epoch=0
+  if [[ $force != --force ]]; then
+    if (( now - last_epoch < ttl )); then
       refresh_needed=false
     fi
   fi
 
-  local -a errors=()
-  local channel channel_name
+  local -a warnings=()
+  local channel channel_id channel_name cache metadata fallback cache_retrieved_at
   if [[ $refresh_needed == true ]]; then
     while IFS= read -r channel; do
+      channel_id="$(jq -r '.id' <<<"$channel")"
       channel_name="$(jq -r '.name' <<<"$channel")"
       if ! refresh_channel "$root" "$channel" "$config"; then
-        errors+=("$channel_name refresh failed; using its last valid cache")
+        cache="$CHANNEL_CACHE/$channel_id.json"
+        metadata="$CHANNEL_CACHE/$channel_id.meta.json"
+        fallback=none
+        cache_retrieved_at=""
+        if channel_cache_valid "$cache"; then
+          fallback=cache
+          if [[ -f $metadata && ! -L $metadata ]]; then
+            cache_retrieved_at="$(jq -r '.retrievedAt // ""' \
+              "$metadata" 2>/dev/null || true)"
+          fi
+        elif [[ $channel_id == marketplace ]]; then
+          fallback=bundled
+        fi
+        warnings+=("$(jq -cn --arg channelId "$channel_id" \
+          --arg channelName "$channel_name" --arg fallback "$fallback" \
+          --arg cacheRetrievedAt "$cache_retrieved_at" \
+          '{channelId:$channelId,channelName:$channelName,
+            fallback:$fallback,cacheRetrievedAt:$cacheRetrievedAt}')")
       fi
     done < <(jq -c '.channels[] | select(.enabled == true)' <<<"$config")
     if jq -e 'any(.channels[];
@@ -302,35 +334,26 @@ refresh_command() {
     fi
   fi
 
-  local ended duration error_text="" successful_at="" successful_epoch="$last_epoch"
+  local ended duration refresh_warnings='[]'
+  local successful_at="$last_successful_at" successful_epoch="$last_epoch"
   ended="$(date +%s%3N)"
   duration=$((ended - started))
-  if (( ${#errors[@]} > 0 )); then
-    error_text="$(IFS='; '; printf '%s' "${errors[*]}")"
+  if (( ${#warnings[@]} > 0 )); then
+    refresh_warnings="$(printf '%s\n' "${warnings[@]}" | jq -sc .)"
   elif [[ $refresh_needed == true ]]; then
     successful_at="$(utc_now)"
     successful_epoch="$now"
-  else
-    successful_at="$(jq -r '.lastSuccessfulRefresh // ""' "$REFRESH_STATE" 2>/dev/null || true)"
-  fi
-  if [[ -z $successful_at && -f $REFRESH_STATE ]]; then
-    successful_at="$(jq -r '.lastSuccessfulRefresh // ""' "$REFRESH_STATE" 2>/dev/null || true)"
   fi
   jq -cn --arg lastSuccessfulRefresh "$successful_at" \
     --argjson lastSuccessfulEpoch "${successful_epoch:-0}" \
-    --arg lastRefreshError "$error_text" --argjson refreshDurationMs "$duration" \
+    --argjson refreshWarnings "$refresh_warnings" \
+    --argjson refreshDurationMs "$duration" \
     '{lastSuccessfulRefresh:$lastSuccessfulRefresh,
       lastSuccessfulEpoch:$lastSuccessfulEpoch,
-      lastRefreshError:$lastRefreshError,
+      refreshWarnings:$refreshWarnings,
       refreshDurationMs:$refreshDurationMs}' | atomic_write_stream "$REFRESH_STATE"
 
-  local snapshot
-  snapshot="$(build_snapshot "$root" "$config")" || return 1
-  if [[ -n $error_text ]]; then
-    printf '%s\n' "$snapshot"
-    return 1
-  fi
-  printf '%s\n' "$snapshot"
+  build_snapshot "$root" "$config"
 }
 
 snapshot_is_current() {

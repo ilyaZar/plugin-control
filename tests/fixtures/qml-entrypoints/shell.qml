@@ -444,6 +444,13 @@ ShellRoot {
             || overlay.rightStatusOpacity !== 1) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR refresh status")
         }
+        root.serviceObject.refreshing = false
+        if (overlay.rightStatusText !== "Old catalog error"
+            || !overlay.refreshStatusUrgent
+            || String(overlay.rightStatusColor) !== String(overlay.urgent)
+            || overlay.rightStatusOpacity !== 1) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR fatal refresh status")
+        }
         root.serviceObject.lastError = ""
         root.serviceObject.refreshBaselineTimestamp =
           "2026-08-16T11:00:00Z"
@@ -452,7 +459,7 @@ ShellRoot {
           ok: true,
           records: [],
           cache: {
-            lastRefreshError: "",
+            refreshWarnings: [],
             lastSuccessfulRefresh: refreshedAt,
             refreshDurationMs: 42
           }
@@ -478,6 +485,38 @@ ShellRoot {
             || String(overlay.rightStatusColor) !== String(overlay.foreground)
             || overlay.rightStatusOpacity !== 0.70) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR refresh settled status")
+        }
+        var cachedAt = "2026-08-16T10:05:00Z"
+        var warningSnapshot = JSON.stringify({
+          ok: true,
+          records: [],
+          cache: {
+            refreshWarnings: [{
+              channelId: "marketplace",
+              channelName: "Omarchy Plugins Marketplace",
+              fallback: "cache",
+              cacheRetrievedAt: cachedAt
+            }],
+            lastSuccessfulRefresh: refreshedAt,
+            refreshDurationMs: 39
+          }
+        })
+        root.serviceObject.refreshBaselineTimestamp = refreshedAt
+        if (!root.serviceObject.applySnapshot(warningSnapshot, 0, true)
+            || root.serviceObject.refreshSuccessVisible
+            || !overlay.hasRefreshWarnings
+            || root.serviceObject.refreshWarnings.length !== 1
+            || overlay.rightStatusText !== "Catalog refreshed: "
+              + overlay.formatStatusTimestamp(refreshedAt)
+            || overlay.refreshWarningText.indexOf(
+              "Omarchy Plugins Marketplace") < 0
+            || overlay.refreshWarningText.indexOf("last valid cache") < 0
+            || overlay.refreshWarningText.indexOf(
+              overlay.formatStatusTimestamp(cachedAt)) < 0
+            || String(overlay.rightStatusColor)
+              !== String(overlay.foreground)
+            || overlay.rightStatusOpacity !== 0.70) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR refresh warning status")
         }
         root.serviceObject.updateCheckBaselineTimestamp =
           "2026-08-16T11:00:00Z"

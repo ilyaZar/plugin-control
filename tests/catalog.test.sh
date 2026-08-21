@@ -345,10 +345,63 @@ refresh_marketplace_stats() {
 refresh_command "$ROOT" --force >/dev/null
 refresh_command "$ROOT" --force >/dev/null
 (( refresh_calls == 2 ))
-jq -e '.lastRefreshError == ""' "$REFRESH_STATE" >/dev/null
+jq -e '.refreshWarnings == [] and (has("lastRefreshError") | not)' \
+  "$REFRESH_STATE" >/dev/null
 if rg -q -- '--request[[:space:]]+POST|-X[[:space:]]+POST' \
     "$ROOT/lib/backend" "$ROOT"/*.qml; then
   printf 'not ok - marketplace information emits engagement events\n' >&2
   exit 1
 fi
 printf 'ok - Ctrl+R retries metrics silently without engagement posts\n'
+
+previous_refresh="2026-08-20T12:00:00Z"
+previous_epoch=1787227200
+jq -cn --arg lastSuccessfulRefresh "$previous_refresh" \
+  --argjson lastSuccessfulEpoch "$previous_epoch" \
+  '{lastSuccessfulRefresh:$lastSuccessfulRefresh,
+    lastSuccessfulEpoch:$lastSuccessfulEpoch,refreshWarnings:[],
+    refreshDurationMs:10}' >"$REFRESH_STATE"
+jq -cn '{normalizerVersion:3,retrievedAt:"2026-08-20T11:59:00Z"}' \
+  >"$CHANNEL_CACHE/marketplace.meta.json"
+refresh_channel() {
+  return 1
+}
+refresh_command "$ROOT" --force >"$TEMP_ROOT/warning-snapshot.json"
+warning_snapshot="$(<"$TEMP_ROOT/warning-snapshot.json")"
+jq -e --arg refreshed "$previous_refresh" \
+  --argjson epoch "$previous_epoch" '
+    .lastSuccessfulRefresh == $refreshed
+    and .lastSuccessfulEpoch == $epoch
+    and (.refreshWarnings | length) == 1
+    and .refreshWarnings[0].channelId == "marketplace"
+    and .refreshWarnings[0].fallback == "cache"
+    and .refreshWarnings[0].cacheRetrievedAt == "2026-08-20T11:59:00Z"
+    and (has("lastRefreshError") | not)' "$REFRESH_STATE" >/dev/null
+jq -e --arg refreshed "$previous_refresh" '
+    .cache.lastSuccessfulRefresh == $refreshed
+    and (.cache.refreshWarnings | length) == 1' \
+  <<<"$warning_snapshot" >/dev/null
+printf 'ok - recoverable refresh warnings preserve cache time and epoch\n'
+
+mv "$CHANNEL_CACHE/marketplace.json" \
+  "$TEMP_ROOT/marketplace-cache-preserved.json"
+refresh_command "$ROOT" --force >"$TEMP_ROOT/bundled-warning-snapshot.json"
+jq -e '
+    (.cache.refreshWarnings | length) == 1
+    and .cache.refreshWarnings[0].channelId == "marketplace"
+    and .cache.refreshWarnings[0].fallback == "bundled"
+    and (.records | length) > 0' \
+  "$TEMP_ROOT/bundled-warning-snapshot.json" >/dev/null
+mv "$TEMP_ROOT/marketplace-cache-preserved.json" \
+  "$CHANNEL_CACHE/marketplace.json"
+printf 'ok - missing marketplace cache falls back to bundled catalog\n'
+
+refresh_channel() {
+  return 0
+}
+refresh_command "$ROOT" --force >/dev/null
+jq -e --arg refreshed "$previous_refresh" --argjson epoch "$previous_epoch" '
+    .lastSuccessfulRefresh != $refreshed
+    and .lastSuccessfulEpoch > $epoch
+    and .refreshWarnings == []' "$REFRESH_STATE" >/dev/null
+printf 'ok - complete refresh clears warnings and advances success time\n'

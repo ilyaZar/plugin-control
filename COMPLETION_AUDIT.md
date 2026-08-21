@@ -83,7 +83,9 @@ This audit records release-readiness evidence for
 - [x] Offline behavior. Malformed, failed, oversized, and unchanged catalog
   responses preserve the last valid cache. A valid empty catalog clears stale
   records, while an unverifiable submission candidate preserves the complete
-  previous issue cache and metadata.
+  previous issue cache and metadata. A retained cache or bundled-catalog
+  fallback completes with a structured yellow warning and preserves the last
+  genuine refresh time; only failures that prevent a usable snapshot are red.
 
 ## Settings and channels
 
