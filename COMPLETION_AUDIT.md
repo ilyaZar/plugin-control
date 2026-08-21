@@ -9,15 +9,23 @@ This audit records release-readiness evidence for
   `manifest.json`, separate service, overlay, bar launcher, dialog, JavaScript
   model and view model, focused palette components, modular Bash backend,
   strict YAML parser, jq normalizers, editor helpers, copied shortcut library,
-  fixtures, tests, documentation, MIT license, and `preview.png`.
+  fixtures, tests, domain glossary, manual UI checklist, documentation, MIT
+  license, and `preview.png`.
 - [x] Runtime validation. `omarchy plugin validate .` exited 0. The publishing
   preflight reported 0 errors.
 - [x] No plugin-tree symlinks. The publishing preflight checked this directly.
-  The development installation is a symlink at the plugin root, outside the
-  repository tree.
+  The local installation is a normal Git checkout at the plugin root, outside
+  the repository tree.
 - [x] Local installation. Omarchy lists the plugin as enabled with service,
-  overlay, and bar-widget kinds. The source is linked at the exact manifest-ID
-  path.
+  overlay, and bar-widget kinds. The feature branch is installed at the exact
+  manifest-ID path for owner testing.
+- [x] One-way 0.2.0 contract. The `plug-install:` alias, unnamespaced user-data
+  migration, old-root deletion, supporting tests, and stale documentation were
+  removed. `plug-add:` and the author-namespaced paths are the only supported
+  routes.
+- [x] Refactor audit. The update-count reducer now has one implementation. A
+  second duplication and stale-code pass found no further reduction that would
+  simplify the update state machine or QML presentation.
 
 ## Loading and performance
 
@@ -54,16 +62,19 @@ This audit records release-readiness evidence for
   substring and subsequence ranking, stable ties, case-insensitivity,
   ID/name/author/tag matching, result caps, and browse-only records.
 - [x] Command grammar. Tests cover `plug-add:`, `plug-remove:`,
-  `plug-enable:`, `plug-disable:`, the `plug-install:` alias, case differences,
-  whitespace around the colon, fuzzy command-only completion, unpinned empty
-  results, operation-intent promotion, exact Tab/Enter completion data, and
-  the Backspace transition.
+  `plug-enable:`, `plug-disable:`, `plug-update:`, case differences, whitespace
+  around the colon, fuzzy command-only completion, unpinned empty results,
+  operation-intent promotion, exact Tab/Enter completion data, and the two-step
+  Backspace transition.
 - [x] Source merging. Tests prove local-over-marketplace and
   built-in-over-marketplace precedence plus repository-collision diagnostics.
-- [x] Listed marketplace. The live normalized cache held 203 records: 156
-  installable, 36 built-in, and 0 normalization errors. All 167 community IDs
-  matched the website catalog exactly and were reachable through exact-ID
-  fuzzy search; the remaining 11 community entries stayed browse-only.
+- [x] Listed marketplace. The live marketplace catalog held 694 records on
+  2026-08-20. Strict normalization accepts current stars, verification state,
+  and tags without weakening URL, ID, size, or record-count bounds.
+- [x] Marketplace metrics. One aggregate read-only stats request per explicit
+  Ctrl+R supplies views, command copies, and anonymous hearts. Strict schema
+  validation, atomic replacement, and ID joins preserve the last valid cache
+  on failure and never invent zero values. No engagement POST is present.
 - [x] Offline behavior. Malformed, failed, oversized, and unchanged catalog
   responses preserve the last valid cache. A valid empty catalog clears stale
   records, while an unverifiable submission candidate preserves the complete
@@ -103,28 +114,39 @@ This audit records release-readiness evidence for
 - [x] Native command boundary. Mock tests observed exactly
   `omarchy plugin add https://github.com/example/weather --enable --yes` and
   `omarchy plugin add https://github.com/example/weather --enable` in the
-  interactive terminal, plus `omarchy plugin remove local.test --yes`.
-  Switchable built-in and third-party plugins use native enable and disable;
-  runtime `canDisable` state guards both actions.
-- [x] Confirmation safety. Enter opens a keyboard-cancel-first dialog only for
-  an available action. Ctrl+I reuses it as a non-mutating information
-  view, and browse-only Enter is inert. The action path pins a copy of the
-  displayed record and its snapshot ID; backend execution requires that exact
-  snapshot to remain current.
+  interactive terminal, `omarchy plugin remove local.test --yes`, and
+  `omarchy plugin update test.available --yes`. Switchable built-in and
+  third-party plugins use native enable and disable. Inactive full bars may use
+  native enable, while active full bars cannot be disabled.
+- [x] Read-only update classification. Added plugins are classified as current,
+  available, manual, dirty, local-ahead, diverged, unsupported-layout, or
+  failed. Checks fetch `origin HEAD`, compare commits, and never merge, reset,
+  pull, checkout, or invoke the native updater.
+- [x] Update execution. Update is invoked only after a fresh per-plugin
+  classification proves a clean fast-forward. Current plugins report the exact
+  already-current result without entering the updating state; unsafe states
+  expose a dimmed explanation and never reach the native updater.
+- [x] Confirmation safety. Every selected plugin opens the same
+  keyboard-cancel-first action dialog with only currently meaningful actions.
+  Ctrl+I reuses it with Close as a non-mutating information view. The action
+  path pins a copy of the displayed record and its snapshot ID; backend
+  execution requires that exact snapshot to remain current.
 - [x] Remote command isolation. Fixtures include a hostile remote command
   string; it is never executed or interpolated into a shell.
 - [x] Guarded self-removal. The settings menu opens a snapshot-pinned,
   abort-first warning with separate preserve-data and delete-data actions. The
   staged worker survives checkout deletion. Native removal preserves user
-  state; clean removal deletes namespaced and legacy state plus the recognized
-  Plugin Control binding before invoking the native command.
+  state; clean removal deletes namespaced state plus the recognized Plugin
+  Control binding before invoking the native command.
 - [x] Dirty-checkout protection. Removal is blocked before the native remove
-  command when Git reports local changes.
+  command when Git reports local changes, including `.git` file layouts used
+  by worktrees and submodules.
 - [x] Path containment. IDs reject traversal and removal requires the exact
   lexical plugin-ID path plus matching manifest identity.
-- [x] Locking. A simultaneous second action receives a busy response. Snapshot
-  builds share a separate lock so refresh and action completion cannot publish
-  stale installed state out of order.
+- [x] Locking. A simultaneous second action receives a busy response. Update
+  checks serialize against actions globally and per plugin. Snapshot builds
+  share a separate lock so refresh and action completion cannot publish stale
+  added-plugin state out of order.
 - [x] Interactive terminal handoff. The persisted terminal toggle launches the
   same detached worker through `omarchy-launch-terminal`, streams native
   output and prompts, lets Omarchy choose left, center, or right for bar
@@ -149,26 +171,39 @@ This audit records release-readiness evidence for
   Quickshell process is used in production.
 - [x] Keyboard and mouse input. The overlay has a real focused `TextInput`, all
   specified navigation and editing keys, command completion on Tab or Enter,
-  Ctrl+R, hover, click, and selection scrolling.
+  Ctrl+U, Ctrl+R, hover, click, and selection scrolling.
+- [x] Shared action model. Built-ins receive Cancel plus Enable or Disable;
+  added user plugins receive Cancel, Update, Enable or Disable, and Remove;
+  available plugins receive Cancel and Add. Normal search and all explicit
+  command modes open this same state-derived menu.
+- [x] Dimmed action help. Unsafe Update remains focusable. A one-second
+  keyboard or pointer rest reveals its reason, leaving the action hides it
+  immediately, and Enter or Space reveals it without mutation.
 - [x] Compact result metadata. Repository links use a smaller third line while
   rows remain 60 logical pixels. The redundant mode-explanation row is gone.
 - [x] Ctrl+P toggle. The effective Hyprland binding description is `Plugin
   Control`, key P, modifier mask 4. The focused field also handles Ctrl+P as a
   defensive close path.
-- [x] Footer shortcuts. A top rule separates five equal-width shortcut cells;
-  their bracketed keys use the active theme's yellow. Ctrl+I opens plugin
-  details, Ctrl+W and Ctrl+G follow the selected plugin or fall back to the
-  marketplace, Ctrl+R refreshes, and Ctrl+S opens settings. These fixed
-  controls are handled only by the focused palette.
-- [x] Refresh status. An explicit refresh is yellow while running, then its
-  local completion time is green for ten seconds before settling to grey.
+- [x] Footer shortcuts. A top rule separates six equal-width shortcut cells;
+  their bracketed keys use the active theme's yellow. Ctrl+U checks updates,
+  Ctrl+I opens plugin details, Ctrl+W and Ctrl+G open the selected destination,
+  Ctrl+R refreshes catalog and metrics, and Ctrl+S opens settings. The font
+  shrinks by only one pixel at compact widths.
+- [x] Parallel status row. Update/action status is left-aligned and catalog
+  status is right-aligned. Running work is yellow, success remains green for
+  ten seconds, and exact settled local timestamps are grey. The catalog label
+  omits the former Cached, hyphen, and at text.
 - [x] Visual smoke test. The live panel appeared top-centered below the bar on
-  focused monitor VGA-1, with immediate cursor focus, compact left-aligned
-  rows, theme tokens, source/status metadata, and a short dropdown animation.
-  Capital O remained search input, the failed-action notice expired after ten
-  seconds, and repeated toggling produced one overlay and left it closed.
-- [x] Preview. `preview.png` is a 722 by 500 crop containing only the palette.
-  It was inspected at original resolution for layout and privacy.
+  focused monitor DP-3. The six footer shortcuts fit, Ctrl+U entered
+  `plug-update:`, and the left update status changed from yellow checking to a
+  red partial result while the catalog timestamp remained right-aligned. The
+  shared action dialog showed Cancel, dimmed Update, Disable, and Remove;
+  resting on Update revealed its precise local-ahead explanation. Ctrl+I
+  displayed cached views, copies, hearts, tags, and verification state. The
+  overlay was closed after the final capture.
+- [x] Preview. `preview.png` is an exact 720 by 539 crop of the live 0.2.0
+  action dialog. It contains no desktop background, was inspected at original
+  resolution, and is 69 KB.
 - [x] QML loading. The real Quickshell instantiation harness created the
   service, overlay, and bar-widget entry points with isolated XDG paths. It
   also proved a late-injected manifest starts the service and arms the watcher
@@ -187,6 +222,7 @@ ruby tests/channel_config.test.rb
 tests/catalog.test.sh
 tests/issues.test.sh
 tests/backend.test.sh
+tests/updates.test.sh
 tests/helpers.test.sh
 QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner \
   -input tests/tst_models.qml -import .
@@ -195,7 +231,8 @@ omarchy plugin validate .
 omarchy-plugin-publishing preflight .
 ```
 
-ShellCheck reported no findings. The publishing preflight reported 0 errors.
+ShellCheck 0.11.0 reported no findings. The publishing preflight and official
+Omarchy validator reported 0 errors.
 
 ## Cleanup and shared-state preservation
 
@@ -211,4 +248,8 @@ ShellCheck reported no findings. The publishing preflight reported 0 errors.
 
 - Unauthenticated GitHub API limits apply to the optional issue channel.
 - Only the first 100 open submission issues are considered per refresh.
-- Normal-update integration is not implemented.
+- Update checks compare each ordinary Git checkout with `origin HEAD`; the
+  native Omarchy updater remains the sole owner of the actual fast-forward and
+  plugin rescan.
+- Full visual and destructive-state coverage remains an owner-run release gate
+  in `MANUAL_UI_CHECKLIST.md` before merge or publication.
