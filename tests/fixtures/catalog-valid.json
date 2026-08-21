@@ -1,5 +1,5 @@
 {
-  "stateSchemaVersion": 1,
+  "stateSchemaVersion": 2,
   "generatedAt": "2026-08-15T00:00:00Z",
   "plugins": [
     {
@@ -17,6 +17,14 @@
       "tags": ["weather", "bar"],
       "stars": 42,
       "verificationStatus": "verified",
+      "verificationSnapshotStatus": "verified",
+      "verificationCoverage": "snapshot-verified",
+      "verificationBaselineVersion": "3",
+      "verificationCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "verificationCheckedAt": "2026-08-20T07:30:00.000Z",
+      "verificationMethod": "maintainer-reviewed",
+      "verificationReviewedAt": "2026-08-20T07:45:00.000Z",
+      "verificationReviewedBy": "marketplace-maintainer",
       "addedAt": "2026-08-20",
       "listedAt": "2026-08-20T08:00:00.000Z",
       "versionUpdatedAt": "2026-08-20T09:00:00.000Z",
@@ -29,7 +37,35 @@
       "kind": "Bar widget",
       "status": "Available",
       "listingValidatedCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "upstreamObservedCommit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "upstreamObservedCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "upstreamValidatedCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "upstreamCheckStatus": "passed"
+    },
+    {
+      "id": "io.example.timer",
+      "name": "Timer",
+      "description": "An updated timer widget",
+      "author": "Example",
+      "version": "2.0.0",
+      "repo": "https://github.com/example/timer",
+      "sourceType": "community",
+      "manifestPath": "manifest.json",
+      "repositoryLayout": "root-plugin",
+      "installAvailable": true,
+      "category": "Utilities",
+      "tags": ["timer", "bar"],
+      "stars": 21,
+      "verificationStatus": "unverified",
+      "verificationSnapshotStatus": "verified",
+      "verificationCoverage": "update-unverified",
+      "verificationBaselineVersion": "3",
+      "verificationCommit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "verificationCheckedAt": "2026-08-19T08:00:00.000Z",
+      "kind": "Bar widget",
+      "status": "Available",
+      "listingValidatedCommit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "upstreamObservedCommit": "cccccccccccccccccccccccccccccccccccccccc",
+      "upstreamValidatedCommit": "cccccccccccccccccccccccccccccccccccccccc",
       "upstreamCheckStatus": "passed"
     },
     {
@@ -46,10 +82,27 @@
       "tags": [],
       "stars": 0,
       "verificationStatus": "unverified",
+      "verificationSnapshotStatus": "unverified",
+      "verificationCoverage": "unverified",
       "addedAt": "2026-08-19",
       "listedAt": "2026-08-19T10:00:00.000Z",
       "kind": "Suite",
       "status": "Manual setup"
+    },
+    {
+      "id": "omarchy.weather",
+      "name": "Weather",
+      "description": "Current weather in the bar",
+      "author": "Omarchy",
+      "version": "1.0.0",
+      "repo": "https://github.com/basecamp/omarchy",
+      "sourceType": "builtin",
+      "builtIn": true,
+      "manifestPath": "shell/plugins/bar/widgets/Weather.manifest.json",
+      "category": "Bar widgets",
+      "tags": ["bar-widget"],
+      "kind": "Bar widget",
+      "status": "Built in"
     }
   ]
 }
