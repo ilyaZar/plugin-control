@@ -62,7 +62,7 @@ function warningState(record) {
 function stateLabel(record) {
   if (record.builtIn === true) return record.enabled === false ? "Disabled" : "Built-in"
   if (record.installed === true)
-    return record.enabled === false ? "Disabled" : "Installed"
+    return record.enabled === false ? "Disabled" : "Added"
   if (record.installable === true) return "Available"
   return "Browse only"
 }
