@@ -1,5 +1,6 @@
 readonly UPDATE_CHECK_JOBS=4
 readonly MANUAL_UPDATE_REASON="Manually copied/installed plugin. No Git repository to update."
+readonly DEVELOPMENT_LINK_UPDATE_REASON="Development link; update its source checkout directly."
 readonly DIRTY_UPDATE_REASON="This plugin has local changes. Commit or stash them before updating."
 readonly AHEAD_UPDATE_REASON="This plugin is ahead of upstream and cannot be updated safely."
 readonly DIVERGED_UPDATE_REASON="This plugin has diverged from upstream and cannot be updated safely."
@@ -51,6 +52,11 @@ classify_plugin_update() {
   local relation_rc
   local porcelain
 
+  if [[ -L $path ]]; then
+    update_result "$id" manual false false "" "" \
+      "$DEVELOPMENT_LINK_UPDATE_REASON"
+    return
+  fi
   # Match the native updater, which accepts only a .git directory.
   if [[ -f $path/.git ]]; then
     local_commit="$(git -C "$path" rev-parse HEAD 2>/dev/null || true)"

@@ -104,6 +104,9 @@ Use at least one light theme and one dark theme. Keep a terminal open for
 - [ ] Repeat with a Git worktree or submodule-style `.git` file. Confirm Update
   is dimmed with the native-updater-layout explanation and dirty removal stays
   blocked.
+- [ ] Symlink a dirty external development checkout into the plugin root.
+  Confirm Update is dimmed with the development-link explanation, Remove
+  unlinks it, and the external checkout remains unchanged.
 
 ## Information and marketplace metrics
 
