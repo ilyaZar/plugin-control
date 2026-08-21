@@ -224,7 +224,7 @@ run_switch_action() {
   local id="$2"
   local operation="$3"
   local output_file="$4"
-  local success_message rc
+  local plugin_name success_message rc
   local -a command
 
   if ! jq -e '.builtIn == true or .installed == true' \
@@ -233,6 +233,8 @@ run_switch_action() {
       "The confirmed plugin does not support enable or disable."
     return
   fi
+  plugin_name="$(jq -r '.name // empty' <<<"$record")"
+  [[ -n $plugin_name ]] || plugin_name="$id"
   case "$operation" in
     enable)
       if ! jq -e '.enabled == false' <<<"$record" >/dev/null; then
@@ -246,7 +248,7 @@ run_switch_action() {
         return
       fi
       command=(omarchy plugin enable "$id")
-      success_message="Plugin enabled."
+      success_message="Plugin $plugin_name enabled."
       ;;
     disable)
       if ! jq -e '.enabled == true' <<<"$record" >/dev/null; then
@@ -259,7 +261,7 @@ run_switch_action() {
         return
       fi
       command=(omarchy plugin disable "$id")
-      success_message="Plugin disabled."
+      success_message="Plugin $plugin_name disabled."
       ;;
   esac
   if timeout --signal=TERM --kill-after=2s 30s \

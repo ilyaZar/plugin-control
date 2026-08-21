@@ -413,7 +413,9 @@ jq -e '.records[] | select(.id == "local.test")
 
 helper action "$ROOT" disable local.test "$snapshot_id" background >/dev/null
 status="$(wait_action)"
-jq -e '.ok == true and .operation == "disable"' <<<"$status" >/dev/null
+jq -e '.ok == true and .operation == "disable"
+  and .message == "Plugin Local Test disabled."' \
+  <<<"$status" >/dev/null
 grep -Fqx 'plugin disable local.test' "$MOCK_LOG"
 wait_worker_release
 
@@ -424,7 +426,9 @@ snapshot="$(rebuild_snapshot)"
 snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
 helper action "$ROOT" enable local.test "$snapshot_id" background >/dev/null
 status="$(wait_action)"
-jq -e '.ok == true and .operation == "enable"' <<<"$status" >/dev/null
+jq -e '.ok == true and .operation == "enable"
+  and .message == "Plugin Local Test enabled."' \
+  <<<"$status" >/dev/null
 grep -Fqx 'plugin enable local.test' "$MOCK_LOG"
 wait_worker_release
 printf 'ok - third-party plugins use native enable and disable actions\n'
