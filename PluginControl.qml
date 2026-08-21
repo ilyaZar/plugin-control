@@ -78,7 +78,7 @@ Item {
     + activeFooterHeight + statusHeight
     + Style.spacing.sm * chromeSpacingCount
   readonly property int cardHeight: Math.min(Style.space(600),
-    Math.max(Style.space(actionDialog.opened ? 520
+    Math.max(Style.space(actionDialog.opened ? 580
       : (selfRemovalDialog.opened ? 280 : 220)),
       Math.min(desiredCardHeight,
         panel.height - restingY - Style.gapsOut)))

@@ -25,7 +25,11 @@ jq -e '.records[1].installable == false' <<<"$valid" >/dev/null
 jq -e '.records[0].listingValidatedCommit != .records[0].upstreamObservedCommit' \
   <<<"$valid" >/dev/null
 jq -e '.records[0].stars == 42
-  and .records[0].verificationStatus == "verified"' \
+  and .records[0].verificationStatus == "verified"
+  and .records[0].addedAt == "2026-08-20"
+  and .records[0].listedAt == "2026-08-20T08:00:00.000Z"
+  and .records[0].versionUpdatedAt == "2026-08-20T09:00:00.000Z"
+  and .records[1].stars == 0' \
   <<<"$valid" >/dev/null
 printf 'ok - marketplace-like catalog and browse-only rows\n'
 

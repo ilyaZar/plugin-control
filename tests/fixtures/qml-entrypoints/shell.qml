@@ -650,6 +650,8 @@ ShellRoot {
           views: 10,
           copies: 11,
           hearts: 12,
+          listedAt: "2026-08-20T08:00:00Z",
+          versionUpdatedAt: new Date().toISOString(),
           tags: ["shell"]
         }
         if (dialog.actions.length !== 4
@@ -658,6 +660,18 @@ ShellRoot {
             || dialog.actions[2].label !== "Disable"
             || dialog.actions[3].label !== "Remove"
             || !dialog.listedUserPlugin || !dialog.metricsAvailable
+            || dialog.activityState !== "updated"
+            || dialog.metricItems.length !== 4
+            || dialog.badgeItems.length !== 2
+            || dialog.badgeItems[0].label !== "UPDATED"
+            || dialog.badgeItems[0].color.toString() !== "#ffb000"
+            || dialog.badgeItems[1].label !== "VERIFIED"
+            || dialog.badgeItems[1].color.toString() !== "#b4c96f"
+            || dialog.metricItems[0].label !== "stars"
+            || dialog.metricItems[0].value !== "9"
+            || dialog.metricItems[0].color.toString() !== "#ffb000"
+            || dialog.metricItems[3].label !== "hearts"
+            || dialog.metricItems[3].color.toString() !== "#ff5a36"
             || dialog.verificationHelp.indexOf("not a security audit") < 0) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared action choices")
         }

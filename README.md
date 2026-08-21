@@ -244,6 +244,13 @@ shellcheck bin/plugin-control scripts/*.sh tests/*.sh
 omarchy plugin validate .
 ```
 
+## Marketplace design credit
+
+The detail view follows the icon language, activity rules, and semantic colors
+of HANCORE's MIT-licensed
+[Omarchy Plugin Marketplace](https://github.com/HANCORE-linux/omarchy-plugin-marketplace).
+It uses Omarchy's installed Nerd Font rather than bundling the website font.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

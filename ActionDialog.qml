@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import qs.Ui
+import "CatalogModel.js" as CatalogModel
 import "PaletteViewModel.js" as PaletteViewModel
 
 FocusScope {
@@ -20,6 +21,9 @@ FocusScope {
   property color selectedText: Color.menu.selectedText
   property color warningColor: Color.urgent
   property string fontFamily: Style.font.menuFamily
+  readonly property color marketplaceOrange: "#ff5a36"
+  readonly property color marketplaceGreen: "#b4c96f"
+  readonly property color marketplaceYellow: "#ffb000"
 
   readonly property var actions: PaletteViewModel.actionOptions(plugin, readOnly)
   readonly property var selectedAction: selectedChoice >= 0
@@ -42,6 +46,48 @@ FocusScope {
     && plugin.metricsAvailable === true
   readonly property string verificationStatus: String(plugin
     && plugin.verificationStatus || "")
+  readonly property string activityState: CatalogModel.activityState(
+    plugin, Date.now())
+  readonly property bool starsAvailable: root.listedUserPlugin && plugin
+    && plugin.stars !== null && plugin.stars !== undefined
+  readonly property var badgeItems: {
+    var values = []
+    if (activityState === "updated") values.push({
+      label: "UPDATED", color: marketplaceYellow, tooltip: "Version updated "
+        + "within the last 12 hours"
+    })
+    else if (activityState === "new") values.push({
+      label: "NEW", color: marketplaceGreen, tooltip: "Listed within the "
+        + "last 12 hours"
+    })
+    if (listedUserPlugin) values.push({
+      label: verificationStatus === "verified" ? "VERIFIED" : "UNVERIFIED",
+      color: verificationStatus === "verified"
+        ? marketplaceGreen : marketplaceOrange,
+      tooltip: verificationHelp
+    })
+    return values
+  }
+  readonly property var metricItems: {
+    var values = []
+    if (starsAvailable) values.push({
+      label: "stars", icon: "\uf005", value: CatalogModel.formatCount(
+        plugin.stars), color: marketplaceYellow,
+      tooltip: "GitHub repository stars"
+    })
+    if (metricsAvailable) {
+      values.push({ label: "views", icon: "\uf441",
+        value: CatalogModel.formatCount(plugin.views),
+        color: marketplaceOrange, tooltip: "Marketplace detail views" })
+      values.push({ label: "copies", icon: "\uf0c5",
+        value: CatalogModel.formatCount(plugin.copies),
+        color: marketplaceOrange, tooltip: "Successful command copies" })
+      values.push({ label: "hearts", icon: "\uf004",
+        value: CatalogModel.formatCount(plugin.hearts),
+        color: marketplaceOrange, tooltip: "Anonymous marketplace hearts" })
+    }
+    return values
+  }
   readonly property string verificationHelp: verificationStatus === "verified"
     ? "Verified means automated or maintainer checks were associated with "
       + "the listed commit. It is not a security audit."
@@ -168,27 +214,39 @@ FocusScope {
     Column {
       anchors.fill: parent
       anchors.margins: Style.spacing.panelPadding
-      spacing: Style.space(5)
+      spacing: Style.space(7)
 
       Text {
         width: parent.width
-        text: root.readOnly ? "Plugin information" : "Plugin actions"
+        text: root.readOnly ? "PLUGIN INFORMATION" : "PLUGIN ACTIONS"
+        textFormat: Text.PlainText
+        color: root.marketplaceOrange
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.body
+        font.bold: true
+        font.letterSpacing: Style.space(1)
+        elide: Text.ElideRight
+      }
+
+      Text {
+        width: parent.width
+        text: String(root.plugin && root.plugin.name || "")
         textFormat: Text.PlainText
         color: root.foreground
         font.family: root.fontFamily
-        font.pixelSize: Style.font.heading
+        font.pixelSize: Style.font.heading + Style.space(2)
         font.bold: true
         elide: Text.ElideRight
       }
 
       Text {
         width: parent.width
-        text: String(root.plugin && root.plugin.name || "") + "  "
-          + String(root.plugin && root.plugin.id || "")
+        text: String(root.plugin && root.plugin.id || "")
         textFormat: Text.PlainText
-        color: root.foreground
+        color: root.marketplaceOrange
+        opacity: 0.88
         font.family: root.fontFamily
-        font.pixelSize: Style.font.title
+        font.pixelSize: Style.font.body
         elide: Text.ElideRight
       }
 
@@ -198,119 +256,277 @@ FocusScope {
         text: String(root.plugin && root.plugin.description || "")
         textFormat: Text.PlainText
         color: root.foreground
-        opacity: 0.82
+        opacity: 0.90
         font.family: root.fontFamily
-        font.pixelSize: Style.font.body
+        font.pixelSize: Style.font.subtitle
+        lineHeight: 1.25
         wrapMode: Text.Wrap
         maximumLineCount: 2
         elide: Text.ElideRight
       }
 
-      Text {
+      Rectangle {
         width: parent.width
-        text: "Author: " + String(root.plugin
-          && root.plugin.author || "Unknown") + "    Version: "
-          + String(root.plugin && root.plugin.version || "Unknown")
-        textFormat: Text.PlainText
-        color: root.foreground
-        opacity: 0.72
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.body
-        elide: Text.ElideRight
+        height: Math.max(1, Style.space(1))
+        color: Util.alpha(root.foreground, 0.16)
+      }
+
+      Row {
+        width: parent.width
+        height: Style.space(38)
+        spacing: Style.spacing.md
+
+        Column {
+          width: (parent.width - parent.spacing) / 2
+          spacing: Style.space(2)
+
+          Text {
+            text: "AUTHOR"
+            textFormat: Text.PlainText
+            color: root.marketplaceOrange
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+            font.bold: true
+          }
+
+          Text {
+            width: parent.width
+            text: String(root.plugin && root.plugin.author || "Unknown")
+            textFormat: Text.PlainText
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.subtitle
+            elide: Text.ElideRight
+          }
+        }
+
+        Column {
+          width: (parent.width - parent.spacing) / 2
+          spacing: Style.space(2)
+
+          Text {
+            text: "VERSION"
+            textFormat: Text.PlainText
+            color: root.marketplaceOrange
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+            font.bold: true
+          }
+
+          Text {
+            width: parent.width
+            text: String(root.plugin && root.plugin.version || "Unknown")
+            textFormat: Text.PlainText
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.subtitle
+            elide: Text.ElideRight
+          }
+        }
       }
 
       Text {
         width: parent.width
-        text: "Source: " + String(root.plugin
+        text: "SOURCE  " + String(root.plugin
           && root.plugin.sourceLabel || "Unknown")
           + (String(root.plugin && root.plugin.warning || "")
-            ? "    Warning: " + String(root.plugin.warning) : "")
+            ? "    " + String(root.plugin.warning) : "")
         textFormat: Text.PlainText
         color: String(root.plugin && root.plugin.warning || "")
-          ? root.warningColor : root.foreground
-        opacity: 0.72
+          ? root.marketplaceOrange : root.foreground
+        opacity: 0.88
         font.family: root.fontFamily
-        font.pixelSize: Style.font.body
+        font.pixelSize: Style.font.subtitle
         elide: Text.ElideRight
       }
 
-      Text {
+      Rectangle {
         width: parent.width
-        text: "Repository: " + String(root.plugin
-          && root.plugin.repository || "Not supplied")
-        textFormat: Text.PlainText
-        color: root.foreground
-        opacity: 0.72
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.body
-        elide: Text.ElideMiddle
-      }
+        height: Style.space(root.reviewedCommit.length > 0 ? 62 : 38)
+        radius: Style.cornerRadius
+        color: Util.alpha(root.foreground, 0.055)
+        border.width: Math.max(1, Style.space(1))
+        border.color: Util.alpha(root.foreground, 0.12)
 
-      Text {
-        visible: root.reviewedCommit.length > 0
-        width: parent.width
-        text: "Reviewed commit: " + root.reviewedCommit
-        textFormat: Text.PlainText
-        color: root.foreground
-        opacity: 0.72
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.body
-        elide: Text.ElideMiddle
-      }
-
-      Text {
-        id: verificationText
-        visible: root.listedUserPlugin
-        width: parent.width
-        text: "Marketplace: " + (root.verificationStatus === "verified"
-          ? "Verified" : "Unverified")
-          + (root.plugin && root.plugin.stars !== null
-            ? "    Repository stars: " + root.plugin.stars : "")
-        textFormat: Text.PlainText
-        color: root.foreground
-        opacity: 0.72
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.body
-        elide: Text.ElideRight
-
-        MouseArea {
-          id: verificationHover
+        Column {
           anchors.fill: parent
-          hoverEnabled: true
-        }
+          anchors.margins: Style.spacing.sm
+          spacing: Style.space(4)
 
-        PanelToolTip {
-          visible: verificationHover.containsMouse
-          text: root.verificationHelp
-          fontFamily: root.fontFamily
+          Row {
+            width: parent.width
+            height: Style.space(18)
+
+            Text {
+              width: Style.space(92)
+              text: "REPOSITORY"
+              textFormat: Text.PlainText
+              color: root.marketplaceOrange
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+
+            Text {
+              width: parent.width - Style.space(92)
+              text: String(root.plugin
+                && root.plugin.repository || "Not supplied")
+              textFormat: Text.PlainText
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.body
+              elide: Text.ElideMiddle
+            }
+          }
+
+          Row {
+            visible: root.reviewedCommit.length > 0
+            width: parent.width
+            height: visible ? Style.space(18) : 0
+
+            Text {
+              width: Style.space(92)
+              text: "REVIEWED"
+              textFormat: Text.PlainText
+              color: root.marketplaceOrange
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+
+            Text {
+              width: parent.width - Style.space(92)
+              text: root.reviewedCommit
+              textFormat: Text.PlainText
+              color: root.foreground
+              opacity: 0.78
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.body
+              elide: Text.ElideMiddle
+            }
+          }
         }
       }
 
-      Text {
-        visible: root.metricsAvailable
+      Flow {
+        id: badgeFlow
+        visible: root.badgeItems.length > 0
         width: parent.width
-        text: root.plugin
-          ? "Marketplace interactions: Views " + root.plugin.views
-            + "    Command copies " + root.plugin.copies
-            + "    Anonymous hearts " + root.plugin.hearts
-          : ""
-        textFormat: Text.PlainText
-        color: root.foreground
-        opacity: 0.72
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.body
-        elide: Text.ElideRight
+        height: visible ? Style.space(24) : 0
+        spacing: Style.space(6)
+
+        Repeater {
+          model: root.badgeItems
+
+          delegate: Rectangle {
+            id: statusBadge
+            required property var modelData
+            width: badgeText.implicitWidth + Style.spacing.md
+            height: Style.space(24)
+            radius: Style.space(3)
+            color: Util.alpha(modelData.color, 0.10)
+            border.width: Math.max(1, Style.space(1))
+            border.color: Util.alpha(modelData.color, 0.72)
+
+            Text {
+              id: badgeText
+              anchors.centerIn: parent
+              text: statusBadge.modelData.label
+              textFormat: Text.PlainText
+              color: statusBadge.modelData.color
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.bodySmall
+              font.bold: true
+              font.letterSpacing: Style.space(1)
+            }
+
+            MouseArea {
+              id: badgeHover
+              anchors.fill: parent
+              hoverEnabled: true
+            }
+
+            PanelToolTip {
+              visible: badgeHover.containsMouse
+              text: String(statusBadge.modelData.tooltip || "")
+              fontFamily: root.fontFamily
+            }
+          }
+        }
+      }
+
+      Flow {
+        id: metricFlow
+        readonly property int columnCount: width < Style.space(560) ? 2 : 4
+        readonly property real chipWidth: (width - spacing
+          * (columnCount - 1)) / columnCount
+        visible: root.metricItems.length > 0
+        width: parent.width
+        height: visible ? Math.ceil(root.metricItems.length / columnCount)
+          * Style.space(42) + Math.max(0,
+            Math.ceil(root.metricItems.length / columnCount) - 1) * spacing : 0
+        spacing: Style.space(7)
+
+        Repeater {
+          model: root.metricItems
+
+          delegate: Rectangle {
+            id: metricChip
+            required property var modelData
+            width: metricFlow.chipWidth
+            height: Style.space(42)
+            radius: Style.cornerRadius
+            color: Util.alpha(modelData.color, 0.075)
+            border.width: Math.max(1, Style.space(1))
+            border.color: Util.alpha(modelData.color, 0.46)
+
+            Row {
+              anchors.centerIn: parent
+              spacing: Style.space(7)
+
+              Text {
+                text: metricChip.modelData.icon
+                textFormat: Text.PlainText
+                color: metricChip.modelData.color
+                font.family: Style.font.family
+                font.pixelSize: Style.font.iconLarge
+              }
+
+              Text {
+                text: metricChip.modelData.value + "  "
+                  + metricChip.modelData.label
+                textFormat: Text.PlainText
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.subtitle
+                font.bold: true
+              }
+            }
+
+            MouseArea {
+              id: metricHover
+              anchors.fill: parent
+              hoverEnabled: true
+            }
+
+            PanelToolTip {
+              visible: metricHover.containsMouse
+              text: String(metricChip.modelData.tooltip || "")
+              fontFamily: root.fontFamily
+            }
+          }
+        }
       }
 
       Text {
         visible: root.marketplaceListed && !root.metricsAvailable
         width: parent.width
-        text: "Marketplace interaction totals are not cached yet"
+        text: "Interaction totals are not cached yet"
         textFormat: Text.PlainText
-        color: root.foreground
-        opacity: 0.58
+        color: root.marketplaceOrange
+        opacity: 0.82
         font.family: root.fontFamily
-        font.pixelSize: Style.font.body
+        font.pixelSize: Style.font.bodySmall
       }
 
       Text {
@@ -318,16 +534,17 @@ FocusScope {
         width: parent.width
         text: "Not listed on Omarchy Plugins"
         textFormat: Text.PlainText
-        color: root.foreground
-        opacity: 0.68
+        color: root.marketplaceOrange
+        opacity: 0.82
         font.family: root.fontFamily
-        font.pixelSize: Style.font.body
+        font.pixelSize: Style.font.subtitle
       }
 
       Flow {
         visible: root.marketplaceListed && root.plugin
           && Array.isArray(root.plugin.tags) && root.plugin.tags.length > 0
         width: parent.width
+        height: visible ? Style.space(24) : 0
         spacing: Style.space(4)
 
         Repeater {
@@ -337,18 +554,20 @@ FocusScope {
           delegate: Rectangle {
             required property string modelData
             width: tagText.implicitWidth + Style.spacing.sm
-            height: Style.space(22)
+            height: Style.space(24)
             radius: Style.space(4)
-            color: Util.alpha(root.foreground, 0.10)
+            color: Util.alpha(root.marketplaceOrange, 0.065)
+            border.width: Math.max(1, Style.space(1))
+            border.color: Util.alpha(root.marketplaceOrange, 0.34)
 
             Text {
               id: tagText
               anchors.centerIn: parent
               text: modelData
               textFormat: Text.PlainText
-              color: root.foreground
+              color: root.marketplaceOrange
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.bodySmall
             }
           }
         }
