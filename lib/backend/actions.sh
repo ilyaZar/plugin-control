@@ -340,6 +340,7 @@ run_update_action() {
           | .checkedAt=$checkedAt
         ' --arg checkedAt "$(utc_now)" <<<"$classification")"
         store_update_record "$current" || true
+        omarchy restart shell >/dev/null 2>&1 || true
         set_action_result true "Plugin updated!"
       else
         rc=$?

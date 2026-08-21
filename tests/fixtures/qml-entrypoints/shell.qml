@@ -872,7 +872,8 @@ ShellRoot {
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Right })
         if (dialog.selectedChoice !== 1
             || dialog.operationText
-              !== "omarchy plugin update io.example.enabled --yes") {
+              !== "omarchy plugin update io.example.enabled --yes"
+                + " && omarchy restart shell") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR update action selection")
         }
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Return })

@@ -81,7 +81,7 @@ rg -q 'String\(selectedRecord.id || ""\), pendingSnapshotId' \
   "$ROOT/PluginControl.qml"
 rg -Fq '["add", "remove", "update", "enable", "disable"]' \
   "$ROOT/PluginControl.qml"
-rg -Fq '"omarchy plugin update " + id + " --yes"' \
+rg -Fq '+ " --yes && omarchy restart shell"' \
   "$ROOT/ActionDialog.qml"
 rg -Fq 'return "omarchy plugin enable " + id' "$ROOT/ActionDialog.qml"
 rg -Fq 'return "omarchy plugin disable " + id' "$ROOT/ActionDialog.qml"
