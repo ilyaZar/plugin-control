@@ -93,11 +93,12 @@ This audit records release-readiness evidence for
   Control entry in `bindings.lua`, or back to the open palette.
 - [x] Lifecycle CLI. Mocked `start` and `stop` calls observed the exact native
   enable, disable, and bar-setting arguments. The strict settings schema holds
-  the tray default; explicit GNU-style tray flags
+  the tray and background-dimming defaults; explicit GNU-style tray flags
   take precedence without accepting surplus arguments. Live hidden, stopped,
   and visible starts produced the matching native plugin and bar states.
-- [x] Strict YAML. Schema 2 requires the tray setting. Tests cover clear
-  rejection without replacement, booleans, unknown fields, duplicate IDs,
+- [x] Strict YAML. Schema 2 requires the tray and `background_dim`
+  settings. Tests cover clear rejection without replacement, booleans, unknown
+  fields, duplicate IDs,
   unsafe tags, aliases, non-HTTPS URLs, embedded credentials, repository
   slugs, arbitrary command fields and schema-2 last-good fallback. Rejected
   values report their field, actual value, and admissible type or range; a
