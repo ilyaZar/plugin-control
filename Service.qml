@@ -36,14 +36,11 @@ Item {
   property string lastSuccessfulUpdateCheck: ""
   property string updateCheckBaselineTimestamp: ""
   property bool updateCheckSuccessVisible: false
-  property string lastUpdateCheckAttempt: ""
-  property var updateCounts: ({})
   property real serviceReadyMs: -1
   property real lastOpenRequestMs: -1
   property real lastFocusReadyMs: -1
   property real lastFilterMs: -1
   property real lastRefreshDurationMs: 0
-  property real lastUpdateCheckDurationMs: 0
   property int catalogRecordCount: records.length
   property double componentStartedAt: Date.now()
   property double latestOpenStartedAt: 0
@@ -214,12 +211,6 @@ Item {
       ? String(parsed.updates.lastCheckNotice || "") : ""
     lastSuccessfulUpdateCheck = parsed.updates
       ? String(parsed.updates.lastSuccessfulCheck || "") : ""
-    lastUpdateCheckAttempt = parsed.updates
-      ? String(parsed.updates.lastCheckAttempt || "") : ""
-    lastUpdateCheckDurationMs = parsed.updates
-      ? Number(parsed.updates.checkDurationMs || 0) : 0
-    updateCounts = parsed.updates && parsed.updates.counts
-      ? parsed.updates.counts : ({})
     lastError = ""
     if (refreshResult === true) {
       clearRefreshSuccess()
