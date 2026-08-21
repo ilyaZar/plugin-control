@@ -104,12 +104,18 @@ green for ten seconds, and settled timestamps are grey.
 
 ## Plugin information
 
-Ctrl+i keeps the selected plugin read-only and shows its author, version,
-source, repository, reviewed commit when known, tags, and listing state.
-Marketplace-listed user plugins also show stars, verification state, views,
-command copies, and anonymous hearts when those values are cached. Verification
-describes marketplace checks associated with the listed commit; it is not a
-security audit.
+Ctrl+i keeps the selected plugin strictly read-only and shows its complete,
+untruncated description, author, version, source, repository, reviewed commit
+when known, tags, and listing state. Marketplace-listed user plugins also show
+stars, verification state, views, command copies, and anonymous hearts when
+those values are cached. Verification describes marketplace checks associated
+with the listed commit; it is not a security audit.
+
+When the marketplace supplies a preview, the information view shows its card
+image. Click the image to open the larger marketplace detail image. Enter,
+Space, Escape, or q closes the full-size preview and the same keys close the
+information view. Ctrl+i exposes no Add, install-in-terminal, or other system
+action.
 
 The detail view follows the marketplace's visual language: yellow GitHub
 stars, orange view and copy icons, a red-orange heart, and colored New,

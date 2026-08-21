@@ -133,9 +133,15 @@ This audit records release-readiness evidence for
   expose a dimmed explanation and never reach the native updater.
 - [x] Confirmation safety. Every selected plugin opens the same
   keyboard-cancel-first action dialog with only currently meaningful actions.
-  Ctrl+I reuses it with Close as a non-mutating information view. The action
-  path pins a copy of the displayed record and its snapshot ID; backend
+  Ctrl+I reuses it with Close as a non-mutating information view, and both the
+  dialog and overlay reject mutation dispatch while it is read-only. The
+  action path pins a copy of the displayed record and its snapshot ID; backend
   execution requires that exact snapshot to remain current.
+- [x] Marketplace previews. The catalog accepts only marketplace-owned card
+  and detail WebP paths, converts them to the fixed website origin, and rejects
+  custom-channel preview impersonation. Ctrl+I shows the card image beneath
+  the complete description and opens the detail image in a keyboard-dismissible
+  full-overlay viewer.
 - [x] Remote command isolation. Fixtures include a hostile remote command
   string; it is never executed or interpolated into a shell.
 - [x] Guarded self-removal. The settings menu opens a snapshot-pinned,

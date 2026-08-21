@@ -25,6 +25,16 @@ def valid_optional_timestamp($key):
   or (.[$key] | safe_string(40)
       and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"));
 
+def valid_optional_preview($key; $variant):
+  (has($key) | not) or .[$key] == null
+  or (.[$key] | safe_string(240)
+      and test("^assets/img/plugins/[A-Za-z0-9._-]+-" + $variant
+        + "\\.webp$"));
+
+def valid_optional_dimension($key):
+  (has($key) | not) or .[$key] == null
+  or (.[$key] | type == "number" and floor == . and . >= 1 and . <= 10000);
+
 def valid_optional_repository:
   (.repo == null) or (.repo == "") or (.repo | valid_repository);
 
@@ -71,6 +81,12 @@ def row_valid:
   and valid_optional_date("addedAt")
   and valid_optional_timestamp("listedAt")
   and valid_optional_timestamp("versionUpdatedAt")
+  and valid_optional_preview("previewImage"; "detail")
+  and valid_optional_preview("previewThumbnail"; "card")
+  and valid_optional_dimension("previewWidth")
+  and valid_optional_dimension("previewHeight")
+  and valid_optional_dimension("previewThumbnailWidth")
+  and valid_optional_dimension("previewThumbnailHeight")
   and ((.sourceType // "") | IN("builtin", "community"))
   and valid_tags
   and valid_release
@@ -100,6 +116,18 @@ def normalized_record($channel_name; $channel_source; $channel_rank):
       addedAt: (.addedAt // ""),
       listedAt: (.listedAt // ""),
       versionUpdatedAt: (.versionUpdatedAt // ""),
+      previewImage: (if $channel_source == "marketplace"
+        then (.previewImage // "") else "" end),
+      previewWidth: (if $channel_source == "marketplace"
+        then (.previewWidth // null) else null end),
+      previewHeight: (if $channel_source == "marketplace"
+        then (.previewHeight // null) else null end),
+      previewThumbnail: (if $channel_source == "marketplace"
+        then (.previewThumbnail // "") else "" end),
+      previewThumbnailWidth: (if $channel_source == "marketplace"
+        then (.previewThumbnailWidth // null) else null end),
+      previewThumbnailHeight: (if $channel_source == "marketplace"
+        then (.previewThumbnailHeight // null) else null end),
       kind: (.kind // ""),
       builtIn: $builtin,
       source: (if $builtin then "builtin" else $channel_source end),

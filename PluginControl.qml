@@ -33,9 +33,15 @@ Item {
   property bool installInTerminal: false
   property bool settingsMenuOpen: false
   property bool spaceActivatesSelection: false
+  property bool previewOpen: false
+  property string previewUrl: ""
+  property string previewName: ""
+  property int previewWidth: 0
+  property int previewHeight: 0
   property var savedSettings: ({})
   property color shortcutColor: "#e5c07b"
   property color successColor: "#98c379"
+  readonly property color marketplaceOrange: "#ff5a36"
 
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.ilyazar.plugin-control"
@@ -77,11 +83,16 @@ Item {
     + activeHeaderHeight + resultRowsHeight
     + activeFooterHeight + statusHeight
     + Style.spacing.sm * chromeSpacingCount
-  readonly property int cardHeight: Math.min(Style.space(600),
-    Math.max(Style.space(actionDialog.opened ? 540
-      : (selfRemovalDialog.opened ? 280 : 220)),
-      Math.min(desiredCardHeight,
-        panel.height - restingY - Style.gapsOut)))
+  readonly property int availableCardHeight: Math.max(Style.space(220),
+    panel.height - restingY - Style.gapsOut)
+  readonly property int actionCardHeight: actionDialog.readOnly
+    ? Style.space(actionDialog.hasPreview ? 900 : 720) : Style.space(540)
+  readonly property int cardHeight: actionDialog.opened
+    ? Math.min(actionCardHeight, availableCardHeight)
+    : (selfRemovalDialog.opened
+      ? Math.min(Style.space(280), availableCardHeight)
+      : Math.min(Style.space(600), Math.max(Style.space(220),
+          Math.min(desiredCardHeight, availableCardHeight))))
   readonly property int topBarOffset: shell && shell.bar
     && shell.bar.position === "top" && shell.bar.barHidden !== true
     ? Number(shell.bar.barSize || 0) : 0
@@ -189,6 +200,8 @@ Item {
     selectedRecord = null
     pendingSnapshotId = ""
     settingsMenuOpen = false
+    previewOpen = false
+    previewUrl = ""
     actionDialog.closeDialog()
     if (payload.settings === true) showSettingsMenu()
     else rebuildResults()
@@ -204,6 +217,8 @@ Item {
     if (!surfaceVisible) return
     opened = false
     settingsMenuOpen = false
+    previewOpen = false
+    previewUrl = ""
     actionDialog.closeDialog()
     closeTimer.interval = service && service.animationsEnabled ? 80 : 0
     closeTimer.restart()
@@ -307,8 +322,39 @@ Item {
     return openDialogFor(shortcutRecord, true)
   }
 
+  function validPreviewUrl(value) {
+    return /^https:\/\/omarchyplugins\.com\/assets\/img\/plugins\/[A-Za-z0-9._-]+-detail\.webp$/.test(
+      String(value || ""))
+  }
+
+  function openPreview(url, name, width, height) {
+    if (!actionDialog.readOnly || !validPreviewUrl(url)) return false
+    previewUrl = String(url)
+    previewName = String(name || "Plugin")
+    previewWidth = Math.max(0, Math.min(10000, Number(width || 0)))
+    previewHeight = Math.max(0, Math.min(10000, Number(height || 0)))
+    previewOpen = true
+    Qt.callLater(previewLayer.forceActiveFocus)
+    return true
+  }
+
+  function closePreview() {
+    if (!previewOpen) return
+    previewOpen = false
+    previewUrl = ""
+    Qt.callLater(actionDialog.forceActiveFocus)
+  }
+
+  function handlePreviewKey(event) {
+    if (!previewOpen) return false
+    if (event.key === Qt.Key_Escape || event.key === Qt.Key_Q
+        || event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+        || event.key === Qt.Key_Space) closePreview()
+    return true
+  }
+
   function confirmAction(operation) {
-    if (!selectedRecord || !service) return
+    if (actionDialog.readOnly || !selectedRecord || !service) return
     pendingOperation = String(operation || "")
     if (["add", "remove", "update", "enable", "disable"]
         .indexOf(pendingOperation) < 0) return
@@ -525,6 +571,7 @@ Item {
   }
 
   function handleKey(event) {
+    if (previewOpen) return handlePreviewKey(event)
     if (actionDialog.opened) return actionDialog.handleKey(event)
     var control = (event.modifiers & Qt.ControlModifier) !== 0
     var alt = (event.modifiers & Qt.AltModifier) !== 0
@@ -706,6 +753,9 @@ Item {
         }
         onTerminalInstallToggled: function(enabled) {
           root.setInstallInTerminal(enabled)
+        }
+        onPreviewRequested: function(url, name, width, height) {
+          root.openPreview(url, name, width, height)
         }
         onActionRequested: function(operation) {
           root.confirmAction(operation)
@@ -942,6 +992,74 @@ Item {
           marketplaceLabel: root.marketplaceShortcutLabel
           foreground: root.foreground
           shortcutColor: root.shortcutColor
+        }
+      }
+    }
+
+    FocusScope {
+      id: previewLayer
+      visible: root.previewOpen
+      anchors.fill: parent
+      z: 100
+      focus: visible
+
+      Keys.priority: Keys.BeforeItem
+      Keys.onPressed: function(event) {
+        if (root.handlePreviewKey(event)) event.accepted = true
+      }
+
+      Rectangle {
+        anchors.fill: parent
+        color: "#09090b"
+        opacity: 0.97
+      }
+
+      MouseArea {
+        anchors.fill: parent
+        onClicked: root.closePreview()
+      }
+
+      Image {
+        id: fullPreview
+        anchors.fill: parent
+        anchors.margins: Style.space(48)
+        source: root.previewOpen ? root.previewUrl : ""
+        sourceSize.width: root.previewWidth > 0 ? root.previewWidth : -1
+        sourceSize.height: root.previewHeight > 0 ? root.previewHeight : -1
+        asynchronous: true
+        cache: true
+        fillMode: Image.PreserveAspectFit
+        mipmap: true
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: root.closePreview()
+        }
+      }
+
+      Rectangle {
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.topMargin: Style.spacing.md
+        width: Math.min(parent.width - Style.spacing.panelPadding * 2,
+          previewLabel.implicitWidth + Style.spacing.lg)
+        height: Style.space(34)
+        radius: Style.cornerRadius
+        color: Util.alpha(root.background, 0.94)
+        border.width: Math.max(1, Style.space(1))
+        border.color: Util.alpha(root.marketplaceOrange, 0.62)
+
+        Text {
+          id: previewLabel
+          anchors.centerIn: parent
+          width: Math.min(implicitWidth, parent.width - Style.spacing.md)
+          text: root.previewName + " preview  -  Esc / Q / Enter / Space closes"
+          textFormat: Text.PlainText
+          color: root.foreground
+          font.family: Style.font.menuFamily
+          font.pixelSize: Style.font.body
+          elide: Text.ElideRight
         }
       }
     }

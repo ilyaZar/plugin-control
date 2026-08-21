@@ -169,6 +169,8 @@ rg -Fq 'focus: root.settingsMenuOpen' "$ROOT/PluginControl.qml"
 rg -q 'installInTerminal' "$ROOT/PluginControl.qml"
 rg -q 'omarchy-launch-terminal' "$ROOT/lib/backend/actions.sh"
 rg -q 'signal actionRequested\(string operation\)' "$ROOT/ActionDialog.qml"
+rg -q 'signal previewRequested\(string url, string name, int width, int height\)' \
+  "$ROOT/ActionDialog.qml"
 rg -Fq 'PaletteViewModel.actionOptions(plugin, readOnly)' \
   "$ROOT/ActionDialog.qml"
 rg -Fq 'interval: 1000' "$ROOT/ActionDialog.qml"
@@ -179,6 +181,16 @@ rg -Fq 'plugin.commit || plugin.listingValidatedCommit' \
 rg -q 'ToggleSwitch \{' "$ROOT/ActionDialog.qml"
 rg -q 'Run Add in Omarchy terminal' "$ROOT/ActionDialog.qml"
 rg -q 'selectedChoice' "$ROOT/ActionDialog.qml"
+rg -Fq 'maximumLineCount: root.readOnly ? 100 : 2' \
+  "$ROOT/ActionDialog.qml"
+rg -Fq 'fillMode: Image.PreserveAspectFit' "$ROOT/ActionDialog.qml"
+rg -Fq 'event.key === Qt.Key_Q' "$ROOT/ActionDialog.qml"
+rg -Fq 'if (actionDialog.readOnly || !selectedRecord || !service) return' \
+  "$ROOT/PluginControl.qml"
+rg -q 'function validPreviewUrl\(value\)' "$ROOT/PluginControl.qml"
+rg -q 'omarchyplugins\\\.com.*-detail\\\.webp' \
+  "$ROOT/PluginControl.qml"
+rg -Fq 'id: previewLayer' "$ROOT/PluginControl.qml"
 rg -Fq 'Not listed on Omarchy Plugins' "$ROOT/ActionDialog.qml"
 rg -Fq 'marketplaceOrange: "#ff5a36"' "$ROOT/ActionDialog.qml"
 rg -Fq 'marketplaceGreen: "#b4c96f"' "$ROOT/ActionDialog.qml"

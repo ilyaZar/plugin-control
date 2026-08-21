@@ -393,6 +393,31 @@ test("marketplace activity badges mirror the website twelve-hour rules", () => {
   assert.equal(Catalog.formatCount(15000), "15k");
 });
 
+test("marketplace preview paths become fixed-origin image URLs", () => {
+  const value = Catalog.prepareRecords([{
+    id: "io.example.preview",
+    source: "marketplace",
+    previewImage: "assets/img/plugins/7-example-preview-detail.webp",
+    previewThumbnail: "assets/img/plugins/7-example-preview-card.webp",
+    previewWidth: 1600,
+    previewHeight: 900
+  }])[0];
+  assert.equal(value.previewImageUrl,
+    "https://omarchyplugins.com/assets/img/plugins/7-example-preview-detail.webp");
+  assert.equal(value.previewThumbnailUrl,
+    "https://omarchyplugins.com/assets/img/plugins/7-example-preview-card.webp");
+  assert.equal(value.previewWidth, 1600);
+  assert.equal(Catalog.marketplaceAssetUrl("https://evil.example/x.webp",
+    "detail"), "");
+  assert.equal(Catalog.marketplaceAssetUrl(
+    "assets/img/plugins/7-example-preview-card.webp", "detail"), "");
+  assert.equal(Catalog.prepareRecords([{
+    id: "io.example.custom-preview",
+    source: "custom",
+    previewImage: "assets/img/plugins/7-example-preview-detail.webp"
+  }])[0].previewImageUrl, "");
+});
+
 test("validation drift creates a warning", () => {
   assert.equal(Catalog.warningState({
     upstreamCheckStatus: "passed",

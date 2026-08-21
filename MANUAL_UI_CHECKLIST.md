@@ -102,6 +102,18 @@ Use at least one light theme and one dark theme. Keep a terminal open for
 
 - [ ] Press Ctrl+i on a listed user plugin. Confirm Close is the only action and
   no mutation can be triggered.
+- [ ] Confirm the information view shows the complete description with no
+  result-row ellipsis. Use a long description and scroll the content while the
+  Close action remains visible.
+- [ ] Confirm a marketplace plugin with preview metadata shows its card image
+  below the description. Confirm a plugin without a preview leaves no empty
+  image panel.
+- [ ] Click the preview and confirm the larger marketplace detail image fills
+  the overlay without distortion. Confirm clicking it or pressing Escape, q,
+  Enter, or Space returns to the information view.
+- [ ] Reopen Ctrl+i and confirm Enter, Space, Escape, and q each close it.
+- [ ] Confirm Ctrl+i never shows Add, Remove, Update, Enable, Disable, or the
+  install-in-terminal switch, including for an installable marketplace plugin.
 - [ ] Confirm the dialog uses a larger plugin title, clear metadata groups,
   bordered metric chips, and enough whitespace to avoid a wall of text.
 - [ ] Confirm author, version, source, repository, reviewed commit when known,
