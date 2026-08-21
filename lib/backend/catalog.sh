@@ -111,6 +111,7 @@ refresh_marketplace_stats() {
 refresh_catalog_channel() {
   local root="$1"
   local channel="$2"
+  local normalizer_version=2
   local channel_id channel_name source rank url
   channel_id="$(jq -r '.id' <<<"$channel")"
   channel_name="$(jq -r '.name' <<<"$channel")"
@@ -127,17 +128,23 @@ refresh_catalog_channel() {
 
   local cache="$CHANNEL_CACHE/$channel_id.json"
   local metadata="$CHANNEL_CACHE/$channel_id.meta.json"
-  local stage body headers status etag="" modified=""
+  local stage body headers status etag="" modified="" metadata_version=0
   stage="$(mktemp -d "$RUNTIME_ROOT/catalog-$channel_id.XXXXXX")"
   body="$stage/catalog.json"
   headers="$stage/headers"
   if [[ -f $metadata && ! -L $metadata ]]; then
-    etag="$(jq -r '.etag // ""' "$metadata" 2>/dev/null || true)"
-    modified="$(jq -r '.lastModified // ""' "$metadata" 2>/dev/null || true)"
+    metadata_version="$(jq -r '.normalizerVersion // 0' "$metadata" \
+      2>/dev/null || printf 0)"
+    if [[ $metadata_version == "$normalizer_version" ]]; then
+      etag="$(jq -r '.etag // ""' "$metadata" 2>/dev/null || true)"
+      modified="$(jq -r '.lastModified // ""' "$metadata" \
+        2>/dev/null || true)"
+    fi
   fi
 
   status="$(download_catalog "$url" "$body" "$headers" "$etag" "$modified")" || status="000"
-  if [[ $status == 304 && -f $cache && ! -L $cache ]]; then
+  if [[ $status == 304 && $metadata_version == "$normalizer_version"
+      && -f $cache && ! -L $cache ]]; then
     rm -rf -- "$stage"
     return
   fi
@@ -166,9 +173,11 @@ refresh_catalog_channel() {
   modified="$(header_value Last-Modified "$headers")"
   safe_header_value "$etag" || etag=""
   safe_header_value "$modified" || modified=""
-  jq -cn --arg etag "$etag" --arg lastModified "$modified" \
+  jq -cn --argjson normalizerVersion "$normalizer_version" \
+    --arg etag "$etag" --arg lastModified "$modified" \
     --arg retrievedAt "$(utc_now)" --arg url "$url" \
-    '{etag:$etag,lastModified:$lastModified,retrievedAt:$retrievedAt,url:$url}' \
+    '{normalizerVersion:$normalizerVersion,etag:$etag,
+      lastModified:$lastModified,retrievedAt:$retrievedAt,url:$url}' \
     | atomic_write_stream "$metadata"
   rm -rf -- "$stage"
 }
