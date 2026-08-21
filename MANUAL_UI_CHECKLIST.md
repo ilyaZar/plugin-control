@@ -45,7 +45,7 @@ Use at least one light theme and one dark theme. Keep a terminal open for
 - [ ] Type and complete `plug-add:`, `plug-remove:`, `plug-enable:`,
   `plug-disable:`, and `plug-update:` with both Tab and Enter.
 - [ ] Confirm fuzzy command discovery still finds all five commands and that
-  `plug-install:` remains an alias for Add.
+  `plug-add:` is the only add command.
 - [ ] Press Ctrl+u and confirm the query becomes `plug-update: ` and a check
   starts only then.
 - [ ] Type `plug-update:` manually, press Tab or Enter, and confirm one trailing

@@ -246,11 +246,8 @@ ShellRoot {
         var tabEvent = { modifiers: 0, key: Qt.Key_Tab }
         var backspaceEvent = { modifiers: 0, key: Qt.Key_Backspace }
         var addPrefix = "plug-add:"
-        var installAlias = "plug-install:"
         if (!overlay.isCompletedCommandPrefix(addPrefix,
               addPrefix.length, addPrefix.length, addPrefix.length)
-            || !overlay.isCompletedCommandPrefix(installAlias,
-              installAlias.length, installAlias.length, installAlias.length)
             || overlay.isCompletedCommandPrefix(addPrefix,
               addPrefix.length - 1, addPrefix.length - 1,
               addPrefix.length - 1)

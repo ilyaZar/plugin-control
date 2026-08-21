@@ -502,8 +502,8 @@ Item {
       selectionEnd) {
     var text = String(value || "")
     return cursor === text.length && selectionStart === selectionEnd
-      && ["plug-add:", "plug-install:", "plug-remove:", "plug-enable:",
-        "plug-disable:", "plug-update:"].indexOf(text) >= 0
+      && ["plug-add:", "plug-remove:", "plug-enable:", "plug-disable:",
+        "plug-update:"].indexOf(text) >= 0
   }
 
   function clearCompletedCommandPrefix() {

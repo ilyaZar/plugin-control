@@ -60,9 +60,6 @@ Use these commands to narrow the action first:
 - `plug-disable:` shows enabled switchable plugins
 - `plug-update:` checks first, then shows safely updateable plugins
 
-`plug-add:` is the preferred spelling. `plug-install:` remains an accepted
-alias for it.
-
 Commands are not pinned. Type `add`, `remove`, `enable`, `disable`, or `update`
 to bring one forward, then press Tab or Enter to complete it. Search restarts
 after the colon. Completing `plug-update:` starts its read-only check. Backspace
@@ -237,9 +234,7 @@ Native removal keeps:
 - cache: `~/.cache/omarchy/ilyazar.plugin-control/`
 - action history: `~/.local/state/omarchy/ilyazar.plugin-control/`
 
-Existing `omarchy/plugin-control` data is moved to the author-namespaced path
-on first use when the destination does not already exist. Clean removal deletes
-both the current and legacy paths.
+Clean removal deletes the current author-namespaced paths.
 
 ## Development
 
