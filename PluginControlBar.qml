@@ -60,7 +60,8 @@ BarWidget {
     owner: root
     bar: root.bar
     open: root.settingsMenuOpen
-    contentWidth: settingsPopup.fittedContentWidth(Style.space(160))
+    padding: Style.spacing.xl
+    contentWidth: settingsPopup.fittedContentWidth(Style.space(144))
     contentHeight: settingsPopup.fittedContentHeight(settingsColumn.implicitHeight)
 
     Column {
@@ -73,6 +74,7 @@ BarWidget {
         width: parent.width
         text: "Settings"
         leftAlign: false
+        verticalPadding: Style.spacing.sm
         onClicked: root.openSettings()
       }
 
