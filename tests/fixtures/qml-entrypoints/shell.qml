@@ -162,7 +162,10 @@ ShellRoot {
         var hiddenSnapshot = JSON.stringify({
           ok: true,
           records: [],
-          config: { settings: { "tray-icon-hidden": true } }
+          config: { settings: {
+            "tray-icon-hidden": true,
+            "background_dim": false
+          } }
         })
         root.serviceObject.applySnapshot(hiddenSnapshot, 0, false)
         if (mockPluginRegistry.settingCalls !== 0) {
@@ -174,7 +177,10 @@ ShellRoot {
           usingLastGood: false,
           config: {
             version: 2,
-            settings: { "tray-icon-hidden": true }
+            settings: {
+              "tray-icon-hidden": true,
+              "background_dim": true
+            }
           }
         })
         root.serviceObject.applyConfigStatus(hiddenConfigStatus, 0, 1)
@@ -186,7 +192,10 @@ ShellRoot {
           usingLastGood: true,
           config: {
             version: 2,
-            settings: { "tray-icon-hidden": true }
+            settings: {
+              "tray-icon-hidden": true,
+              "background_dim": true
+            }
           }
         }), 0, 2)
         if (mockPluginRegistry.settingCalls !== 0) {
@@ -221,7 +230,8 @@ ShellRoot {
             || mockPluginRegistry.lastSettingId
               !== "io.github.ilyazar.plugin-control"
             || mockPluginRegistry.lastSettingKey !== "trayIconHidden"
-            || mockPluginRegistry.lastSettingValue !== true) {
+            || mockPluginRegistry.lastSettingValue !== true
+            || root.serviceObject.backgroundDim !== true) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR live tray setting")
         }
         root.serviceObject.configChangeRevision = 3
@@ -230,11 +240,15 @@ ShellRoot {
           usingLastGood: false,
           config: {
             version: 2,
-            settings: { "tray-icon-hidden": false }
+            settings: {
+              "tray-icon-hidden": false,
+              "background_dim": false
+            }
           }
         }), 0, 3)
         if (mockPluginRegistry.settingCalls !== 2
-            || mockPluginRegistry.lastSettingValue !== false) {
+            || mockPluginRegistry.lastSettingValue !== false
+            || root.serviceObject.backgroundDim !== false) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR live tray setting update")
         }
         mockPluginRegistry.settingError = "could not find widget"
@@ -931,7 +945,8 @@ ShellRoot {
         testConfigFile.reload()
         testConfigFile.waitForJob()
         var current = testConfigFile.text()
-        if (current.indexOf("tray-icon-hidden: false") < 0) {
+        if (current.indexOf("tray-icon-hidden: false") < 0
+            || current.indexOf("background_dim: false") < 0) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR fresh config contents")
           stop()
           Qt.callLater(Qt.quit)

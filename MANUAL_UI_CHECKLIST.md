@@ -12,7 +12,8 @@ Use at least one light theme and one dark theme. Keep a terminal open for
   confirm focus always starts in search and only one overlay appears.
 - [ ] Confirm the empty search field uses this hint:
   `Search plugins (or type "plug-..." for direct plugin commands).`
-- [ ] Confirm the workspace remains undimmed behind the palette and dialogs.
+- [ ] Confirm `background_dim: false` leaves the workspace undimmed behind the
+  palette and dialogs; set it to `true`, save, and confirm dimming appears.
 - [ ] Confirm opening the palette performs no network request or update check.
 - [ ] Record one disposable Git-managed user plugin and one manually copied
   plugin for the action tests below.

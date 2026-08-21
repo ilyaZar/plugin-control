@@ -66,6 +66,7 @@ test("valid default config") do
   assert_equal 2, config["version"]
   assert_equal 30, config["refresh_minutes"]
   assert_equal false, config.dig("settings", "tray-icon-hidden")
+  assert_equal false, config.dig("settings", "background_dim")
 end
 
 test("settings mapping is required") do
@@ -76,9 +77,10 @@ test("settings mapping is required") do
 end
 
 test("every settings field is required") do
-  assert_invalid(default_text.sub("settings:\n  tray-icon-hidden: false",
-    "settings: {}"),
+  assert_invalid(default_text.sub("  tray-icon-hidden: false\n", ""),
     "settings.tray-icon-hidden must be true or false")
+  assert_invalid(default_text.sub("  background_dim: false\n", ""),
+    "settings.background_dim must be true or false")
 end
 
 test("tray icon can default to hidden") do
@@ -92,6 +94,18 @@ test("invalid tray icon setting fails") do
     "tray-icon-hidden: hidden"), "settings.tray-icon-hidden",
     "true or false")
   assert_equal '"hidden"', error.actual
+end
+
+test("background dim can be enabled") do
+  config = parse(default_text.sub("background_dim: false",
+    "background_dim: true"))
+  assert_equal true, config.dig("settings", "background_dim")
+end
+
+test("invalid background dim setting fails") do
+  error = assert_diagnostic(default_text.sub("background_dim: false",
+    "background_dim: dim"), "settings.background_dim", "true or false")
+  assert_equal '"dim"', error.actual
 end
 
 test("unknown settings fail") do

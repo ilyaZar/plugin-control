@@ -124,7 +124,8 @@ jq -e '.ok == false and .usingLastGood == true
   and .usingDefaults == false and .fallback == "last-good"
   and .field == "settings.tray-icon-hidden"
   and .actual == "\"hidden\"" and .expected == "true or false"
-  and .config.settings["tray-icon-hidden"] == false' \
+  and .config.settings["tray-icon-hidden"] == false
+  and .config.settings.background_dim == false' \
   <<<"$invalid_status" >/dev/null
 cp "$ROOT/config/channels.yaml" "$CHANNEL_CONFIG"
 printf 'ok - invalid fields report admissible values and keep last good\n'
@@ -166,7 +167,8 @@ default_status="$(config_status "$ROOT")"
 jq -e '.ok == false and .usingLastGood == false
   and .usingDefaults == true and .fallback == "defaults"
   and .field == "settings.tray-icon-hidden"
-  and .config.settings["tray-icon-hidden"] == false' \
+  and .config.settings["tray-icon-hidden"] == false
+  and .config.settings.background_dim == false' \
   <<<"$default_status" >/dev/null
 printf 'ok - recoverable first-run errors use shipped defaults\n'
 

@@ -133,7 +133,9 @@ fi
 rg -Fq 'finishedUnacknowledged && isNewNotice' "$ROOT/Service.qml"
 rg -Fq 'onTriggered: root.acknowledgeAction()' "$ROOT/Service.qml"
 rg -Fq 'pluginRegistry.setBarWidget(' "$ROOT/Service.qml"
-rg -Fq 'moduleName, "trayIconHidden", value, {}' "$ROOT/Service.qml"
+rg -Fq 'moduleName, "trayIconHidden", trayHidden, {}' "$ROOT/Service.qml"
+rg -Fq 'property bool backgroundDim: false' "$ROOT/Service.qml"
+rg -Fq 'backgroundDim = dimBackground' "$ROOT/Service.qml"
 rg -Fq 'configSyncProcess.command = [helperPath, "config-status", sourceDir]' \
   "$ROOT/Service.qml"
 rg -Fq 'root.configChangeRevision++' "$ROOT/Service.qml"
@@ -240,9 +242,8 @@ rg -Fq 'pointerInteractive: !root.modalDialogOpened' \
 rg -Fq 'text: "Search plugins (or type \"plug-...\" for direct plugin commands)."' \
   "$ROOT/PluginControl.qml"
 rg -Fq 'fontSizeMode: Text.HorizontalFit' "$ROOT/PluginControl.qml"
-if rg -q 'Color\.menu\.scrim|color: root\.scrim' "$ROOT/PluginControl.qml"; then
-  fail "palette must not dim the workspace"
-fi
+rg -Fq 'visible: root.backgroundDim' "$ROOT/PluginControl.qml"
+rg -Fq 'color: root.scrim' "$ROOT/PluginControl.qml"
 rg -Fq 'id: previewClickArea' "$ROOT/ActionDialog.qml"
 rg -Fq 'cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor' \
   "$ROOT/ActionDialog.qml"

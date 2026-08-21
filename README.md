@@ -203,11 +203,14 @@ Use `j`/`k`, arrows, mouse, or Enter; Escape returns to the plugin list.
 ```yaml
 settings:
   tray-icon-hidden: false
+  background_dim: false
 ```
 
 Plugin Control never rewrites the user-owned Ctrl+p binding. Its other shortcuts
 work only while the palette is focused. Saving a valid tray setting updates the
-live bar; a CLI flag overrides it until the YAML is saved again.
+live bar; a CLI flag overrides it until the YAML is saved again. Set
+`background_dim` to `true` only when the workspace behind Plugin Control should
+be dimmed.
 
 Settings use strict schema 2. A rejected field produces a short notification
 with its value and admissible type or range. The plugin keeps the last valid
