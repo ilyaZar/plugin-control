@@ -142,6 +142,26 @@ plugin_action_subject() {
   fi
 }
 
+finish_plugin_activation() {
+  local output_file="$1"
+  local success_message="$2"
+  local changed_message="$3"
+  local failure_message
+  local rc=0
+
+  timeout --signal=TERM --kill-after=5s 30s \
+    omarchy restart shell >>"$output_file" 2>&1 || rc=$?
+  if (( rc == 0 )); then
+    set_action_result true "$success_message"
+  else
+    printf '\nOmarchy Shell restart failed with exit code %d.\n' "$rc" \
+      >>"$output_file"
+    failure_message="$changed_message, but Omarchy Shell could not restart, "
+    failure_message+="so activation is incomplete. Run omarchy restart shell."
+    set_action_result false "$failure_message"
+  fi
+}
+
 run_add_action() {
   local record="$1"
   local snapshot="$2"
@@ -170,8 +190,9 @@ run_add_action() {
       "The unlisted repository changed after review; refresh and confirm it again."
   elif [[ $execution_mode == terminal ]]; then
     if omarchy plugin add "$repository" --enable; then
-      set_action_result true \
-        "$plugin_subject added and enabled in the Omarchy terminal."
+      finish_plugin_activation "$output_file" \
+        "$plugin_subject added and enabled in the Omarchy terminal." \
+        "$plugin_subject was added and enabled"
     else
       rc=$?
       set_action_result false "Plugin add failed with exit code $rc."
@@ -179,7 +200,9 @@ run_add_action() {
   elif timeout --signal=TERM --kill-after=5s 300s \
     omarchy plugin add "$repository" --enable --yes \
       >"$output_file" 2>&1; then
-    set_action_result true "$plugin_subject added and enabled."
+    finish_plugin_activation "$output_file" \
+      "$plugin_subject added and enabled." \
+      "$plugin_subject was added and enabled"
   else
     rc=$?
     set_action_result false "Plugin add failed with exit code $rc."
@@ -295,7 +318,7 @@ run_update_action() {
   local id="$2"
   local output_file="$3"
   local path expected manifest_id classification status reason rc current
-  local current_commit
+  local current_commit plugin_subject
 
   if ! jq -e '.installed == true and .builtIn != true' \
     <<<"$record" >/dev/null; then
@@ -303,6 +326,7 @@ run_update_action() {
       "The confirmed plugin is not an added user plugin."
     return
   fi
+  plugin_subject="$(plugin_action_subject "$record")"
   path="$(jq -r '.installedPath // ""' <<<"$record")"
   expected="$PLUGINS_ROOT/$id"
   [[ -n $path && $path == "$expected" && $(dirname -- "$path") == "$PLUGINS_ROOT"
@@ -340,8 +364,8 @@ run_update_action() {
           | .checkedAt=$checkedAt
         ' --arg checkedAt "$(utc_now)" <<<"$classification")"
         store_update_record "$current" || true
-        omarchy restart shell >/dev/null 2>&1 || true
-        set_action_result true "Plugin updated!"
+        finish_plugin_activation "$output_file" \
+          "$plugin_subject updated!" "$plugin_subject updated"
       else
         rc=$?
         set_action_result false "Plugin update failed with exit code $rc."
@@ -391,7 +415,7 @@ finish_action() {
   local output_file="$7"
   local output="" acknowledged=false status title
 
-  if [[ $execution_mode == background && -s $output_file ]]; then
+  if [[ -s $output_file ]]; then
     output="$(sanitize_output "$output_file")"
   fi
   rm -f -- "$output_file"
