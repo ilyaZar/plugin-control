@@ -72,7 +72,7 @@ BarWidget {
         id: settingsButton
         width: parent.width
         text: "Settings"
-        leftAlign: true
+        leftAlign: false
         onClicked: root.openSettings()
       }
 
