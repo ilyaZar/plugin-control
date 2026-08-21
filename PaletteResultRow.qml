@@ -21,6 +21,7 @@ Rectangle {
 
   property bool selected: false
   property bool settingsMenuOpen: false
+  property bool pointerInteractive: true
   property int rowHeight: Style.space(60)
   property color foreground: Color.menu.text
   property color selectedBackground: Color.menu.selectedBackground
@@ -47,9 +48,10 @@ Rectangle {
   MouseArea {
     anchors.fill: parent
     hoverEnabled: true
-    cursorShape: Qt.PointingHandCursor
-    onEntered: root.hovered()
-    onClicked: root.activated()
+    cursorShape: root.pointerInteractive
+      ? Qt.PointingHandCursor : Qt.ArrowCursor
+    onEntered: if (root.pointerInteractive) root.hovered()
+    onClicked: if (root.pointerInteractive) root.activated()
   }
 
   Column {
@@ -122,9 +124,11 @@ Rectangle {
         id: repositoryMouse
         anchors.fill: parent
         hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onEntered: root.hovered()
-        onClicked: root.repositoryRequested(root.repository)
+        cursorShape: root.pointerInteractive
+          ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onEntered: if (root.pointerInteractive) root.hovered()
+        onClicked: if (root.pointerInteractive)
+          root.repositoryRequested(root.repository)
       }
     }
   }

@@ -228,10 +228,13 @@ rg -Fq 'text: "REPOSITORY"' "$ROOT/ActionDialog.qml"
 rg -Fq 'not a security audit' "$ROOT/ActionDialog.qml"
 rg -Fq 'does not mean "' "$ROOT/ActionDialog.qml"
 rg -Fq 'root.plugin.tags' "$ROOT/ActionDialog.qml"
-dialog_pointer_blocker="$(sed -n \
-  '/id: dialogPointerBlocker/,/^  }/p' "$ROOT/ActionDialog.qml")"
-rg -Fq 'anchors.fill: parent' <<<"$dialog_pointer_blocker"
-rg -Fq 'cursorShape: Qt.ArrowCursor' <<<"$dialog_pointer_blocker"
+rg -Fq 'property bool pointerInteractive: true' "$ROOT/PaletteResultRow.qml"
+if (( $(rg -c 'cursorShape: root.pointerInteractive' \
+    "$ROOT/PaletteResultRow.qml") != 2 )); then
+  fail "result row hit areas must share dialog pointer state"
+fi
+rg -Fq 'pointerInteractive: !root.actionDialog.opened' \
+  "$ROOT/PluginControl.qml"
 rg -Fq 'id: previewClickArea' "$ROOT/ActionDialog.qml"
 rg -Fq 'cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor' \
   "$ROOT/ActionDialog.qml"

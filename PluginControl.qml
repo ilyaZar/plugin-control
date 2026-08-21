@@ -932,6 +932,8 @@ Item {
               width: ListView.view.width
               selected: index === root.selectedIndex
               settingsMenuOpen: root.settingsMenuOpen
+              pointerInteractive: !root.actionDialog.opened
+                && !root.selfRemovalDialog.opened && !root.previewOpen
               rowHeight: root.rowHeight
               foreground: root.foreground
               selectedBackground: root.selectedBackground

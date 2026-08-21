@@ -230,14 +230,6 @@ FocusScope {
     if (root.handleKey(event)) event.accepted = true
   }
 
-  MouseArea {
-    id: dialogPointerBlocker
-    anchors.fill: parent
-    hoverEnabled: true
-    cursorShape: Qt.ArrowCursor
-    onClicked: {}
-  }
-
   Timer {
     id: helpDelay
     interval: 1000
