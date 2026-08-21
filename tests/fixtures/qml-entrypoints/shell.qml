@@ -11,6 +11,7 @@ ShellRoot {
   property var serviceObject: null
   property int dialogCanceledCount: 0
   property int dialogConfirmedCount: 0
+  property string lastDialogOperation: ""
   property int removalCanceledCount: 0
   property int removalPreserveCount: 0
   property int removalPurgeCount: 0
@@ -294,6 +295,34 @@ ShellRoot {
         if (!overlay.handleKey(backspaceEvent) || overlay.query !== "") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR remove prefix backspace")
         }
+        var savedUpdateService = overlay.service
+        overlay.service = null
+        overlay.query = "plug-upd"
+        if (!overlay.handleKey(tabEvent)
+            || overlay.query !== "plug-update: "
+            || overlay.mode !== "update") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR update completion")
+        }
+        if (overlay.handleKey(backspaceEvent)
+            || overlay.query !== "plug-update: ") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR update space backspace")
+        }
+        overlay.query = "plug-update:"
+        if (!overlay.handleKey(backspaceEvent) || overlay.query !== "") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR update prefix backspace")
+        }
+        overlay.query = "plug-update:"
+        if (!overlay.handleKey(enterEvent)
+            || overlay.query !== "plug-update: ") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR typed update command")
+        }
+        overlay.query = ""
+        if (!overlay.handleKey({
+              modifiers: Qt.ControlModifier, key: Qt.Key_U
+            }) || overlay.query !== "plug-update: ") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR update shortcut")
+        }
+        overlay.service = savedUpdateService
         overlay.query = "weather:"
         if (overlay.filteredRecords.length !== 0
             || !overlay.handleKey(tabEvent)
@@ -338,6 +367,7 @@ ShellRoot {
             || !overlay.handleKey(infoEvent)
             || overlay.pendingOperation !== "browse"
             || overlay.pendingSnapshotId !== ""
+            || !overlay.actionDialogReadOnly
             || !overlay.selectedRecord
             || overlay.selectedRecord.id !== "io.example.docs") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR info shortcut")
@@ -355,9 +385,10 @@ ShellRoot {
         overlay.service = savedService
         root.serviceObject.lastError = "Old catalog error"
         root.serviceObject.refreshing = true
-        if (overlay.statusText !== "Refreshing catalog..."
-            || String(overlay.statusColor) !== String(overlay.shortcutColor)
-            || overlay.statusOpacity !== 1) {
+        if (overlay.rightStatusText !== "Refreshing catalog..."
+            || String(overlay.rightStatusColor)
+              !== String(overlay.shortcutColor)
+            || overlay.rightStatusOpacity !== 1) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR refresh status")
         }
         root.serviceObject.lastError = ""
@@ -375,30 +406,78 @@ ShellRoot {
         })
         if (!root.serviceObject.applySnapshot(refreshSnapshot, 0, true))
           console.error("PLUGIN_CONTROL_LOAD_ERROR refresh snapshot")
-        var formattedRefresh = overlay.formatRefreshTimestamp(refreshedAt)
+        var formattedRefresh = overlay.formatStatusTimestamp(refreshedAt)
         if (formattedRefresh.indexOf("T") >= 0
             || formattedRefresh.indexOf("Z") >= 0
             || !formattedRefresh.match(
-              /^\d{2}:\d{2}:\d{2}  -  \d{4}-\d{2}-\d{2}$/)
-            || overlay.statusText !== "Cached catalog refreshed at: "
+              /^\d{2}:\d{2}:\d{2} \(\d{4}-\d{2}-\d{2}\)$/)
+            || overlay.rightStatusText !== "Catalog refreshed: "
               + formattedRefresh
             || !root.serviceObject.refreshSuccessVisible
             || root.serviceObject.refreshSuccessDurationMs !== 10000
-            || String(overlay.statusColor) !== String(overlay.successColor)
-            || overlay.statusOpacity !== 1) {
+            || String(overlay.rightStatusColor)
+              !== String(overlay.successColor)
+            || overlay.rightStatusOpacity !== 1) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR refresh success status")
         }
         root.serviceObject.clearRefreshSuccess()
         if (root.serviceObject.refreshSuccessVisible
-            || String(overlay.statusColor) !== String(overlay.foreground)
-            || overlay.statusOpacity !== 0.70) {
+            || String(overlay.rightStatusColor) !== String(overlay.foreground)
+            || overlay.rightStatusOpacity !== 0.70) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR refresh settled status")
         }
+        root.serviceObject.updateCheckBaselineTimestamp =
+          "2026-08-16T11:00:00Z"
+        var checkedAt = "2026-08-16T12:08:30Z"
+        var updateSnapshot = JSON.stringify({
+          ok: true,
+          records: [],
+          updates: {
+            lastSuccessfulCheck: checkedAt,
+            lastCheckAttempt: checkedAt,
+            lastCheckError: "",
+            lastCheckNotice: "1 dirty checkout(s)",
+            checkDurationMs: 51,
+            counts: { available: 0, dirty: 1, failed: 0 }
+          }
+        })
+        if (!root.serviceObject.applySnapshot(updateSnapshot, 0,
+              false, true)
+            || overlay.leftStatusText.indexOf("Last update: "
+              + overlay.formatStatusTimestamp(checkedAt)) !== 0
+            || overlay.leftStatusText.indexOf("dirty checkout") < 0
+            || !root.serviceObject.updateCheckSuccessVisible
+            || root.serviceObject.updateCheckSuccessDurationMs !== 10000
+            || String(overlay.leftStatusColor)
+              !== String(overlay.successColor)
+            || overlay.leftStatusOpacity !== 1) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR update success status")
+        }
+        root.serviceObject.clearUpdateCheckSuccess()
+        if (overlay.leftStatusText !== "Last update: "
+              + overlay.formatStatusTimestamp(checkedAt)
+            || String(overlay.leftStatusColor) !== String(overlay.foreground)
+            || overlay.leftStatusOpacity !== 0.70) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR update settled status")
+        }
         overlay.selectedRecord = null
-        if (!overlay.handleKey(enterEvent) || overlay.selectedRecord !== null)
-          console.error("PLUGIN_CONTROL_LOAD_ERROR browse enter mutated")
-
         root.serviceObject.snapshot = { snapshotId: "snapshot-test" }
+        overlay.filteredRecords = [{
+          id: "io.example.browse",
+          name: "Browse",
+          installable: false,
+          installed: false
+        }]
+        overlay.selectedIndex = 0
+        if (!overlay.handleKey(enterEvent)
+            || !overlay.selectedRecord
+            || overlay.selectedRecord.id !== "io.example.browse"
+            || overlay.actionDialogReadOnly
+            || overlay.pendingSnapshotId !== "snapshot-test") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR shared browse dialog")
+        }
+        overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
+
         overlay.filteredRecords = [{
           id: "io.example.installable",
           name: "Installable",
@@ -407,8 +486,9 @@ ShellRoot {
         }]
         overlay.selectedIndex = 0
         if (!overlay.handleKey(enterEvent)
-            || overlay.pendingOperation !== "add"
+            || overlay.pendingOperation !== "browse"
             || overlay.pendingSnapshotId !== "snapshot-test"
+            || overlay.actionDialogReadOnly
             || !overlay.selectedRecord
             || overlay.selectedRecord.id !== "io.example.installable") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR actionable enter")
@@ -416,20 +496,6 @@ ShellRoot {
         if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape }))
           console.error("PLUGIN_CONTROL_LOAD_ERROR action dialog close")
         overlay.mode = "browse"
-        var switchable = {
-          id: "io.example.switchable",
-          installed: true,
-          enabled: false,
-          canDisable: true
-        }
-        if (overlay.availableOperation(switchable) !== "enable")
-          console.error("PLUGIN_CONTROL_LOAD_ERROR enable operation")
-        switchable.enabled = true
-        if (overlay.availableOperation(switchable) !== "disable")
-          console.error("PLUGIN_CONTROL_LOAD_ERROR disable operation")
-        switchable.canDisable = false
-        if (overlay.availableOperation(switchable) !== "browse")
-          console.error("PLUGIN_CONTROL_LOAD_ERROR switchability gate")
         overlay.selectedRecord = null
         overlay.filteredRecords = [{ commandCompletion: "plug-add: " }]
         overlay.selectedIndex = 0
@@ -515,69 +581,137 @@ ShellRoot {
         root.serviceObject.acceptActionStart('{"error":"Install failed."}', 1)
         if (root.serviceObject.actionNoticeDurationMs !== 10000
             || root.serviceObject.actionState.acknowledged !== false
-            || overlay.statusText !== "Install failed.") {
+            || overlay.leftStatusText !== "Install failed.") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR timed action notice")
         }
         root.serviceObject.acknowledgeAction()
         if (root.serviceObject.actionState.acknowledged !== true
-            || overlay.statusText === "Install failed.") {
+            || overlay.leftStatusText === "Install failed.") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR action notice dismissal")
         }
         root.serviceObject.acceptStatus('{"ok":false,"running":false,'
           + '"acknowledged":false,"actionId":"persisted-failure",'
           + '"message":"Persisted failure."}')
         if (root.serviceObject.actionState.acknowledged !== false
-            || overlay.statusText !== "Persisted failure.") {
+            || overlay.leftStatusText !== "Persisted failure.") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR persisted action notice")
         }
         root.serviceObject.acknowledgeAction()
       }
       var dialog = root.loadEntry("ActionDialog.qml", "dialog")
       if (dialog) {
+        dialog.canceled.connect(function() { root.dialogCanceledCount++ })
+        dialog.actionRequested.connect(function(operation) {
+          root.dialogConfirmedCount++
+          root.lastDialogOperation = operation
+        })
         dialog.plugin = {
           id: "io.example.info",
           description: "Plugin information",
           listingValidatedCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
-        dialog.operation = "browse"
+        dialog.readOnly = true
         if (dialog.reviewedCommit
-            !== "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") {
+              !== "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            || dialog.actions.length !== 1
+            || dialog.actions[0].label !== "Close"
+            || dialog.operationText !== "No system change") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR reviewed commit")
-        }
-        if (dialog.mutating || dialog.canConfirm
-            || dialog.operationText !== "No system change")
-          console.error("PLUGIN_CONTROL_LOAD_ERROR info dialog boundary")
-        dialog.selfId = "io.github.ilyazar.plugin-control"
-        dialog.plugin = {
-          id: "io.github.ilyazar.plugin-control",
-          name: "Plugin Control",
-          dirty: false
-        }
-        dialog.operation = "remove"
-        dialog.canceled.connect(function() { root.dialogCanceledCount++ })
-        dialog.confirmed.connect(function() { root.dialogConfirmedCount++ })
-        if (!dialog.selfRemoval
-            || dialog.title !== "Remove Plugin Control itself?"
-            || dialog.cancelLabel !== "No"
-            || dialog.confirmLabel !== "Yes, remove") {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR self removal warning")
         }
         dialog.openDialog()
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
         dialog.closeDialog()
+
+        dialog.readOnly = false
+        dialog.plugin = {
+          id: "io.example.enabled",
+          name: "Enabled",
+          installed: true,
+          enabled: true,
+          canDisable: true,
+          removable: true,
+          gitManaged: true,
+          updateStatus: "unknown",
+          marketplaceListed: true,
+          metricsAvailable: true,
+          verificationStatus: "verified",
+          stars: 9,
+          views: 10,
+          copies: 11,
+          hearts: 12,
+          tags: ["shell"]
+        }
+        if (dialog.actions.length !== 4
+            || dialog.actions[0].label !== "Cancel"
+            || dialog.actions[1].label !== "Update"
+            || dialog.actions[2].label !== "Disable"
+            || dialog.actions[3].label !== "Remove"
+            || !dialog.listedUserPlugin || !dialog.metricsAvailable
+            || dialog.verificationHelp.indexOf("not a security audit") < 0) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR shared action choices")
+        }
         dialog.openDialog()
+        if (dialog.selectedChoice !== 0)
+          console.error("PLUGIN_CONTROL_LOAD_ERROR safe action default")
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Right })
+        if (dialog.selectedChoice !== 1
+            || dialog.operationText
+              !== "omarchy plugin update io.example.enabled --yes") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR update action selection")
+        }
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
         if (root.dialogCanceledCount !== 1
+            || root.dialogConfirmedCount !== 1
+            || root.lastDialogOperation !== "update") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR shared action dispatch")
+        }
+
+        var manualReason = "Manually copied/installed plugin. "
+          + "No Git repository to update."
+        dialog.plugin = {
+          id: "io.example.manual",
+          installed: true,
+          removable: true,
+          updateStatus: "manual",
+          updateReason: manualReason
+        }
+        dialog.openDialog()
+        dialog.handleKey({ modifiers: 0, key: Qt.Key_Right })
+        if (dialog.selectedChoice !== 1 || dialog.helpText !== ""
+            || !dialog.helpDelayRunning) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR delayed update help")
+        }
+        dialog.handleKey({ modifiers: 0, key: Qt.Key_Space })
+        if (dialog.helpText !== manualReason
             || root.dialogConfirmedCount !== 1) {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR self removal choices")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR immediate update help")
+        }
+        dialog.handleKey({ modifiers: 0, key: Qt.Key_Right })
+        if (dialog.helpText !== "" || dialog.selectedChoice !== 2) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR update help dismissal")
+        }
+        dialog.closeDialog()
+
+        dialog.plugin = {
+          id: "omarchy.bar",
+          builtIn: true,
+          fullBar: true,
+          enabled: true
+        }
+        if (dialog.actions.length !== 1
+            || dialog.actions[0].label !== "Cancel") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR active full bar actions")
         }
         dialog.plugin = {
-          id: "io.github.ilyazar.plugin-control",
-          dirty: true
+          id: "third.bar",
+          installed: true,
+          fullBar: true,
+          enabled: false
         }
-        if (dialog.canConfirm)
-          console.error("PLUGIN_CONTROL_LOAD_ERROR dirty self removal")
+        if (dialog.actions.length !== 2
+            || dialog.actions[1].label !== "Enable") {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR inactive full bar actions")
+        }
       }
       var removalDialog = root.loadEntry(
         "SelfRemovalDialog.qml", "self-removal-dialog")

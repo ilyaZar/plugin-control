@@ -47,6 +47,64 @@ function displayRecord(record) {
   }
 }
 
+function updateOption(record) {
+  var status = String(record && record.updateStatus || "unknown")
+  var unavailable = ["manual", "dirty", "ahead", "diverged", "unsupported",
+    "error"]
+    .indexOf(status) >= 0
+  return {
+    operation: "update",
+    label: "Update",
+    available: !unavailable,
+    reason: unavailable ? String(record.updateReason
+      || "This plugin cannot be updated safely.") : ""
+  }
+}
+
+function actionOptions(record, readOnly) {
+  if (readOnly === true)
+    return [{ operation: "close", label: "Close", available: true }]
+
+  var options = [
+    { operation: "cancel", label: "Cancel", available: true }
+  ]
+  if (!record || !record.id) return options
+
+  var present = record.builtIn === true || record.installed === true
+  if (record.fullBar === true) {
+    if (present && record.enabled === false)
+      options.push({ operation: "enable", label: "Enable", available: true })
+    return options
+  }
+  if (record.builtIn === true) {
+    if (record.canDisable === true) {
+      options.push(record.enabled === false
+        ? { operation: "enable", label: "Enable", available: true }
+        : { operation: "disable", label: "Disable", available: true })
+    }
+    return options
+  }
+  if (record.installed === true) {
+    options.push(updateOption(record))
+    if (record.canDisable === true) {
+      options.push(record.enabled === false
+        ? { operation: "enable", label: "Enable", available: true }
+        : { operation: "disable", label: "Disable", available: true })
+    }
+    if (record.removable === true) {
+      options.push({ operation: "remove", label: "Remove",
+        available: record.dirty !== true,
+        reason: record.dirty === true
+          ? "Removal is blocked because this Git checkout has local changes."
+          : "", dangerous: true })
+    }
+    return options
+  }
+  if (record.installable === true)
+    options.push({ operation: "add", label: "Add", available: true })
+  return options
+}
+
 function removableRecord(records, id) {
   var values = Array.isArray(records) ? records : []
   for (var i = 0; i < values.length; i++) {
@@ -59,6 +117,7 @@ function removableRecord(records, id) {
 
 if (typeof module !== "undefined") {
   module.exports = {
+    actionOptions: actionOptions,
     displayRecord: displayRecord,
     removableRecord: removableRecord,
     settingsResult: settingsResult

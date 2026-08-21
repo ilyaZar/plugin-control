@@ -7,6 +7,9 @@ Item {
   property string marketplaceLabel: "Marketplace"
   property color foreground: Color.menu.text
   property color shortcutColor: "#e5c07b"
+  readonly property bool compact: width < Style.space(690)
+  readonly property int footerFontSize: Math.max(9,
+    Style.font.caption - (compact ? 1 : 0))
 
   Rectangle {
     anchors.top: parent.top
@@ -22,16 +25,17 @@ Item {
 
     Repeater {
       model: [
+        { keyLabel: "[Ctrl+u]", label: "Check updates" },
         { keyLabel: "[Ctrl+i]", label: "Info" },
         { keyLabel: "[Ctrl+w]", label: root.marketplaceLabel },
-        { keyLabel: "[Ctrl+g]", label: "GitHub source" },
+        { keyLabel: "[Ctrl+g]", label: "GitHub" },
         { keyLabel: "[Ctrl+r]", label: "Refresh" },
         { keyLabel: "[Ctrl+s]", label: "Settings" }
       ]
 
       delegate: Item {
         required property var modelData
-        width: footerRow.width / 5
+        width: footerRow.width / 6
         height: footerRow.height
 
         Column {
@@ -53,7 +57,7 @@ Item {
               textFormat: Text.PlainText
               color: root.shortcutColor
               font.family: Style.font.family
-              font.pixelSize: Style.font.caption
+              font.pixelSize: root.footerFontSize
               font.bold: true
             }
           }
@@ -65,7 +69,7 @@ Item {
             color: root.foreground
             opacity: 0.72
             font.family: Style.font.menuFamily
-            font.pixelSize: Style.font.caption
+            font.pixelSize: root.footerFontSize
           }
         }
       }

@@ -24,12 +24,13 @@ var COMMANDS = [
   commandRecord("plug-add", "add", "Search available plugins to add"),
   commandRecord("plug-remove", "remove", "Search removable local plugins"),
   commandRecord("plug-enable", "enable", "Search disabled plugins"),
-  commandRecord("plug-disable", "disable", "Search enabled plugins")
+  commandRecord("plug-disable", "disable", "Search enabled plugins"),
+  commandRecord("plug-update", "update", "Check for plugin updates")
 ]
 
 function parseQuery(value) {
   var raw = text(value)
-  var match = /^\s*plug-(add|install|remove|enable|disable)\s*:\s*([\s\S]*)$/i
+  var match = /^\s*plug-(add|install|remove|enable|disable|update)\s*:\s*([\s\S]*)$/i
     .exec(raw)
   if (!match) return { mode: "browse", query: raw.trim() }
 
@@ -154,9 +155,13 @@ function eligible(record, mode) {
     return record.installable === true && record.installed !== true
   if (mode === "remove")
     return record.removable === true
+  if (mode === "update")
+    return record.installed === true && record.builtIn !== true
+      && record.updateAvailable === true
   var present = record.builtIn === true || record.installed === true
   if (mode === "enable")
-    return present && record.canDisable === true && record.enabled === false
+    return present && record.enabled === false
+      && (record.canDisable === true || record.fullBar === true)
   if (mode === "disable")
     return present && record.canDisable === true && record.enabled === true
   return true

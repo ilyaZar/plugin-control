@@ -20,6 +20,7 @@ Item {
   })
   property bool ready: false
   property bool refreshing: false
+  property bool checkingUpdates: false
   property bool actionStarting: false
   property bool animationsEnabled: true
   property string lastError: ""
@@ -27,11 +28,19 @@ Item {
   property string lastSuccessfulRefresh: ""
   property string refreshBaselineTimestamp: ""
   property bool refreshSuccessVisible: false
+  property string lastUpdateCheckError: ""
+  property string lastUpdateCheckNotice: ""
+  property string lastSuccessfulUpdateCheck: ""
+  property string updateCheckBaselineTimestamp: ""
+  property bool updateCheckSuccessVisible: false
+  property string lastUpdateCheckAttempt: ""
+  property var updateCounts: ({})
   property real serviceReadyMs: -1
   property real lastOpenRequestMs: -1
   property real lastFocusReadyMs: -1
   property real lastFilterMs: -1
   property real lastRefreshDurationMs: 0
+  property real lastUpdateCheckDurationMs: 0
   property int catalogRecordCount: records.length
   property double componentStartedAt: Date.now()
   property double latestOpenStartedAt: 0
@@ -41,6 +50,7 @@ Item {
   property bool channelConfigWatchReady: false
   readonly property int actionNoticeDurationMs: 10000
   readonly property int refreshSuccessDurationMs: 10000
+  readonly property int updateCheckSuccessDurationMs: 10000
 
   readonly property string homeDir: Quickshell.env("HOME")
   readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
@@ -143,12 +153,21 @@ Item {
     refreshSuccessVisible = false
   }
 
-  function applySnapshot(raw, exitCode, refreshResult) {
+  function clearUpdateCheckSuccess() {
+    updateCheckSuccessTimer.stop()
+    updateCheckSuccessVisible = false
+  }
+
+  function applySnapshot(raw, exitCode, refreshResult, updateResult) {
     var parsed = parseJson(raw, null)
     if (refreshResult === true) refreshing = false
+    if (updateResult === true) checkingUpdates = false
     if (!parsed || parsed.ok !== true || !Array.isArray(parsed.records)) {
       if (refreshResult === true) clearRefreshSuccess()
-      if (parsed && parsed.error) lastError = String(parsed.error)
+      if (updateResult === true) clearUpdateCheckSuccess()
+      if (updateResult === true && parsed && parsed.error)
+        lastUpdateCheckError = String(parsed.error)
+      else if (parsed && parsed.error) lastError = String(parsed.error)
       else if (exitCode !== 0) lastError = "Catalog helper failed."
       return false
     }
@@ -161,6 +180,18 @@ Item {
       ? String(parsed.cache.lastSuccessfulRefresh || "") : ""
     lastRefreshDurationMs = parsed.cache
       ? Number(parsed.cache.refreshDurationMs || 0) : 0
+    lastUpdateCheckError = parsed.updates
+      ? String(parsed.updates.lastCheckError || "") : ""
+    lastUpdateCheckNotice = parsed.updates
+      ? String(parsed.updates.lastCheckNotice || "") : ""
+    lastSuccessfulUpdateCheck = parsed.updates
+      ? String(parsed.updates.lastSuccessfulCheck || "") : ""
+    lastUpdateCheckAttempt = parsed.updates
+      ? String(parsed.updates.lastCheckAttempt || "") : ""
+    lastUpdateCheckDurationMs = parsed.updates
+      ? Number(parsed.updates.checkDurationMs || 0) : 0
+    updateCounts = parsed.updates && parsed.updates.counts
+      ? parsed.updates.counts : ({})
     lastError = ""
     if (refreshResult === true) {
       clearRefreshSuccess()
@@ -168,6 +199,15 @@ Item {
           && lastSuccessfulRefresh !== refreshBaselineTimestamp) {
         refreshSuccessVisible = true
         refreshSuccessTimer.restart()
+      }
+    }
+    if (updateResult === true) {
+      clearUpdateCheckSuccess()
+      if (exitCode === 0 && !lastUpdateCheckError
+          && lastSuccessfulUpdateCheck
+          && lastSuccessfulUpdateCheck !== updateCheckBaselineTimestamp) {
+        updateCheckSuccessVisible = true
+        updateCheckSuccessTimer.restart()
       }
     }
     return true
@@ -203,6 +243,17 @@ Item {
     refreshProcess.running = true
   }
 
+  function requestUpdateCheck() {
+    if (!helperPath || updateCheckProcess.running) return false
+    clearUpdateCheckSuccess()
+    updateCheckBaselineTimestamp = lastSuccessfulUpdateCheck
+    checkingUpdates = true
+    updateCheckProcess.output = ""
+    updateCheckProcess.command = [helperPath, "check-updates", sourceDir]
+    updateCheckProcess.running = true
+    return true
+  }
+
   function requestStatus() {
     if (!helperPath || statusProcess.running) return
     statusProcess.output = ""
@@ -232,14 +283,23 @@ Item {
 
   function startAction(operation, pluginId, snapshotId, executionMode) {
     if (!helperPath || actionRunning || actionProcess.running) return false
-    if (["add", "remove", "remove-purge", "enable", "disable"]
+    if (["add", "remove", "remove-purge", "enable", "disable", "update"]
         .indexOf(String(operation)) < 0) return false
     if (!String(pluginId) || !String(snapshotId)) return false
     if (["background", "terminal"].indexOf(String(executionMode)) < 0)
       return false
     if (executionMode === "terminal" && operation !== "add") return false
     actionStarting = true
+    actionState = {
+      ok: true,
+      running: true,
+      acknowledged: false,
+      operation: String(operation),
+      message: operation === "update"
+        ? "Checking for updates..." : "Working..."
+    }
     actionProcess.output = ""
+    actionProcess.operation = String(operation)
     actionProcess.command = [helperPath, "action", sourceDir,
       String(operation), String(pluginId), String(snapshotId),
       String(executionMode)]
@@ -267,7 +327,9 @@ Item {
       running: true,
       acknowledged: false,
       actionId: String(parsed.actionId || ""),
-      message: "Working..."
+      operation: actionProcess.operation,
+      message: actionProcess.operation === "update"
+        ? "Checking for updates..." : "Working..."
     }
     actionPoll.restart()
   }
@@ -359,6 +421,18 @@ Item {
   }
 
   Process {
+    id: updateCheckProcess
+    property string output: ""
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: updateCheckProcess.output = text
+    }
+    onExited: function(exitCode) {
+      root.applySnapshot(output, exitCode, false, true)
+    }
+  }
+
+  Process {
     id: cachedProcess
     property string output: ""
     stdout: StdioCollector {
@@ -402,6 +476,7 @@ Item {
   Process {
     id: actionProcess
     property string output: ""
+    property string operation: ""
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: actionProcess.output = text
@@ -432,6 +507,13 @@ Item {
       root.requestConfigSync()
       root.requestRefresh(true)
     }
+  }
+
+  Timer {
+    id: updateCheckSuccessTimer
+    interval: root.updateCheckSuccessDurationMs
+    repeat: false
+    onTriggered: root.updateCheckSuccessVisible = false
   }
 
   Timer {

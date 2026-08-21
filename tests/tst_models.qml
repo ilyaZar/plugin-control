@@ -12,6 +12,7 @@ TestCase {
     compare(Fuzzy.parseQuery("plug-remove : local").query, "local")
     compare(Fuzzy.parseQuery("plug-enable: local").mode, "enable")
     compare(Fuzzy.parseQuery("plug-disable: local").mode, "disable")
+    compare(Fuzzy.parseQuery("plug-update: local").mode, "update")
   }
 
   function test_qml_search() {
@@ -19,7 +20,8 @@ TestCase {
       { id: "x.weather", name: "Weather", source: "marketplace",
         installable: true },
       { id: "x.local", name: "Local", source: "local",
-        installed: true, enabled: true, canDisable: true, removable: true },
+        installed: true, enabled: true, canDisable: true, removable: true,
+        updateAvailable: true },
       { id: "x.disabled", name: "Disabled", source: "local",
         installed: true, enabled: false, canDisable: true }
     ])
@@ -38,6 +40,8 @@ TestCase {
     compare(Fuzzy.search(records, "plug-enable: disabled", 50)
       .results[0].id, "x.disabled")
     compare(Fuzzy.search(records, "plug-disable: local", 50)
+      .results[0].id, "x.local")
+    compare(Fuzzy.search(records, "plug-update: local", 50)
       .results[0].id, "x.local")
     compare(Fuzzy.search(records, "weather:", 50).results.length, 0)
   }
