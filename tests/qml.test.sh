@@ -189,6 +189,10 @@ rg -Fq 'fillMode: Image.PreserveAspectFit' "$ROOT/ActionDialog.qml"
 rg -Fq 'width: previewThumbnail.paintedWidth' "$ROOT/ActionDialog.qml"
 rg -Fq 'height: previewThumbnail.paintedHeight' "$ROOT/ActionDialog.qml"
 rg -Fq 'anchors.right: previewClickArea.right' "$ROOT/ActionDialog.qml"
+if awk 'found || /id: actionButton/ { found = 1; print }' \
+    "$ROOT/ActionDialog.qml" | rg -q 'MouseArea|cursorShape|onClicked'; then
+  fail "action footer must remain keyboard-only"
+fi
 rg -Fq 'event.key === Qt.Key_Q' "$ROOT/ActionDialog.qml"
 rg -Fq 'if (actionDialog.readOnly || !selectedRecord || !service) return' \
   "$ROOT/PluginControl.qml"
