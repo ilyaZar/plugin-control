@@ -75,6 +75,9 @@ Control invokes the native command:
 omarchy plugin update <plugin-id> --yes
 ```
 
+The `plug-update:` command and Ctrl+u shortcut were introduced in Plugin Control
+0.2.0.
+
 Already-current plugins report `Plugin already up-to-date!` when Update is
 chosen. Update remains visible but dimmed for manually copied plugins, dirty
 checkouts, and ahead or diverged Git histories. Rest on the dimmed action for
