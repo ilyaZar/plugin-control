@@ -126,7 +126,8 @@ This audit records release-readiness evidence for
 - [x] Read-only update classification. Added plugins are classified as current,
   available, manual, dirty, local-ahead, diverged, unsupported-layout, or
   failed. Checks fetch `origin HEAD`, compare commits, and never merge, reset,
-  pull, checkout, or invoke the native updater.
+  pull, checkout, or invoke the native updater. Per-plugin inspection failures
+  complete with a warning; scan-level failures remain errors.
 - [x] Update execution. Update is invoked only after a fresh per-plugin
   classification proves a clean fast-forward. Current plugins report the exact
   already-current result without entering the updating state; unsafe states
