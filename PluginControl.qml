@@ -719,6 +719,8 @@ Item {
 
     MouseArea {
       anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.ArrowCursor
       onClicked: root.dismiss()
     }
 
@@ -744,7 +746,12 @@ Item {
         }
       }
 
-      MouseArea { anchors.fill: parent; onClicked: {} }
+      MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.ArrowCursor
+        onClicked: {}
+      }
 
       ActionDialog {
         id: actionDialog
@@ -1045,6 +1052,8 @@ Item {
 
       MouseArea {
         anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.ArrowCursor
         onClicked: root.closePreview()
       }
 
@@ -1061,7 +1070,9 @@ Item {
         mipmap: true
 
         MouseArea {
-          anchors.fill: parent
+          anchors.centerIn: fullPreview
+          width: fullPreview.paintedWidth
+          height: fullPreview.paintedHeight
           cursorShape: Qt.PointingHandCursor
           onClicked: root.closePreview()
         }

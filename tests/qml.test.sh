@@ -204,6 +204,12 @@ rg -q 'function validPreviewUrl\(value\)' "$ROOT/PluginControl.qml"
 rg -q 'previewCacheUrlPrefix' \
   "$ROOT/PluginControl.qml"
 rg -Fq 'id: previewLayer' "$ROOT/PluginControl.qml"
+rg -Fq 'width: fullPreview.paintedWidth' "$ROOT/PluginControl.qml"
+rg -Fq 'height: fullPreview.paintedHeight' "$ROOT/PluginControl.qml"
+if (( $(rg -c 'cursorShape: Qt.ArrowCursor' \
+    "$ROOT/PluginControl.qml") < 3 )); then
+  fail "non-interactive overlay surfaces must reclaim the arrow cursor"
+fi
 rg -Fq 'Not listed on Omarchy Plugins' "$ROOT/ActionDialog.qml"
 rg -Fq 'marketplaceOrange: Color.accent' "$ROOT/ActionDialog.qml"
 rg -Fq 'marketplaceGreen: Color.accent' "$ROOT/ActionDialog.qml"
