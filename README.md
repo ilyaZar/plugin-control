@@ -111,6 +111,11 @@ command copies, and anonymous hearts when those values are cached. Verification
 describes marketplace checks associated with the listed commit; it is not a
 security audit.
 
+The detail view follows the marketplace's visual language: yellow GitHub
+stars, orange view and copy icons, a red-orange heart, and colored New,
+Updated, Verified, and Unverified badges. New and Updated follow the same
+twelve-hour window as the website, with Updated taking precedence.
+
 Marketplace interaction totals are fetched once per explicit Ctrl+r refresh.
 If that request fails, Plugin Control silently retains the last valid values
 and retries on the next refresh. Missing totals remain unknown rather than
