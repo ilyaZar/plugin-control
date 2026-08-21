@@ -19,13 +19,24 @@ normalize() {
 }
 
 valid="$(normalize "$TEST_DIR/fixtures/catalog-valid.json")"
-jq -e '.ok == true and (.records | length) == 2' <<<"$valid" >/dev/null
+jq -e '.ok == true and (.records | length) == 4' <<<"$valid" >/dev/null
 jq -e '.records[0].installable == true' <<<"$valid" >/dev/null
-jq -e '.records[1].installable == false' <<<"$valid" >/dev/null
-jq -e '.records[0].listingValidatedCommit != .records[0].upstreamObservedCommit' \
+jq -e '.records[1].installable == true' <<<"$valid" >/dev/null
+jq -e '.records[2].installable == false' <<<"$valid" >/dev/null
+jq -e '.records[3].installable == false' <<<"$valid" >/dev/null
+jq -e '.records[1].listingValidatedCommit != .records[1].upstreamObservedCommit' \
   <<<"$valid" >/dev/null
 jq -e '.records[0].stars == 42
   and .records[0].verificationStatus == "verified"
+  and .records[0].verificationSnapshotStatus == "verified"
+  and .records[0].verificationCoverage == "snapshot-verified"
+  and .records[0].verificationMethod == "maintainer-reviewed"
+  and .records[0].verificationReviewedBy == "marketplace-maintainer"
+  and .records[1].verificationStatus == "unverified"
+  and .records[1].verificationSnapshotStatus == "verified"
+  and .records[1].verificationCoverage == "update-unverified"
+  and .records[2].verificationCoverage == "unverified"
+  and .records[3].verificationStatus == ""
   and .records[0].addedAt == "2026-08-20"
   and .records[0].listedAt == "2026-08-20T08:00:00.000Z"
   and .records[0].versionUpdatedAt == "2026-08-20T09:00:00.000Z"
@@ -35,9 +46,39 @@ jq -e '.records[0].stars == 42
   and .records[0].previewThumbnail
     == "assets/img/plugins/7-example-weather-card.webp"
   and .records[0].previewThumbnailHeight == 405
-  and .records[1].stars == 0' \
+  and .records[2].stars == 0' \
   <<<"$valid" >/dev/null
-printf 'ok - marketplace-like catalog and browse-only rows\n'
+printf 'ok - schema 2 verification states and browse-only rows\n'
+
+automatic_verified="$(jq 'del(.plugins[0].verificationMethod,
+  .plugins[0].verificationReviewedAt,.plugins[0].verificationReviewedBy)' \
+  "$TEST_DIR/fixtures/catalog-valid.json" \
+  | normalize /dev/stdin)"
+jq -e '.ok == true and (.records | length) == 4
+  and .records[0].verificationCoverage == "snapshot-verified"
+  and .records[0].verificationMethod == ""' \
+  <<<"$automatic_verified" >/dev/null
+printf 'ok - automatic verification requires no maintainer review fields\n'
+
+validated_fallback="$(jq 'del(.plugins[0].upstreamObservedCommit)' \
+  "$TEST_DIR/fixtures/catalog-valid.json" \
+  | normalize /dev/stdin)"
+jq -e '.ok == true and (.records | length) == 4
+  and .records[0].verificationCoverage == "snapshot-verified"
+  and .records[0].upstreamObservedCommit
+    == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' \
+  <<<"$validated_fallback" >/dev/null
+printf 'ok - verification follows the producer commit fallback\n'
+
+updated_fallback="$(jq 'del(.plugins[1].upstreamObservedCommit)' \
+  "$TEST_DIR/fixtures/catalog-valid.json" \
+  | normalize /dev/stdin)"
+jq -e '.ok == true and (.records | length) == 4
+  and .records[1].verificationCoverage == "update-unverified"
+  and .records[1].upstreamObservedCommit
+    == "cccccccccccccccccccccccccccccccccccccccc"' \
+  <<<"$updated_fallback" >/dev/null
+printf 'ok - normalized drift keeps the producer commit fallback\n'
 
 jq '.plugins += [{"name":"missing id"},
   {"id":"bad/id","name":"bad","sourceType":"community"},
@@ -46,32 +87,123 @@ jq '.plugins += [{"name":"missing id"},
     "manifestPath":"manifest.json","installAvailable":true}]' \
   "$TEST_DIR/fixtures/catalog-valid.json" >"$TEMP_ROOT/malformed-rows.json"
 malformed="$(normalize "$TEMP_ROOT/malformed-rows.json")"
-jq -e '(.records | length) == 2 and (.errors | length) == 3' \
+jq -e '(.records | length) == 4 and (.errors | length) == 3' \
   <<<"$malformed" >/dev/null
 printf 'ok - missing fields invalid IDs and unsafe URLs are row errors\n'
 
-printf '{"stateSchemaVersion":1,"plugins":"wrong"}\n' \
+printf '{"stateSchemaVersion":2,"plugins":"wrong"}\n' \
   >"$TEMP_ROOT/malformed-root.json"
 normalize "$TEMP_ROOT/malformed-root.json" \
   | jq -e '.ok == false and (.records | length) == 0' >/dev/null
 printf 'ok - malformed catalog root is rejected\n'
 
-jq -n '{stateSchemaVersion:1,plugins:
+for version in legacy missing future; do
+  case "$version" in
+    legacy)
+      jq '.stateSchemaVersion = 1' "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/unsupported-schema.json"
+      ;;
+    missing)
+      jq 'del(.stateSchemaVersion)' "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/unsupported-schema.json"
+      ;;
+    future)
+      jq '.stateSchemaVersion = 3' "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/unsupported-schema.json"
+      ;;
+  esac
+  normalize "$TEMP_ROOT/unsupported-schema.json" \
+    | jq -e '.ok == false and (.error | contains("unsupported"))' >/dev/null
+done
+printf 'ok - only catalog state schema 2 is accepted\n'
+
+for mutation in update-status missing-baseline missing-listing \
+    mismatched-baseline \
+    snapshot-observed-mismatch update-observed-match empty-baseline \
+    unverified-baseline builtin-verification reviewed-without-reviewer \
+    empty-reviewer; do
+  case "$mutation" in
+    update-status)
+      jq '.plugins[1].verificationStatus = "verified"' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+    missing-baseline)
+      jq 'del(.plugins[0].verificationCommit)' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+    missing-listing)
+      jq 'del(.plugins[0].listingValidatedCommit)' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+    mismatched-baseline)
+      jq '.plugins[0].verificationCommit
+        = "dddddddddddddddddddddddddddddddddddddddd"' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+    snapshot-observed-mismatch)
+      jq '.plugins[0].upstreamObservedCommit
+        = "dddddddddddddddddddddddddddddddddddddddd"' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+    update-observed-match)
+      jq '.plugins[1].upstreamObservedCommit
+        = .plugins[1].verificationCommit' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+    empty-baseline)
+      jq '.plugins[0].verificationBaselineVersion = ""' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+    unverified-baseline)
+      jq '.plugins[2].verificationBaselineVersion = "3"' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+    builtin-verification)
+      jq '.plugins[3] += {verificationStatus:"verified",
+        verificationSnapshotStatus:"verified",
+        verificationCoverage:"snapshot-verified"}' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+    reviewed-without-reviewer)
+      jq 'del(.plugins[0].verificationReviewedBy)' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+    empty-reviewer)
+      jq '.plugins[0].verificationReviewedBy = ""' \
+        "$TEST_DIR/fixtures/catalog-valid.json" \
+        >"$TEMP_ROOT/invalid-verification.json"
+      ;;
+  esac
+  invalid_verification="$(normalize "$TEMP_ROOT/invalid-verification.json")"
+  jq -e '(.records | length) == 3 and (.errors | length) == 1' \
+    <<<"$invalid_verification" >/dev/null
+done
+printf 'ok - inconsistent schema 2 verification states are rejected\n'
+
+jq -n '{stateSchemaVersion:2,plugins:
   [range(0;5001)|{id:("x."+tostring),name:"x",sourceType:"community"}]}' \
   >"$TEMP_ROOT/oversized-count.json"
 normalize "$TEMP_ROOT/oversized-count.json" \
   | jq -e '.ok == false and (.error | contains("too many"))' >/dev/null
 printf 'ok - excessive record counts are rejected\n'
 
-jq '.plugins[0].sourceType="builtin" | .plugins[0].builtIn=true' \
-  "$TEST_DIR/fixtures/catalog-valid.json" >"$TEMP_ROOT/custom-builtin.json"
 custom="$(jq -c --arg channelName Custom \
   --arg channelSource custom --argjson channelRank 10 \
-  -f "$ROOT/lib/catalog.jq" "$TEMP_ROOT/custom-builtin.json")"
-jq -e '.records[0].builtIn == false and .records[0].source == "custom"
-  and .records[0].previewImage == ""
-  and .records[0].previewThumbnail == ""
-  and (.records[0] | has("previewWidth") | not)' \
+  -f "$ROOT/lib/catalog.jq" "$TEST_DIR/fixtures/catalog-valid.json")"
+jq -e '.records[3].builtIn == false and .records[3].source == "custom"
+  and .records[3].previewImage == ""
+  and .records[3].previewThumbnail == ""
+  and (.records[3] | has("previewWidth") | not)' \
   <<<"$custom" >/dev/null
 printf 'ok - custom catalogs cannot impersonate marketplace presentation\n'
 
@@ -224,7 +356,7 @@ download_catalog() {
   : >"$3"
   printf '304\n'
 }
-printf '%s\n' '{"normalizerVersion":3,"etag":"\"current\""}' \
+printf '%s\n' '{"normalizerVersion":4,"etag":"\"current\""}' \
   >"$CHANNEL_CACHE/marketplace.meta.json"
 refresh_catalog_channel "$ROOT" "$channel"
 [[ $(sha256sum "$CHANNEL_CACHE/marketplace.json") == "$before" ]]
@@ -236,10 +368,10 @@ download_catalog() {
   printf 'ETag: "new"\n' >"$3"
   printf '200\n'
 }
-printf '%s\n' '{"normalizerVersion":2,"etag":"\"stale\""}' \
+printf '%s\n' '{"normalizerVersion":3,"etag":"\"stale\""}' \
   >"$CHANNEL_CACHE/marketplace.meta.json"
 refresh_catalog_channel "$ROOT" "$channel"
-jq -e '.normalizerVersion == 3 and .etag == "\"new\""' \
+jq -e '.normalizerVersion == 4 and .etag == "\"new\""' \
   "$CHANNEL_CACHE/marketplace.meta.json" >/dev/null
 jq -e '.records[0].stars == 42
   and .records[0].versionUpdatedAt == "2026-08-20T09:00:00.000Z"' \
@@ -247,7 +379,7 @@ jq -e '.records[0].stars == 42
 printf 'ok - changed normalizer forces a complete catalog download\n'
 
 download_catalog() {
-  printf '{"stateSchemaVersion":1,"plugins":[]}\n' >"$2"
+  printf '{"stateSchemaVersion":2,"plugins":[]}\n' >"$2"
   : >"$3"
   printf '200\n'
 }
@@ -326,7 +458,15 @@ metrics_snapshot="$(build_snapshot "$ROOT")"
 jq -e '.records[] | select(.id == "io.example.weather")
   | .metricsAvailable == true and .views == 123 and .copies == 45
     and .hearts == 6 and .stars == 42
-    and .verificationStatus == "verified"' \
+    and .verificationStatus == "verified"
+    and .verificationSnapshotStatus == "verified"
+    and .verificationCoverage == "snapshot-verified"
+    and .verificationMethod == "maintainer-reviewed"' \
+  <<<"$metrics_snapshot" >/dev/null
+jq -e '.records[] | select(.id == "io.example.timer")
+  | .verificationStatus == "unverified"
+    and .verificationSnapshotStatus == "verified"
+    and .verificationCoverage == "update-unverified"' \
   <<<"$metrics_snapshot" >/dev/null
 jq -e '.records[] | select(.id == "suite.example")
   | .metricsAvailable == false
@@ -361,7 +501,7 @@ jq -cn --arg lastSuccessfulRefresh "$previous_refresh" \
   '{lastSuccessfulRefresh:$lastSuccessfulRefresh,
     lastSuccessfulEpoch:$lastSuccessfulEpoch,refreshWarnings:[],
     refreshDurationMs:10}' >"$REFRESH_STATE"
-jq -cn '{normalizerVersion:3,retrievedAt:"2026-08-20T11:59:00Z"}' \
+jq -cn '{normalizerVersion:4,retrievedAt:"2026-08-20T11:59:00Z"}' \
   >"$CHANNEL_CACHE/marketplace.meta.json"
 refresh_channel() {
   return 1
@@ -386,6 +526,8 @@ printf 'ok - recoverable refresh warnings preserve cache time and epoch\n'
 mv "$CHANNEL_CACHE/marketplace.json" \
   "$TEMP_ROOT/marketplace-cache-preserved.json"
 refresh_command "$ROOT" --force >"$TEMP_ROOT/bundled-warning-snapshot.json"
+jq -e 'has("stateSchemaVersion") | not' \
+  "$ROOT/bootstrap/catalog.json" >/dev/null
 jq -e '
     (.cache.refreshWarnings | length) == 1
     and .cache.refreshWarnings[0].channelId == "marketplace"

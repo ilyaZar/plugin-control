@@ -189,7 +189,7 @@ refresh_marketplace_stats() {
 refresh_catalog_channel() {
   local root="$1"
   local channel="$2"
-  local normalizer_version=3
+  local normalizer_version=4
   local channel_id channel_name source rank url
   channel_id="$(jq -r '.id' <<<"$channel")"
   channel_name="$(jq -r '.name' <<<"$channel")"

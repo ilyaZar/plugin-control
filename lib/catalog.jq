@@ -3,6 +3,9 @@ def safe_string($maximum):
   and length <= $maximum
   and (test("[[:cntrl:]]") | not);
 
+def nonempty_safe_string($maximum):
+  safe_string($maximum) and length > 0;
+
 def valid_id:
   safe_string(128)
   and test("^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -14,6 +17,9 @@ def valid_repository:
 
 def optional_string($key; $maximum):
   (has($key) | not) or .[$key] == null or (.[$key] | safe_string($maximum));
+
+def missing_or_null($key):
+  (has($key) | not) or .[$key] == null;
 
 def valid_optional_date($key):
   (has($key) | not) or .[$key] == null
@@ -55,10 +61,92 @@ def valid_optional_count($key):
   or (.[$key] | type == "number" and floor == . and . >= 0
       and . <= 1000000000000);
 
+def valid_commit($key):
+  (.[$key] | safe_string(40) and test("^[A-Fa-f0-9]{40}$"));
+
+def valid_optional_commit($key):
+  missing_or_null($key) or .[$key] == "" or valid_commit($key);
+
+def verification_observed_commit:
+  if (.upstreamObservedCommit | type) == "string"
+      and .upstreamObservedCommit != "" then
+    .upstreamObservedCommit
+  else
+    (.upstreamValidatedCommit // "")
+  end;
+
+def valid_verification_binding:
+  valid_commit("listingValidatedCommit")
+  and ((.listingValidatedCommit | ascii_downcase)
+    == (.verificationCommit | ascii_downcase))
+  and (
+    (verification_observed_commit) as $observed
+    | if .verificationCoverage == "update-unverified" then
+        ($observed | test("^[A-Fa-f0-9]{40}$"))
+        and (($observed | ascii_downcase)
+          != (.verificationCommit | ascii_downcase))
+      else
+        $observed == ""
+        or (($observed | ascii_downcase)
+          == (.verificationCommit | ascii_downcase))
+      end
+  );
+
+def valid_verification_snapshot:
+  (.verificationBaselineVersion | nonempty_safe_string(64))
+  and valid_commit("verificationCommit")
+  and valid_optional_timestamp("verificationCheckedAt")
+  and (.verificationCheckedAt != null)
+  and (
+    if missing_or_null("verificationMethod") then
+      missing_or_null("verificationReviewedAt")
+      and missing_or_null("verificationReviewedBy")
+    else
+      .verificationMethod == "maintainer-reviewed"
+      and valid_optional_timestamp("verificationReviewedAt")
+      and (.verificationReviewedAt != null)
+      and (.verificationReviewedBy | nonempty_safe_string(120))
+    end
+  )
+  and valid_verification_binding;
+
+def no_verification_snapshot:
+  missing_or_null("verificationBaselineVersion")
+  and missing_or_null("verificationCommit")
+  and missing_or_null("verificationCheckedAt")
+  and missing_or_null("verificationMethod")
+  and missing_or_null("verificationReviewedAt")
+  and missing_or_null("verificationReviewedBy");
+
 def valid_verification:
-  (.verificationStatus == null)
-  or (.verificationStatus | type == "string"
-      and IN("verified", "unverified"));
+  if .sourceType == "builtin" then
+    missing_or_null("verificationStatus")
+    and missing_or_null("verificationSnapshotStatus")
+    and missing_or_null("verificationCoverage")
+    and no_verification_snapshot
+  elif .sourceType == "community" then
+    (.verificationStatus | IN("verified", "unverified"))
+    and (.verificationSnapshotStatus | IN("verified", "unverified"))
+    and (.verificationCoverage
+      | IN("snapshot-verified", "update-unverified", "unverified"))
+    and (
+      if .verificationCoverage == "snapshot-verified" then
+        .verificationStatus == "verified"
+        and .verificationSnapshotStatus == "verified"
+        and valid_verification_snapshot
+      elif .verificationCoverage == "update-unverified" then
+        .verificationStatus == "unverified"
+        and .verificationSnapshotStatus == "verified"
+        and valid_verification_snapshot
+      else
+        .verificationStatus == "unverified"
+        and .verificationSnapshotStatus == "unverified"
+        and no_verification_snapshot
+      end
+    )
+  else
+    false
+  end;
 
 def row_valid:
   type == "object"
@@ -75,8 +163,9 @@ def row_valid:
   and optional_string("category"; 120)
   and optional_string("kind"; 120)
   and optional_string("status"; 120)
-  and optional_string("listingValidatedCommit"; 80)
-  and optional_string("upstreamObservedCommit"; 80)
+  and valid_optional_commit("listingValidatedCommit")
+  and valid_optional_commit("upstreamObservedCommit")
+  and valid_optional_commit("upstreamValidatedCommit")
   and optional_string("upstreamCheckStatus"; 80)
   and valid_optional_date("addedAt")
   and valid_optional_timestamp("listedAt")
@@ -113,6 +202,14 @@ def normalized_record($channel_name; $channel_source; $channel_rank):
       tags: (.tags // []),
       stars: (.stars // null),
       verificationStatus: (.verificationStatus // ""),
+      verificationSnapshotStatus: (.verificationSnapshotStatus // ""),
+      verificationCoverage: (.verificationCoverage // ""),
+      verificationBaselineVersion: (.verificationBaselineVersion // ""),
+      verificationCommit: (.verificationCommit // ""),
+      verificationCheckedAt: (.verificationCheckedAt // ""),
+      verificationMethod: (.verificationMethod // ""),
+      verificationReviewedAt: (.verificationReviewedAt // ""),
+      verificationReviewedBy: (.verificationReviewedBy // ""),
       addedAt: (.addedAt // ""),
       listedAt: (.listedAt // ""),
       versionUpdatedAt: (.versionUpdatedAt // ""),
@@ -142,7 +239,7 @@ def normalized_record($channel_name; $channel_source; $channel_rank):
         and ($repository | valid_repository)
       ),
       listingValidatedCommit: (.listingValidatedCommit // ""),
-      upstreamObservedCommit: (.upstreamObservedCommit // ""),
+      upstreamObservedCommit: verification_observed_commit,
       upstreamCheckStatus: (.upstreamCheckStatus // "unknown"),
       releaseTag: (.repositoryRelease.tag // "")
     }
@@ -150,7 +247,7 @@ def normalized_record($channel_name; $channel_source; $channel_rank):
 
 if type != "object" then
   {ok: false, error: "catalog root must be an object", records: [], errors: []}
-elif (.stateSchemaVersion != null and .stateSchemaVersion != 1) then
+elif .stateSchemaVersion != 2 then
   {ok: false, error: "unsupported catalog state schema version", records: [], errors: []}
 elif (.plugins | type) != "array" then
   {ok: false, error: "catalog plugins must be an array", records: [], errors: []}
