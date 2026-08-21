@@ -98,6 +98,7 @@ Useful keys:
 | `Ctrl+w`                             | Open the plugin website                 |
 | `Ctrl+g`                             | Open the source repository              |
 | `Ctrl+s`                             | Open settings; `Escape` returns         |
+| `Escape` or `q` in any submenu       | Return directly to the plugin list      |
 
 The status row keeps update and action feedback on the left and catalog
 refresh feedback on the right. Running work is yellow, a successful result is
@@ -113,12 +114,13 @@ those values are cached. Verification describes marketplace checks associated
 with the listed commit; it is not a security audit.
 
 When the marketplace supplies a preview, the information view shows its card
-image. Click the image to open the larger marketplace detail image. Enter,
-Space, Escape, or q closes the full-size preview and the same keys close the
-information view. Ctrl+i exposes no Add, install-in-terminal, or other system
-action. Preview WebPs are downloaded only when requested and converted through
-Omarchy's base ImageMagick package into a small plugin-owned PNG cache, because
-the shell's Qt image loader does not include a WebP decoder.
+image. Click the image to open the larger marketplace detail image. Enter or
+Space returns from the full-size preview to the information view. Escape or q
+returns directly from any submenu to the main plugin list. The same four keys
+close the information view. Ctrl+i exposes no Add, install-in-terminal, or
+other system action. Preview WebPs are downloaded only when requested and
+converted through Omarchy's base ImageMagick package into a small plugin-owned
+PNG cache, because the shell's Qt image loader does not include a WebP decoder.
 
 The detail view follows the marketplace's visual language: yellow GitHub
 stars, orange view and copy icons, a red-orange heart, and colored New,
@@ -193,7 +195,8 @@ override it. `stop` disables the whole plugin, not only its tray icon.
 ## Settings
 
 Ctrl+s opens Plugin settings, Keybindings, clean removal, and Cancel / Back.
-Use `j`/`k`, arrows, mouse, or Enter; Escape returns to the plugin list.
+Use `j`/`k`, arrows, mouse, or Enter; Escape or q returns directly to the plugin
+list from settings or its removal confirmation.
 
 ```text
 ~/.config/omarchy/ilyazar.plugin-control/channels.yaml

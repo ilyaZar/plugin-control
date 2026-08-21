@@ -34,11 +34,6 @@ FocusScope {
 
   function handleKey(event) {
     if (!opened) return false
-    if (event.key === Qt.Key_Escape
-        || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_Q)) {
-      canceled()
-      return true
-    }
     if (event.key === Qt.Key_Up || event.key === Qt.Key_Backtab) {
       selectedChoice = (selectedChoice + 2) % 3
       return true

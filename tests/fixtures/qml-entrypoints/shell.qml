@@ -413,16 +413,19 @@ ShellRoot {
               localDetailUrl,
               overlay.selectedRecord.name, 1600, 900)
             || !overlay.previewOpen
-            || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Q })
+            || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Return })
             || overlay.previewOpen
             || !overlay.actionDialogReadOnly
             || overlay.openPreview("https://example.com/preview.webp",
               "Unsafe", 1600, 900)) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR info preview")
         }
-        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
+        if (!overlay.openPreview(
+              localDetailUrl,
+              overlay.selectedRecord.name, 1600, 900)
+            || !overlay.returnToMainMenu()
             || overlay.modalDialogOpened)
-          console.error("PLUGIN_CONTROL_LOAD_ERROR info dialog close")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR stacked submenu close")
         overlay.service = savedInfoService
         var savedService = overlay.service
         overlay.service = null
@@ -560,9 +563,9 @@ ShellRoot {
             || overlay.pendingSnapshotId !== "snapshot-test") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared browse dialog")
         }
-        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Q })
+        if (!overlay.returnToMainMenu()
             || overlay.modalDialogOpened) {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR action q close")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR action menu close")
         }
         overlay.selectedRecord = null
         overlay.spaceActivatesSelection = false
@@ -577,7 +580,7 @@ ShellRoot {
             || overlay.actionDialogReadOnly) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared browse space")
         }
-        overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
+        overlay.returnToMainMenu()
 
         overlay.filteredRecords = [{
           id: "io.example.installable",
@@ -594,7 +597,7 @@ ShellRoot {
             || overlay.selectedRecord.id !== "io.example.installable") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR actionable enter")
         }
-        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
+        if (!overlay.returnToMainMenu()
             || overlay.modalDialogOpened)
           console.error("PLUGIN_CONTROL_LOAD_ERROR action dialog close")
         overlay.mode = "browse"
@@ -677,17 +680,35 @@ ShellRoot {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings cancel back")
         }
         overlay.showSettingsMenu()
-        if (!overlay.handleKey({ modifiers: 0, key: Qt.Key_Escape })
+        if (!overlay.returnToMainMenu()
             || overlay.settingsMenuOpen || !overlay.opened) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings escape back")
         }
         if (!overlay.handleKey({
               modifiers: Qt.ControlModifier, key: Qt.Key_S
             }) || !overlay.settingsMenuOpen
-            || !overlay.handleKey({ modifiers: 0, key: Qt.Key_Q })
+            || !overlay.returnToMainMenu()
             || overlay.settingsMenuOpen || !overlay.opened) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR settings shortcut q back")
         }
+        var savedRecords = root.serviceObject.records
+        var savedSnapshot = root.serviceObject.snapshot
+        root.serviceObject.records = [{
+          id: overlay.pluginId,
+          name: "Plugin Control",
+          installed: true,
+          removable: true
+        }]
+        root.serviceObject.snapshot = { snapshotId: "remove-self-test" }
+        overlay.showSettingsMenu()
+        if (!overlay.openSelfRemovalDialog()
+            || !overlay.modalDialogOpened
+            || !overlay.returnToMainMenu()
+            || overlay.modalDialogOpened || overlay.settingsMenuOpen) {
+          console.error("PLUGIN_CONTROL_LOAD_ERROR nested settings close")
+        }
+        root.serviceObject.records = savedRecords
+        root.serviceObject.snapshot = savedSnapshot
         if (overlay.handleKey({ modifiers: 0, key: Qt.Key_Q }))
           console.error("PLUGIN_CONTROL_LOAD_ERROR main palette q ownership")
         console.log("PLUGIN_CONTROL_INTERACTION_OK palette interactions")
@@ -759,10 +780,6 @@ ShellRoot {
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
         dialog.openDialog()
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Space })
-        dialog.openDialog()
-        dialog.handleKey({ modifiers: 0, key: Qt.Key_Q })
-        dialog.openDialog()
-        dialog.handleKey({ modifiers: 0, key: Qt.Key_Escape })
 
         dialog.readOnly = false
         dialog.plugin = {
@@ -811,11 +828,6 @@ ShellRoot {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared action choices")
         }
         dialog.openDialog()
-        if (!dialog.handleKey({ modifiers: 0, key: Qt.Key_Q })
-            || root.dialogCanceledCount !== 5) {
-          console.error("PLUGIN_CONTROL_LOAD_ERROR action q close")
-        }
-        dialog.openDialog()
         if (dialog.selectedChoice !== 0)
           console.error("PLUGIN_CONTROL_LOAD_ERROR safe action default")
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Right })
@@ -825,7 +837,7 @@ ShellRoot {
           console.error("PLUGIN_CONTROL_LOAD_ERROR update action selection")
         }
         dialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
-        if (root.dialogCanceledCount !== 5
+        if (root.dialogCanceledCount !== 2
             || root.dialogConfirmedCount !== 1
             || root.lastDialogOperation !== "update") {
           console.error("PLUGIN_CONTROL_LOAD_ERROR shared action dispatch")
@@ -901,9 +913,7 @@ ShellRoot {
         removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Down })
         removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Return })
         removalDialog.closeDialog()
-        removalDialog.openDialog()
-        if (!removalDialog.handleKey({ modifiers: 0, key: Qt.Key_Q })
-            || root.removalCanceledCount !== 2
+        if (root.removalCanceledCount !== 1
             || root.removalPurgeCount !== 1
             || root.removalPreserveCount !== 1) {
           console.error("PLUGIN_CONTROL_LOAD_ERROR self removal choices")

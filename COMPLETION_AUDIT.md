@@ -87,8 +87,8 @@ This audit records release-readiness evidence for
 
 ## Settings and channels
 
-- [x] Settings editor. Ctrl+S opens an inline three-row menu. Typing is
-  consumed; `j`/`k`, arrows, mouse, Enter, Escape, and Cancel route through
+- [x] Settings editor. Ctrl+S opens an inline menu. Typing is consumed;
+  `j`/`k`, arrows, mouse, Enter, Escape, q, and Cancel route through
   `scripts/open-settings.sh` to the validated plugin YAML, the exact Plugin
   Control entry in `bindings.lua`, or back to the open palette.
 - [x] Lifecycle CLI. Mocked `start` and `stop` calls observed the exact native

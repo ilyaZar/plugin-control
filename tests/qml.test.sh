@@ -23,7 +23,7 @@ rg -q 'function close\(\)' "$ROOT/PluginControl.qml"
 rg -q 'function toggle\(\)' "$ROOT/PluginControl.qml"
 rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
-rg -q 'Qt.Key_Escape' "$ROOT/PluginControl.qml"
+rg -Fq 'sequence: "Escape"' "$ROOT/PluginControl.qml"
 rg -Fq '{ keyLabel: "[Ctrl+i]", label: "Plugin info" }' \
   "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+u]", label: "Check for plugin updates" }' \
@@ -200,10 +200,15 @@ if awk 'found || /id: actionButton/ { found = 1; print }' \
     "$ROOT/ActionDialog.qml" | rg -q 'MouseArea|cursorShape|onClicked'; then
   fail "action footer must remain keyboard-only"
 fi
-rg -Fq 'event.key === Qt.Key_Q' "$ROOT/ActionDialog.qml"
 rg -Fq 'border.color: root.marketplaceYellow' "$ROOT/ActionDialog.qml"
 rg -Fq 'font.bold: root.readOnly' "$ROOT/ActionDialog.qml"
-rg -Fq 'event.key === Qt.Key_Q' "$ROOT/SelfRemovalDialog.qml"
+rg -Fq 'function returnToMainMenu()' "$ROOT/PluginControl.qml"
+rg -Fq 'sequence: "Q"' "$ROOT/PluginControl.qml"
+rg -Fq 'onActivated: root.returnToMainMenu()' "$ROOT/PluginControl.qml"
+if rg -q 'Qt.Key_(Escape|Q)' "$ROOT/ActionDialog.qml" \
+    "$ROOT/SelfRemovalDialog.qml"; then
+  fail "dialogs must not retain legacy close-key handlers"
+fi
 rg -Fq 'id: submenuKeyCatcher' "$ROOT/PluginControl.qml"
 rg -Fq 'visible: root.modalDialogOpened || root.settingsMenuOpen' \
   "$ROOT/PluginControl.qml"

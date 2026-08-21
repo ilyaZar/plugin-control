@@ -188,11 +188,6 @@ FocusScope {
 
   function handleKey(event) {
     if (!opened) return false
-    if (event.key === Qt.Key_Escape
-        || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_Q)) {
-      canceled()
-      return true
-    }
     if (event.key === Qt.Key_Left || event.key === Qt.Key_Backtab) {
       moveChoice(-1)
       return true

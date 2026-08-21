@@ -37,8 +37,9 @@ Use at least one light theme and one dark theme. Keep a terminal open for
 - [ ] Remove the disposable plugin. Confirm it disappears from added-only
   command results and becomes available to Add when it is catalog-listed.
 - [ ] Confirm Cancel is initially selected in every mutating action menu.
-- [ ] Confirm Left, Right, Tab, Shift+Tab, Enter, Space, and Escape operate the
-  action row, while hovering it keeps the normal arrow pointer.
+- [ ] Confirm Left, Right, Tab, Shift+Tab, Enter, and Space operate the action
+  row. Confirm Escape or q returns to the plugin list and hovering keeps the
+  normal arrow pointer.
 - [ ] Repeat plugin selection through ordinary search and every applicable
   explicit command. Confirm the selected plugin gets the same full menu.
 - [ ] Select Plugin Control itself for removal, then cancel the special
@@ -60,7 +61,7 @@ Use at least one light theme and one dark theme. Keep a terminal open for
   safely updateable added plugins.
 - [ ] Confirm a successful check with no candidates shows
   `All plugins are up to date!`.
-- [ ] Confirm Escape closes a plugin action menu first and leaves the palette
+- [ ] Confirm Escape or q closes a plugin action menu and leaves the palette
   available for continued searching.
 
 ## Update states and execution
@@ -113,9 +114,11 @@ Use at least one light theme and one dark theme. Keep a terminal open for
   below the description. Confirm a plugin without a preview leaves no empty
   image panel.
 - [ ] Click the preview and confirm the larger marketplace detail image fills
-  the overlay without distortion. Confirm clicking it or pressing Escape, q,
-  Enter, or Space returns to the information view.
-- [ ] Reopen Ctrl+i and confirm Enter, Space, Escape, and q each close it.
+  the overlay without distortion. Confirm clicking it or pressing Enter or
+  Space returns to the information view. Confirm Escape or q returns directly
+  to the main plugin list.
+- [ ] Reopen Ctrl+i and confirm Enter, Space, Escape, and q each returns to the
+  main plugin list.
 - [ ] Confirm Ctrl+i never shows Add, Remove, Update, Enable, Disable, or the
   install-in-terminal switch, including for an installable marketplace plugin.
 - [ ] Confirm the dialog uses a larger plugin title, clear metadata groups,

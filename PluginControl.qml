@@ -365,8 +365,7 @@ Item {
 
   function handlePreviewKey(event) {
     if (!previewOpen) return false
-    if (event.key === Qt.Key_Escape || event.key === Qt.Key_Q
-        || event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
         || event.key === Qt.Key_Space) closePreview()
     return true
   }
@@ -502,6 +501,22 @@ Item {
     Qt.callLater(queryInput.forceActiveFocus)
   }
 
+  function returnToMainMenu() {
+    if (!modalDialogOpened && !settingsMenuOpen) return false
+    var resetSelection = settingsMenuOpen
+    previewOpen = false
+    previewUrl = ""
+    selfRemovalDialog.closeDialog()
+    actionDialog.closeDialog()
+    settingsMenuOpen = false
+    if (resetSelection) {
+      selectedIndex = 0
+      rebuildResults()
+    }
+    Qt.callLater(queryInput.forceActiveFocus)
+    return true
+  }
+
   function activateSettings(action) {
     if (action === "cancel") {
       closeSettingsMenu()
@@ -594,11 +609,6 @@ Item {
     return true
   }
 
-  function isSubmenuCloseKey(event) {
-    return event.key === Qt.Key_Escape
-      || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_Q)
-  }
-
   function handleKey(event) {
     if (previewOpen) return handlePreviewKey(event)
     if (selfRemovalDialog.opened) return selfRemovalDialog.handleKey(event)
@@ -607,8 +617,7 @@ Item {
     var alt = (event.modifiers & Qt.AltModifier) !== 0
 
     if (settingsMenuOpen) {
-      if (isSubmenuCloseKey(event)) closeSettingsMenu()
-      else if (event.key === Qt.Key_Up
+      if (event.key === Qt.Key_Up
           || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_K))
         select(selectedIndex - 1, true)
       else if (event.key === Qt.Key_Down
@@ -620,8 +629,6 @@ Item {
     }
 
     if (isControlShortcut(event, Qt.Key_P)) {
-      dismiss()
-    } else if (event.key === Qt.Key_Escape) {
       dismiss()
     } else if (isControlShortcut(event, Qt.Key_I)) {
       openSelectedInfo()
@@ -728,6 +735,23 @@ Item {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: root.surfaceVisible
       ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+    Shortcut {
+      sequence: "Escape"
+      enabled: root.opened
+      context: Qt.ApplicationShortcut
+      onActivated: {
+        if (!root.returnToMainMenu()) root.dismiss()
+      }
+    }
+
+    Shortcut {
+      sequence: "Q"
+      enabled: root.opened
+        && (root.modalDialogOpened || root.settingsMenuOpen)
+      context: Qt.ApplicationShortcut
+      onActivated: root.returnToMainMenu()
+    }
 
     Item {
       id: submenuKeyCatcher
