@@ -83,6 +83,7 @@ init_paths() {
   LAST_GOOD_CONFIG="$STATE_ROOT/channels.json"
   CONFIG_ERROR="$STATE_ROOT/config-error.json"
   CHANNEL_CACHE="$CACHE_ROOT/channels"
+  PREVIEW_CACHE="$CACHE_ROOT/previews"
   SNAPSHOT_STATE="$STATE_ROOT/snapshot.json"
   REFRESH_STATE="$STATE_ROOT/refresh.json"
   UPDATE_STATE="$STATE_ROOT/updates.json"
@@ -108,8 +109,8 @@ init_paths() {
 
   umask 077
   MARKETPLACE_STATS_CACHE="$CACHE_ROOT/marketplace-stats.json"
-  mkdir -p -- "$CONFIG_ROOT" "$CHANNEL_CACHE" "$STATE_ROOT" "$RUNTIME_ROOT" \
-    "$PLUGIN_LOCK_ROOT"
+  mkdir -p -- "$CONFIG_ROOT" "$CHANNEL_CACHE" "$PREVIEW_CACHE" \
+    "$STATE_ROOT" "$RUNTIME_ROOT" "$PLUGIN_LOCK_ROOT"
 }
 
 plugin_lock_path() {

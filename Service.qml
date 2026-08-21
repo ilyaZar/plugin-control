@@ -21,6 +21,9 @@ Item {
   property bool ready: false
   property bool refreshing: false
   property bool checkingUpdates: false
+  property bool previewLoading: false
+  property var previewState: ({})
+  property var previewQueuedRecord: null
   property bool actionStarting: false
   property bool animationsEnabled: true
   property string lastError: ""
@@ -254,6 +257,40 @@ Item {
     return true
   }
 
+  function requestPreview(record) {
+    if (!helperPath || !record) return false
+    var id = String(record.id || "")
+    var cardUrl = String(record.previewThumbnailUrl || "")
+    var detailUrl = String(record.previewImageUrl || "")
+    if (!id || !cardUrl || !detailUrl) return false
+    if (previewState && previewState.id === id
+        && previewState.cardUrl && previewState.detailUrl) return true
+    if (previewProcess.running) {
+      previewQueuedRecord = JSON.parse(JSON.stringify(record))
+      return true
+    }
+    previewLoading = true
+    previewState = ({ id: id })
+    previewProcess.output = ""
+    previewProcess.requestedId = id
+    previewProcess.command = [helperPath, "preview", id, cardUrl, detailUrl,
+      String(record.versionUpdatedAt || record.version || "")]
+    previewProcess.running = true
+    return true
+  }
+
+  function acceptPreview(raw, exitCode) {
+    previewLoading = false
+    var parsed = parseJson(raw, null)
+    if (exitCode !== 0 || !parsed || parsed.ok !== true
+        || !parsed.id || !parsed.cardUrl || !parsed.detailUrl) {
+      previewState = ({ id: previewProcess.requestedId, failed: true })
+      return false
+    }
+    previewState = parsed
+    return true
+  }
+
   function requestStatus() {
     if (!helperPath || statusProcess.running) return
     statusProcess.output = ""
@@ -471,6 +508,24 @@ Item {
       onStreamFinished: statusProcess.output = text
     }
     onExited: root.acceptStatus(output)
+  }
+
+  Process {
+    id: previewProcess
+    property string output: ""
+    property string requestedId: ""
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: previewProcess.output = text
+    }
+    onExited: function(exitCode) {
+      root.acceptPreview(output, exitCode)
+      if (root.previewQueuedRecord) {
+        var queued = root.previewQueuedRecord
+        root.previewQueuedRecord = null
+        Qt.callLater(function() { root.requestPreview(queued) })
+      }
+    }
   }
 
   Process {

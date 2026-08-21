@@ -139,9 +139,10 @@ This audit records release-readiness evidence for
   execution requires that exact snapshot to remain current.
 - [x] Marketplace previews. The catalog accepts only marketplace-owned card
   and detail WebP paths, converts them to the fixed website origin, and rejects
-  custom-channel preview impersonation. Ctrl+I shows the card image beneath
-  the complete description and opens the detail image in a keyboard-dismissible
-  full-overlay viewer.
+  custom-channel preview impersonation. The on-demand helper downloads and
+  converts them to a plugin-owned PNG cache because Qt lacks a WebP decoder.
+  Ctrl+I shows the card image beneath the complete description and opens the
+  detail image in a keyboard-dismissible full-overlay viewer.
 - [x] Remote command isolation. Fixtures include a hostile remote command
   string; it is never executed or interpolated into a shell.
 - [x] Guarded self-removal. The settings menu opens a snapshot-pinned,

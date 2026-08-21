@@ -115,7 +115,9 @@ When the marketplace supplies a preview, the information view shows its card
 image. Click the image to open the larger marketplace detail image. Enter,
 Space, Escape, or q closes the full-size preview and the same keys close the
 information view. Ctrl+i exposes no Add, install-in-terminal, or other system
-action.
+action. Preview WebPs are downloaded only when requested and converted through
+Omarchy's base ImageMagick package into a small plugin-owned PNG cache, because
+the shell's Qt image loader does not include a WebP decoder.
 
 The detail view follows the marketplace's visual language: yellow GitHub
 stars, orange view and copy icons, a red-orange heart, and colored New,

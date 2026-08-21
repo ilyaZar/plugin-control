@@ -18,7 +18,7 @@ done
 unset backend_module
 
 usage() {
-  json_error "usage: plugin-control <cached|refresh|check-updates|ensure-config|config-status|status|action|ack|benchmark> ..."
+  json_error "usage: plugin-control <cached|refresh|check-updates|preview|ensure-config|config-status|status|action|ack|benchmark> ..."
 }
 
 main() {
@@ -83,6 +83,11 @@ main() {
     check-updates)
       (( $# == 1 )) || { usage; return 2; }
       check_updates_command "$(source_root "$1")"
+      ;;
+    preview)
+      (( $# == 4 )) || { usage; return 2; }
+      require_tool magick
+      preview_command "$1" "$2" "$3" "$4"
       ;;
     ensure-config)
       (( $# == 1 )) || { usage; return 2; }

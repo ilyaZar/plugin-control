@@ -49,6 +49,10 @@ Item {
     || Quickshell.env("HOME") + "/.config"
   readonly property string settingsPath: configHome
     + "/omarchy/ilyazar.plugin-control/settings.json"
+  readonly property string cacheHome: Quickshell.env("XDG_CACHE_HOME")
+    || Quickshell.env("HOME") + "/.cache"
+  readonly property string previewCacheUrlPrefix: "file://" + cacheHome
+    + "/omarchy/ilyazar.plugin-control/previews/"
   readonly property string themeColorsPath: Color.currentThemePath
     + "/colors.toml"
   readonly property color background: Color.menu.background
@@ -303,6 +307,7 @@ Item {
       : (service && service.snapshot
           ? String(service.snapshot.snapshotId || "") : "")
     actionDialog.readOnly = readOnly === true
+    if (readOnly === true && service) service.requestPreview(selectedRecord)
     actionDialog.openDialog()
     return true
   }
@@ -323,8 +328,10 @@ Item {
   }
 
   function validPreviewUrl(value) {
-    return /^https:\/\/omarchyplugins\.com\/assets\/img\/plugins\/[A-Za-z0-9._-]+-detail\.webp$/.test(
-      String(value || ""))
+    var url = String(value || "")
+    if (url.indexOf(previewCacheUrlPrefix) !== 0) return false
+    return /^[A-Za-z0-9._-]+-detail-[a-f0-9]{16}\.png$/.test(
+      url.slice(previewCacheUrlPrefix.length))
   }
 
   function openPreview(url, name, width, height) {
@@ -747,6 +754,19 @@ Item {
         selectedBackground: root.selectedBackground
         selectedText: root.selectedText
         warningColor: root.urgent
+        previewLoading: root.service ? root.service.previewLoading : false
+        previewFailed: root.service && root.service.previewState
+          && root.selectedRecord
+          && root.service.previewState.id === root.selectedRecord.id
+          && root.service.previewState.failed === true
+        previewCardSource: root.service && root.service.previewState
+          && root.selectedRecord
+          && root.service.previewState.id === root.selectedRecord.id
+          ? String(root.service.previewState.cardUrl || "") : ""
+        previewDetailSource: root.service && root.service.previewState
+          && root.selectedRecord
+          && root.service.previewState.id === root.selectedRecord.id
+          ? String(root.service.previewState.detailUrl || "") : ""
         onCanceled: {
           closeDialog()
           queryInput.forceActiveFocus()

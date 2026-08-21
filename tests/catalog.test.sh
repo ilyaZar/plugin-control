@@ -83,6 +83,39 @@ export XDG_RUNTIME_DIR="$TEMP_ROOT/runtime"
 source "$ROOT/bin/plugin-control"
 init_paths
 
+curl() {
+  local output=""
+  while (( $# > 0 )); do
+    if [[ $1 == --output ]]; then
+      output="$2"
+      shift 2
+    else
+      shift
+    fi
+  done
+  printf 'mock webp\n' >"$output"
+}
+magick() {
+  local output="${!#}"
+  printf '\211PNG\r\n\032\nmock\n' >"$output"
+}
+preview_json="$(preview_command io.example.preview \
+  https://omarchyplugins.com/assets/img/plugins/7-example-preview-card.webp \
+  https://omarchyplugins.com/assets/img/plugins/7-example-preview-detail.webp \
+  2026-08-20T10:00:00Z)"
+jq -e '.ok == true and .id == "io.example.preview"
+  and (.cardUrl | startswith("file://"))
+  and (.detailUrl | endswith(".png"))' <<<"$preview_json" >/dev/null
+if preview_command io.example.preview \
+    https://example.com/preview-card.webp \
+    https://omarchyplugins.com/assets/img/plugins/7-example-preview-detail.webp \
+    current >"$TEMP_ROOT/unsafe-preview.json"; then
+  printf 'not ok - unsafe preview origin accepted\n' >&2
+  exit 1
+fi
+unset -f curl magick
+printf 'ok - marketplace previews use an owned converted cache\n'
+
 good_config="$(load_config "$ROOT")"
 sed 's/tray-icon-hidden: false/tray-icon-hidden: hidden/' \
   "$ROOT/config/channels.yaml" >"$CHANNEL_CONFIG"
