@@ -24,15 +24,15 @@ rg -q 'function toggle\(\)' "$ROOT/PluginControl.qml"
 rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_Escape' "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Ctrl+i]", label: "Info" }' \
+rg -Fq '{ keyLabel: "[Ctrl+i]", label: "Plugin info" }' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+u]", label: "Check updates" }' \
+rg -Fq '{ keyLabel: "[Ctrl+u]", label: "Check for plugin updates" }' \
   "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+w]",' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+g]", label: "GitHub" }' \
+rg -Fq '{ keyLabel: "[Ctrl+g]", label: "GitHub plugin source" }' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+r]", label: "Refresh" }' \
+rg -Fq '{ keyLabel: "[Ctrl+r]", label: "Refresh cache" }' \
   "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+s]", label: "Settings" }' \
   "$ROOT/PaletteFooter.qml"
@@ -42,6 +42,10 @@ ctrl_i_line="$(rg -nF '{ keyLabel: "[Ctrl+i]"' \
   "$ROOT/PaletteFooter.qml" | cut -d: -f1)"
 (( ctrl_u_line < ctrl_i_line ))
 rg -Fq 'width: footerRow.width / 6' "$ROOT/PaletteFooter.qml"
+rg -Fq 'anchors.horizontalCenter: parent.horizontalCenter' \
+  "$ROOT/PaletteFooter.qml"
+rg -Fq 'horizontalAlignment: Text.AlignHCenter' "$ROOT/PaletteFooter.qml"
+rg -Fq 'fontSizeMode: Text.HorizontalFit' "$ROOT/PaletteFooter.qml"
 rg -Fq 'Style.font.caption - (compact ? 1 : 0)' \
   "$ROOT/PaletteFooter.qml"
 if rg -q 'Ctrl\+Shift|isContextShortcut' "$ROOT/PluginControl.qml"; then
