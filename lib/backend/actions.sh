@@ -75,7 +75,7 @@ preflight_remove() {
     && ( -e $path || -L $path ) && -f $path/manifest.json ]] || return 1
   manifest_id="$(jq -r '.id // ""' "$path/manifest.json" 2>/dev/null || true)"
   [[ $manifest_id == "$id" ]] || return 1
-  if [[ -d $path/.git || -f $path/.git ]] \
+  if [[ ! -L $path ]] && [[ -d $path/.git || -f $path/.git ]] \
     && git -C "$path" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
     && [[ -n $(git -C "$path" status --porcelain --untracked-files=normal 2>/dev/null) ]]; then
     return 2

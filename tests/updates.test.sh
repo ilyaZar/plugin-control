@@ -345,3 +345,41 @@ if rg -q 'git .* (merge|reset)( |$)' "$ROOT/lib/backend/updates.sh"; then
   exit 1
 fi
 printf 'ok - current and unsafe plugins never invoke the native updater\n'
+
+make_checkout test.development-link
+development_target="$TEMP_ROOT/development-link"
+mv -T -- "$PLUGINS_ROOT/test.development-link" "$development_target"
+ln -s "$development_target" "$PLUGINS_ROOT/test.development-link"
+printf 'dirty\n' >>"$development_target/Plugin.qml"
+jq '. + [{id:"test.development-link",name:"Development Link",
+  kinds:["overlay"],enabled:true,canDisable:true,firstParty:false}]' \
+  "$MOCK_RUNTIME" >"$MOCK_RUNTIME.tmp"
+mv "$MOCK_RUNTIME.tmp" "$MOCK_RUNTIME"
+jq -e --arg reason "$DEVELOPMENT_LINK_UPDATE_REASON" '
+  .status == "manual" and .gitManaged == false and .dirty == false
+    and .updateAvailable == false and .reason == $reason' \
+  <<<"$(classify_plugin_update test.development-link \
+    "$PLUGINS_ROOT/test.development-link")" >/dev/null
+rm -f -- "$SNAPSHOT_STATE"
+snapshot="$(helper cached "$ROOT")"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+jq -e --arg reason "$DEVELOPMENT_LINK_UPDATE_REASON" '
+  .records[] | select(.id == "test.development-link")
+  | .gitManaged == false and .dirty == false and .updateStatus == "manual"
+    and .updateAvailable == false and .updateReason == $reason' \
+  <<<"$snapshot" >/dev/null
+: >"$MOCK_LOG"
+helper action "$ROOT" update test.development-link "$snapshot_id" background \
+  | jq -e '.started == true' >/dev/null
+status="$(wait_action)"
+jq -e --arg reason "$DEVELOPMENT_LINK_UPDATE_REASON" '
+  .ok == false and .operation == "update" and .message == $reason' \
+  <<<"$status" >/dev/null
+if grep -Eq '^(plugin update |restart shell$)' "$MOCK_LOG"; then
+  printf 'not ok - development link reached update execution\n' >&2
+  exit 1
+fi
+[[ -L $PLUGINS_ROOT/test.development-link
+  && -d $development_target
+  && -n $(git -C "$development_target" status --porcelain) ]]
+printf 'ok - development links stay external to automatic updates\n'

@@ -49,6 +49,10 @@ if [[ $* == "plugin remove io.github.ilyazar.plugin-control --yes" \
     && -n ${MOCK_REMOVE_PATH:-} ]]; then
   mv -T -- "$MOCK_REMOVE_PATH" "$MOCK_REMOVE_PATH.removed"
 fi
+if [[ $* == "plugin remove development.test --yes" \
+    && -n ${MOCK_UNLINK_PATH:-} ]]; then
+  rm -f -- "$MOCK_UNLINK_PATH"
+fi
 if [[ $* == "restart shell" && ${MOCK_RESTART_EXIT:-0} != 0 ]]; then
   printf 'mock shell restart failure\n' >&2
   exit "$MOCK_RESTART_EXIT"
@@ -521,6 +525,54 @@ if grep -Fqx 'plugin remove worktree.test --yes' "$MOCK_LOG"; then
   exit 1
 fi
 printf 'ok - dirty Git worktree removal is refused\n'
+
+development_target="$TEMP_ROOT/development-test"
+development_link="$plugins_root/development.test"
+mkdir -p "$development_target"
+cat >"$development_target/manifest.json" <<'JSON'
+{
+  "schemaVersion": 1,
+  "id": "development.test",
+  "name": "Development Test",
+  "version": "1.0.0",
+  "author": "Test",
+  "description": "Development link fixture",
+  "kinds": ["overlay"],
+  "entryPoints": {"overlay":"Plugin.qml"}
+}
+JSON
+printf 'import QtQuick\nItem {}\n' >"$development_target/Plugin.qml"
+git -C "$development_target" init -q
+git -C "$development_target" add .
+git -C "$development_target" -c user.name=Test \
+  -c user.email=test@example.invalid commit -qm initial
+printf 'dirty\n' >>"$development_target/Plugin.qml"
+ln -s "$development_target" "$development_link"
+printf '[{"id":"development.test","name":"Development Test",
+  "kinds":["overlay"],"enabled":true,"canDisable":true,
+  "firstParty":false}]\n' >"$MOCK_RUNTIME"
+snapshot="$(rebuild_snapshot)"
+snapshot_id="$(jq -r '.snapshotId' <<<"$snapshot")"
+jq -e --arg reason \
+  'Development link; update its source checkout directly.' '
+  .records[] | select(.id == "development.test")
+  | .installed == true and .removable == true and .dirty == false
+    and .gitManaged == false and .updateStatus == "manual"
+    and .updateReason == $reason' <<<"$snapshot" >/dev/null
+export MOCK_UNLINK_PATH="$development_link"
+restart_calls_before="$(grep -c '^restart shell$' "$MOCK_LOG" || true)"
+helper action "$ROOT" remove development.test "$snapshot_id" background \
+  >/dev/null
+status="$(wait_action)"
+jq -e '.ok == true and .operation == "remove"' <<<"$status" >/dev/null
+wait_worker_release
+[[ ! -e $development_link && ! -L $development_link
+  && -d $development_target && -f $development_target/Plugin.qml ]]
+[[ -n $(git -C "$development_target" status --porcelain) ]]
+[[ $(grep -c '^restart shell$' "$MOCK_LOG" || true) == \
+  "$restart_calls_before" ]]
+unset MOCK_UNLINK_PATH
+printf 'ok - dirty development links remain external and can be unlinked\n'
 
 git -C "$local_plugin" checkout -q -- Plugin.qml
 printf '[{"id":"local.test","name":"Local Test","kinds":["overlay"],

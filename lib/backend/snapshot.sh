@@ -5,10 +5,12 @@ manifest_record() {
   local path="$4"
   local manifest="$path/manifest.json"
   local dirty=false git_managed=false native_update_supported=false
-  local repository="" local_commit=""
+  local repository="" local_commit="" manual_reason="$MANUAL_UPDATE_REASON"
   [[ -f $manifest ]] || return 1
   [[ "$(jq -r '.id // ""' "$manifest" 2>/dev/null)" == "$id" ]] || return 1
-  if [[ -d $path/.git || -f $path/.git ]] \
+  if [[ -L $path ]]; then
+    manual_reason="$DEVELOPMENT_LINK_UPDATE_REASON"
+  elif [[ -d $path/.git || -f $path/.git ]] \
     && git -C "$path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     git_managed=true
     [[ -d $path/.git ]] && native_update_supported=true
@@ -24,7 +26,7 @@ manifest_record() {
     --argjson enabled "$enabled" --argjson canDisable "$can_disable" \
     --argjson dirty "$dirty" --argjson gitManaged "$git_managed" \
     --argjson nativeUpdateSupported "$native_update_supported" \
-    --arg manualReason "$MANUAL_UPDATE_REASON" \
+    --arg manualReason "$manual_reason" \
     --arg dirtyReason "$DIRTY_UPDATE_REASON" \
     --arg unsupportedReason "$UNSUPPORTED_UPDATE_REASON" '
       {
