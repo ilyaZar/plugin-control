@@ -23,18 +23,6 @@ load_update_state() {
   fi
 }
 
-update_reason() {
-  case "$1" in
-    manual) printf '%s\n' "$MANUAL_UPDATE_REASON" ;;
-    dirty) printf '%s\n' "$DIRTY_UPDATE_REASON" ;;
-    ahead) printf '%s\n' "$AHEAD_UPDATE_REASON" ;;
-    diverged) printf '%s\n' "$DIVERGED_UPDATE_REASON" ;;
-    unsupported) printf '%s\n' "$UNSUPPORTED_UPDATE_REASON" ;;
-    error) printf 'The plugin could not be checked for updates.\n' ;;
-    *) printf '\n' ;;
-  esac
-}
-
 update_result() {
   local id="$1"
   local status="$2"
@@ -193,50 +181,32 @@ write_update_state() (
 
 store_update_record() (
   local record="$1"
-  local state next
+  local state records counts next
   exec 6>>"$UPDATE_STATE_LOCK"
   flock 6
   state="$(load_update_state)"
-  next="$(jq -c --argjson record "$record" '
-    .records = ([.records[] | select(.id != $record.id)] + [$record])
-    | .counts = (reduce .records[] as $item (
-        {checked:0,available:0,current:0,manual:0,dirty:0,
-          ahead:0,diverged:0,unsupported:0,failed:0};
-        .checked += 1
-        | if $item.status == "available" then .available += 1
-          elif $item.status == "current" then .current += 1
-          elif $item.status == "manual" then .manual += 1
-          elif $item.status == "dirty" then .dirty += 1
-          elif $item.status == "ahead" then .ahead += 1
-          elif $item.status == "diverged" then .diverged += 1
-          elif $item.status == "unsupported" then .unsupported += 1
-          elif $item.status == "error" then .failed += 1
-          else . end))
+  records="$(jq -c --argjson record "$record" '
+    [.records[] | select(.id != $record.id)] + [$record]
+  ' <<<"$state")"
+  counts="$(update_counts <<<"$records")"
+  next="$(jq -c --argjson records "$records" --argjson counts "$counts" '
+    .records = $records | .counts = $counts
   ' <<<"$state")"
   atomic_write_text "$UPDATE_STATE" "$next"
 )
 
 remove_update_record() (
   local id="$1"
-  local state next
+  local state records counts next
   exec 6>>"$UPDATE_STATE_LOCK"
   flock 6
   state="$(load_update_state)"
-  next="$(jq -c --arg id "$id" '
-    .records = [.records[] | select(.id != $id)]
-    | .counts = (reduce .records[] as $item (
-        {checked:0,available:0,current:0,manual:0,dirty:0,
-          ahead:0,diverged:0,unsupported:0,failed:0};
-        .checked += 1
-        | if $item.status == "available" then .available += 1
-          elif $item.status == "current" then .current += 1
-          elif $item.status == "manual" then .manual += 1
-          elif $item.status == "dirty" then .dirty += 1
-          elif $item.status == "ahead" then .ahead += 1
-          elif $item.status == "diverged" then .diverged += 1
-          elif $item.status == "unsupported" then .unsupported += 1
-          elif $item.status == "error" then .failed += 1
-          else . end))
+  records="$(jq -c --arg id "$id" '
+    [.records[] | select(.id != $id)]
+  ' <<<"$state")"
+  counts="$(update_counts <<<"$records")"
+  next="$(jq -c --argjson records "$records" --argjson counts "$counts" '
+    .records = $records | .counts = $counts
   ' <<<"$state")"
   atomic_write_text "$UPDATE_STATE" "$next"
 )
