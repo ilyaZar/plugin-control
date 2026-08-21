@@ -114,6 +114,8 @@ Item {
   readonly property string marketplaceShortcutLabel: shortcutHasPluginPage
     ? "Plugin website" : "Marketplace"
   readonly property bool actionDialogReadOnly: actionDialog.readOnly
+  readonly property bool modalDialogOpened: actionDialog.opened
+    || selfRemovalDialog.opened || previewOpen
   readonly property bool hasUpdateWarnings: service
     && service.updateWarnings && service.updateWarnings.length > 0
   readonly property string updateWarningText: hasUpdateWarnings
@@ -932,8 +934,7 @@ Item {
               width: ListView.view.width
               selected: index === root.selectedIndex
               settingsMenuOpen: root.settingsMenuOpen
-              pointerInteractive: !root.actionDialog.opened
-                && !root.selfRemovalDialog.opened && !root.previewOpen
+              pointerInteractive: !root.modalDialogOpened
               rowHeight: root.rowHeight
               foreground: root.foreground
               selectedBackground: root.selectedBackground
