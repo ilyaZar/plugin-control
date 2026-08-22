@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.ilyazar.plugin-control",
   "name": "Plugin Control",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "ilyaZar",
   "license": "MIT",
   "description": "Fuzzy command palette (Ctrl+P-like) for quickly adding, updating, enabling, disabling, and removing plugins (a la Sublime Text Package Control or VS Code Command Palette). The tray icon can be hidden in the settings so it runs nicely in the background without bloating your system. The main keybinding is customizable. The palette opens only when you fire it up, so it works on slower systems with minimal overhead (approximately 10 MiB of additional memory while idle).",
