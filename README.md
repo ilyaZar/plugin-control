@@ -8,17 +8,11 @@ press Enter to open one consistent action menu for that plugin.
 
 ![Plugin Control command palette](preview.png)
 
-Plugin Control keeps the full [@HANCORE-linux](https://github.com/HANCORE-linux)
-[community marketplace](https://omarchyplugins.com/) and local plugin state in a
-small cache, then filters it in process on every keypress. Startup reads only
-that local cache. Press Ctrl+r when you want to refresh catalog and marketplace
-metrics data from the configured sources.
+## Quick setup
 
-## Install
-
-```bash
-omarchy plugin add https://github.com/ilyaZar/plugin-control.git --enable
-```
+Bare Ctrl+p is quick, but it replaces the usual application shortcut while the
+binding is active. Change the first string if that disrupts your setup. If the
+binding is not yet active,
 
 Plugin manifests cannot add global bindings. For a keyboard-only path, add this
 optional binding to your repo-managed or user-owned `bindings.lua`:
@@ -31,14 +25,26 @@ o.bind(
 )
 ```
 
-Bare Ctrl+p is quick, but it replaces the usual application shortcut while the
-binding is active. Change the first string if that disrupts your setup.
+Start typing to search plugin names, IDs, descriptions, authors, and tags. Enter
+opens the same action menu whether the plugin came from ordinary search or an
+explicit command. Ctrl+i opens plugin information, `Ctrl+r` refreshes the
+internal plugin database, `Ctrl+u` shows plugins that can be updated.
+
+## Install
+
+```bash
+omarchy plugin add https://github.com/ilyaZar/plugin-control.git --enable
+```
 
 ## Use
 
-Start typing to search plugin names, IDs, descriptions, authors, and tags. Enter
-opens the same action menu whether the plugin came from ordinary search or an
-explicit command. Ctrl+i opens the same information read-only.
+### General
+
+Plugin Control keeps the full [@HANCORE-linux](https://github.com/HANCORE-linux)
+[community marketplace](https://omarchyplugins.com/) and local plugin state in a
+small cache, then filters it in process on every keypress. Startup reads only
+that local cache. Press Ctrl+r when you want to refresh catalog and marketplace
+metrics data from the configured sources.
 
 The menu reflects the selected plugin's current state:
 
@@ -52,7 +58,7 @@ built-in bar widget, that operation may add or remove its bar placement. Plugin
 Control always delegates the change to `omarchy plugin enable` or
 `omarchy plugin disable`.
 
-Use these commands to narrow the action first:
+At the top typing window: use these commands to narrow the action first
 
 - `plug-add:` shows plugins available through `omarchy plugin add`
 - `plug-remove:` shows removable local plugins
@@ -62,55 +68,58 @@ Use these commands to narrow the action first:
 
 Commands are not pinned. Type `add`, `remove`, `enable`, `disable`, or `update`
 to bring one forward, then press Tab or Enter to complete it. Search restarts
-after the colon. Completing `plug-update:` starts its read-only check. Backspace
-edits a plugin name normally; at an empty completed prefix, one press removes
-the trailing space and the next clears the command.
+after the colon. Completing, e.g., `plug-update:` starts its read-only check.
+Backspace edits a plugin name normally; at an empty completed prefix, one press
+removes the trailing space and the next clears the command.
 
 Ctrl+u is the direct update-check path. It enters `plug-update:`, fetches each
-added Git plugin's upstream `HEAD`, and lists only safe fast-forward updates.
-It never updates a plugin by itself. Select a result, choose Update, and Plugin
+added Git plugin's upstream `HEAD`, and lists only safe fast-forward updates. It
+never updates a plugin by itself. Select a result, choose Update, and Plugin
 Control invokes the native command:
 
 ```bash
-omarchy plugin update <plugin-id> --yes
+omarchy plugin update <plugin-id> --yes && omarchy restart shell
 ```
+
+Successful additions and changed updates restart Omarchy Shell once so the new
+plugin runtime is loaded. If that restart fails, the plugin change is kept and
+Plugin Control reports that `omarchy restart shell` still needs to be run.
 
 The `plug-update:` command and Ctrl+u shortcut were introduced in Plugin Control
 0.2.0.
 
-Already-current plugins report `Plugin already up-to-date!` when Update is
-chosen. Update remains visible but dimmed for manually copied plugins, dirty
+Already-current plugins report `Plugin already up-to-date!` when `Update` is
+chosen. `Update` remains visible but dimmed for manually copied plugins, dirty
 checkouts, and ahead or diverged Git histories. Rest on the dimmed action for
 one second, or activate it, to see the reason. If one plugin cannot be checked,
 the scan still completes and a yellow warning icon exposes that plugin's full
 reason. Only failures that prevent the scan itself from completing are red.
 
-Useful keys:
+### Useful keys
 
-| Keys                                 | Action                                  |
-| ------------------------------------ | --------------------------------------- |
-| `Ctrl+p` or `Escape`                 | Close from the plugin list              |
-| `Up`, `Down`, `Page Up`, `Page Down` | Move the selection                      |
-| `Home` or `End`                      | Jump to the first or last result        |
-| `Enter`                              | Complete or confirm                     |
-| `Tab`                                | Complete the selected command           |
-| `Ctrl+Backspace`                     | Remove the previous word                |
-| `Ctrl+u`                             | Check for updateable plugins            |
-| `Ctrl+r`                             | Refresh catalog and metrics             |
-| `Ctrl+i`                             | Show read-only plugin details           |
-| `Ctrl+w`                             | Open the plugin website                 |
-| `Ctrl+g`                             | Open the source repository              |
-| `Ctrl+s`                             | Open settings; `Escape` returns         |
-| `Escape` or `q` in any submenu       | Return directly to the plugin list      |
+| Keys                                 | Action                             |
+| ------------------------------------ | ---------------------------------- |
+| `Ctrl+p` or `Escape`                 | Close from the plugin list         |
+| `Up`, `Down`, `Page Up`, `Page Down` | Move the selection                 |
+| `Home` or `End`                      | Jump to the first or last result   |
+| `Enter`                              | Complete or confirm                |
+| `Tab`                                | Complete the selected command      |
+| `Ctrl+Backspace`                     | Remove the previous word           |
+| `Ctrl+u`                             | Check for updateable plugins       |
+| `Ctrl+r`                             | Refresh catalog and metrics        |
+| `Ctrl+i`                             | Show read-only plugin details      |
+| `Ctrl+w`                             | Open the plugin website            |
+| `Ctrl+g`                             | Open the source repository         |
+| `Ctrl+s`                             | Open settings; `Escape` returns    |
+| `Escape` or `q` in any submenu       | Return directly to the plugin list |
 
-The status row keeps update and action feedback on the left and catalog
-refresh feedback on the right. Running work is yellow, a successful result is
-green for ten seconds, and settled timestamps are grey. If a catalog source is
-temporarily unavailable, Plugin Control keeps the previous timestamp and
-places a yellow warning icon beside it. Hover the icon to see which source
-failed and whether the last valid cache or bundled catalog is being used. Red
-is reserved for failures that prevent Plugin Control from producing usable
-catalog data.
+The status row keeps update and action feedback on the left and catalog refresh
+feedback on the right. Running work is yellow, a successful result is green for
+ten seconds, and settled timestamps are grey. If a catalog source is temporarily
+unavailable, Plugin Control keeps the previous timestamp and places a yellow
+warning icon beside it. Hover the icon to see which source failed and whether
+the last valid cache or bundled catalog is being used. Red is reserved for
+failures that prevent Plugin Control from producing usable catalog data.
 
 ## Plugin information
 
@@ -125,20 +134,20 @@ When the marketplace supplies a preview, the information view shows its card
 image. Click the image to open the larger marketplace detail image. Enter or
 Space returns from the full-size preview to the information view. Escape or q
 returns directly from any submenu to the main plugin list. The same four keys
-close the information view. Ctrl+i exposes no Add, install-in-terminal, or
-other system action. Preview WebPs are downloaded only when requested and
-converted through Omarchy's base ImageMagick package into a small plugin-owned
-PNG cache, because the shell's Qt image loader does not include a WebP decoder.
+close the information view. Ctrl+i exposes no Add, install-in-terminal, or other
+system action. Preview WebPs are downloaded only when requested and converted
+through Omarchy's base ImageMagick package into a small plugin-owned PNG cache,
+because the shell's Qt image loader does not include a WebP decoder.
 
-The detail view follows the marketplace's visual language: yellow GitHub
-stars, orange view and copy icons, a red-orange heart, and colored New,
-Updated, Verified, and Unverified badges. New and Updated follow the same
-twelve-hour window as the website, with Updated taking precedence.
+The detail view follows the marketplace's visual language: yellow GitHub stars,
+orange view and copy icons, a red-orange heart, and colored New, Updated,
+Verified, and Unverified badges. New and Updated follow the same twelve-hour
+window as the website, with Updated taking precedence.
 
-Marketplace interaction totals are fetched once per explicit Ctrl+r refresh.
-If that request fails, Plugin Control silently retains the last valid values
-and retries on the next refresh. Missing totals remain unknown rather than
-being displayed as zero.
+Marketplace interaction totals are fetched once per explicit Ctrl+r refresh. If
+that request fails, Plugin Control silently retains the last valid values and
+retries on the next refresh. Missing totals remain unknown rather than being
+displayed as zero.
 
 ## Demo
 
@@ -193,8 +202,8 @@ control whether its icon appears after the plugin starts:
 ~/.config/omarchy/plugins/io.github.ilyazar.plugin-control/bin/plugin-control stop
 ```
 
-The helper belongs to the installed plugin checkout and is not added to
-`PATH`. Run it with the full path above, or from the checkout root as
+The helper belongs to the installed plugin checkout and is not added to `PATH`.
+Run it with the full path above, or from the checkout root as
 `bin/plugin-control`.
 
 `start` uses the configured tray default. `--tray-hidden` and `--tray-visible`
@@ -202,8 +211,8 @@ override it. `stop` disables the whole plugin, not only its tray icon.
 
 ## Settings
 
-Ctrl+s opens Plugin settings, Keybindings, clean removal, and Cancel / Back.
-Use `j`/`k`, arrows, mouse, or Enter; Escape or q returns directly to the plugin
+Ctrl+s opens Plugin settings, Keybindings, clean removal, and Cancel / Back. Use
+`j`/`k`, arrows, mouse, or Enter; Escape or q returns directly to the plugin
 list from settings or its removal confirmation.
 
 ```text
@@ -265,6 +274,13 @@ Native removal keeps:
 Clean removal deletes the current author-namespaced paths.
 
 ## Development
+
+A normal installation is a Git clone managed under
+`~/.config/omarchy/plugins/<plugin-id>`. For plugin development, keep the source
+in a separate repository and symlink that repository into the matching plugin
+path. Plugin Control treats such development links as externally managed: it
+does not update their source checkout, and Remove only unlinks the installed
+path.
 
 ```bash
 tests/all.sh
