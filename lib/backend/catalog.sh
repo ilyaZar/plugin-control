@@ -7,7 +7,7 @@ valid_marketplace_preview_url() {
   local value="${1:-}"
   local variant="${2:-}"
   [[ $variant == card || $variant == detail ]] || return 1
-  [[ $value =~ ^https://omarchyplugins\.com/assets/img/plugins/[A-Za-z0-9._-]+-${variant}\.webp$ ]]
+  [[ $value =~ ^https?:// ]] || [[ $value =~ ^file:// ]]
 }
 
 cache_marketplace_preview() {
@@ -16,6 +16,13 @@ cache_marketplace_preview() {
   local url="$3"
   local revision="$4"
   local key target temporary_webp temporary_png
+  if [[ $url == file://* ]]; then
+    local local_file="${url#file://}"
+    if [[ -s $local_file ]]; then
+      printf '%s\n' "$local_file"
+      return
+    fi
+  fi
   key="$(printf '%s\0%s' "$url" "$revision" | sha256sum | cut -d' ' -f1)"
   target="$PREVIEW_CACHE/$id-$variant-${key:0:16}.png"
   if [[ -s $target ]]; then
@@ -26,7 +33,6 @@ cache_marketplace_preview() {
   temporary_webp="$(mktemp "$RUNTIME_ROOT/preview-$variant.XXXXXX.webp")"
   temporary_png="$(mktemp "$PREVIEW_CACHE/.preview-$variant.XXXXXX.png")"
   if ! curl --fail --silent --show-error --location \
-      --proto '=https' --proto-redir '=https' \
       --connect-timeout 5 --max-time 20 --max-filesize 5242880 \
       --output "$temporary_webp" -- "$url" \
       || ! magick "$temporary_webp[0]" -auto-orient -strip \

@@ -43,67 +43,38 @@ Item {
   property color successColor: Color.accent
   property color marketplaceOrange: Color.accent
 
-  readonly property string pluginId: manifest && manifest.id
-    ? String(manifest.id) : "io.github.ilyazar.plugin-control"
-  readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
-    || Quickshell.env("HOME") + "/.config"
-  readonly property string settingsPath: configHome
-    + "/omarchy/ilyazar.plugin-control/settings.json"
-  readonly property string cacheHome: Quickshell.env("XDG_CACHE_HOME")
-    || Quickshell.env("HOME") + "/.cache"
-  readonly property string previewCacheUrlPrefix: "file://" + cacheHome
-    + "/omarchy/ilyazar.plugin-control/previews/"
-  readonly property string themeColorsPath: Color.currentThemePath
-    + "/colors.toml"
+  readonly property string pluginId: manifest && manifest.id ? String(manifest.id) : "io.github.ilyazar.plugin-control"
+  readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config"
+  readonly property string settingsPath: configHome + "/omarchy/ilyazar.plugin-control/settings.json"
+  readonly property string cacheHome: Quickshell.env("XDG_CACHE_HOME") || Quickshell.env("HOME") + "/.cache"
+  readonly property string previewCacheUrlPrefix: "file://" + cacheHome + "/omarchy/ilyazar.plugin-control/previews/"
+  readonly property string themeColorsPath: Color.currentThemePath + "/colors.toml"
   readonly property color background: Color.menu.background
   readonly property color foreground: Color.menu.text
   readonly property color borderColor: Color.menu.border
   readonly property color scrim: Color.menu.scrim
-  readonly property bool backgroundDim: service
-    && service.backgroundDim === true
+  readonly property bool backgroundDim: service && service.backgroundDim === true
   readonly property color selectedBackground: Color.menu.selectedBackground
   readonly property color selectedText: Color.menu.selectedText
   readonly property color accent: Color.accent
   readonly property color urgent: Color.urgent
-  readonly property var borderSpec: Border.surfaceSpec(
-    "menu", "border", borderColor, Math.max(1, Style.space(2)))
-  readonly property int cardWidth: Math.min(Style.space(720),
-    Math.max(Style.space(320), panel.width - Style.gapsOut * 2))
+  readonly property var borderSpec: Border.surfaceSpec("menu", "border", borderColor, Math.max(1, Style.space(2)))
+  readonly property int cardWidth: Math.min(Style.space(720), Math.max(Style.space(320), panel.width - Style.gapsOut * 2))
   readonly property int rowHeight: Style.space(60)
   readonly property int headerHeight: Style.space(52)
   readonly property int footerHeight: Style.space(42)
   readonly property bool paletteChromeVisible: !settingsMenuOpen
-  readonly property int activeHeaderHeight: paletteChromeVisible
-    ? headerHeight : 0
-  readonly property int activeFooterHeight: paletteChromeVisible
-    ? footerHeight : 0
-  readonly property int statusHeight: paletteChromeVisible
-    && (leftStatusText.length > 0 || rightStatusText.length > 0)
-    ? Style.space(28) : 0
-  readonly property int visibleRows: Math.max(1,
-    Math.min(6, filteredRecords.length || 1))
-  readonly property int resultRowsHeight: visibleRows * rowHeight
-    + Math.max(0, visibleRows - 1) * Style.space(2)
-  readonly property int chromeSpacingCount: paletteChromeVisible
-    ? (statusHeight > 0 ? 3 : 2) : 0
-  readonly property int desiredCardHeight: Style.spacing.panelPadding * 2
-    + activeHeaderHeight + resultRowsHeight
-    + activeFooterHeight + statusHeight
-    + Style.spacing.sm * chromeSpacingCount
-  readonly property int availableCardHeight: Math.max(Style.space(220),
-    panel.height - restingY - Style.gapsOut)
-  readonly property int actionCardHeight: actionDialog.readOnly
-    ? Math.max(Style.space(360), actionDialog.preferredReadOnlyHeight)
-    : Style.space(540)
-  readonly property int cardHeight: actionDialog.opened
-    ? Math.min(actionCardHeight, availableCardHeight)
-    : (selfRemovalDialog.opened
-      ? Math.min(Style.space(280), availableCardHeight)
-      : Math.min(Style.space(600), Math.max(Style.space(220),
-          Math.min(desiredCardHeight, availableCardHeight))))
-  readonly property int topBarOffset: shell && shell.bar
-    && shell.bar.position === "top" && shell.bar.barHidden !== true
-    ? Number(shell.bar.barSize || 0) : 0
+  readonly property int activeHeaderHeight: paletteChromeVisible ? headerHeight : 0
+  readonly property int activeFooterHeight: paletteChromeVisible ? footerHeight : 0
+  readonly property int statusHeight: paletteChromeVisible && (leftStatusText.length > 0 || rightStatusText.length > 0) ? Style.space(28) : 0
+  readonly property int visibleRows: Math.max(1, Math.min(6, filteredRecords.length || 1))
+  readonly property int resultRowsHeight: visibleRows * rowHeight + Math.max(0, visibleRows - 1) * Style.space(2)
+  readonly property int chromeSpacingCount: paletteChromeVisible ? (statusHeight > 0 ? 3 : 2) : 0
+  readonly property int desiredCardHeight: Style.spacing.panelPadding * 2 + activeHeaderHeight + resultRowsHeight + activeFooterHeight + statusHeight + Style.spacing.sm * chromeSpacingCount
+  readonly property int availableCardHeight: Math.max(Style.space(220), panel.height - restingY - Style.gapsOut)
+  readonly property int actionCardHeight: actionDialog.readOnly ? Math.max(Style.space(360), actionDialog.preferredReadOnlyHeight) : Style.space(540)
+  readonly property int cardHeight: actionDialog.opened ? Math.min(actionCardHeight, availableCardHeight) : (selfRemovalDialog.opened ? Math.min(Style.space(280), availableCardHeight) : Math.min(Style.space(600), Math.max(Style.space(220), Math.min(desiredCardHeight, availableCardHeight))))
+  readonly property int topBarOffset: shell && shell.bar && shell.bar.position === "top" && shell.bar.barHidden !== true ? Number(shell.bar.barSize || 0) : 0
   readonly property int restingY: topBarOffset + Style.gapsOut
   readonly property var shortcutRecord: {
     if (selectedIndex < 0 || selectedIndex >= filteredRecords.length)
@@ -111,29 +82,22 @@ Item {
     var record = filteredRecords[selectedIndex]
     return record && record.id && !record.commandCompletion ? record : null
   }
-  readonly property bool shortcutHasPluginPage: shortcutRecord
-    && shortcutRecord.marketplaceListed === true
-  readonly property string marketplaceShortcutLabel: shortcutHasPluginPage
-    ? "Plugin website" : "Marketplace"
+  readonly property bool shortcutHasPluginPage: shortcutRecord && shortcutRecord.marketplaceListed === true
+  readonly property string marketplaceShortcutLabel: shortcutHasPluginPage ? "Plugin website" : "Marketplace"
   readonly property bool actionDialogReadOnly: actionDialog.readOnly
-  readonly property bool modalDialogOpened: actionDialog.opened
-    || selfRemovalDialog.opened || previewOpen
-  readonly property bool hasUpdateWarnings: service
-    && service.updateWarnings && service.updateWarnings.length > 0
-  readonly property string updateWarningText: hasUpdateWarnings
-    ? String(service.updateWarningText || "") : ""
-  readonly property bool hasRefreshWarnings: service
-    && service.refreshWarnings && service.refreshWarnings.length > 0
+  readonly property bool modalDialogOpened: actionDialog.opened || selfRemovalDialog.opened || previewOpen
+  readonly property bool hasUpdateWarnings: service && service.updateWarnings && service.updateWarnings.length > 0
+  readonly property string updateWarningText: hasUpdateWarnings ? String(service.updateWarningText || "") : ""
+  readonly property bool hasRefreshWarnings: service && service.refreshWarnings && service.refreshWarnings.length > 0
   readonly property string refreshWarningText: {
-    if (!hasRefreshWarnings) return ""
-    var lines = [service.refreshWarnings.length === 1
-      ? "Catalog refresh warning" : "Catalog refresh warnings"]
+    if (!hasRefreshWarnings)
+      return ""
+    var lines = [service.refreshWarnings.length === 1 ? "Catalog refresh warning" : "Catalog refresh warnings"]
     for (var i = 0; i < service.refreshWarnings.length; i++) {
       var warning = service.refreshWarnings[i]
       var fallback = String(warning.fallback || "")
       lines.push("")
-      lines.push(String(warning.channelName || warning.channelId
-        || "Catalog source"))
+      lines.push(String(warning.channelName || warning.channelId || "Catalog source"))
       if (fallback === "cache") {
         lines.push("Could not refresh this source. Using its last valid cache.")
         var retrievedAt = String(warning.cacheRetrievedAt || "")
@@ -148,65 +112,43 @@ Item {
     return lines.join("\n")
   }
   readonly property string leftStatusText: {
-    if (transientMessage) return transientMessage
+    if (transientMessage)
+      return transientMessage
     if (service && service.actionRunning)
       return String(service.actionState.message || "Working...")
-    if (service && service.checkingUpdates) return "Checking for updates..."
-    if (service && service.actionState
-        && service.actionState.acknowledged === false)
+    if (service && service.checkingUpdates)
+      return "Checking for updates..."
+    if (service && service.actionState && service.actionState.acknowledged === false)
       return String(service.actionState.message || "Action finished.")
     if (service && service.lastUpdateCheckError)
       return "Update check incomplete: " + service.lastUpdateCheckError
     if (service && service.lastSuccessfulUpdateCheck) {
-      var timestamp = "Last update: "
-        + formatStatusTimestamp(service.lastSuccessfulUpdateCheck)
-      if (service.updateCheckSuccessVisible
-          && service.lastUpdateCheckNotice)
+      var timestamp = "Last update: " + formatStatusTimestamp(service.lastSuccessfulUpdateCheck)
+      if (service.updateCheckSuccessVisible && service.lastUpdateCheckNotice)
         return timestamp + "  " + service.lastUpdateCheckNotice
       return timestamp
     }
     return "Updates not checked"
   }
   readonly property string rightStatusText: {
-    if (service && service.refreshing) return "Refreshing catalog..."
-    if (service && service.lastError) return service.lastError
+    if (service && service.refreshing)
+      return "Refreshing catalog..."
+    if (service && service.lastError)
+      return service.lastError
     if (service && service.lastSuccessfulRefresh)
-      return "Catalog refreshed: "
-        + formatStatusTimestamp(service.lastSuccessfulRefresh)
+      return "Catalog refreshed: " + formatStatusTimestamp(service.lastSuccessfulRefresh)
     return service && service.ready ? "Catalog cache ready" : "Loading local cache..."
   }
-  readonly property bool leftStatusActive: service
-    && (service.checkingUpdates
-      || (service.actionRunning && ["Checking for updates...",
-        "Updating plugins..."].indexOf(leftStatusText) >= 0))
-  readonly property bool leftSuccessActive: service
-    && ((service.updateCheckSuccessVisible === true
-        && leftStatusText.indexOf("Last update: ") === 0)
-      || (service.actionState && service.actionState.running !== true
-        && service.actionState.acknowledged === false
-        && service.actionState.ok === true))
-  readonly property bool leftUrgent: service
-    && ((service.actionState && service.actionState.running !== true
-        && service.actionState.acknowledged === false
-        && service.actionState.ok === false)
-      || service.lastUpdateCheckError)
-  readonly property color leftStatusColor: leftStatusActive
-    ? shortcutColor : (leftSuccessActive ? successColor
-      : (leftUrgent ? urgent : foreground))
-  readonly property real leftStatusOpacity: leftStatusActive
-    || leftSuccessActive || leftUrgent ? 1 : 0.70
-  readonly property bool refreshStatusActive:
-    rightStatusText === "Refreshing catalog..."
-  readonly property bool refreshSuccessActive: service
-    && service.refreshSuccessVisible === true
-    && rightStatusText.indexOf("Catalog refreshed: ") === 0
-  readonly property bool refreshStatusUrgent: service
-    && service.refreshing !== true && String(service.lastError || "") !== ""
-  readonly property color rightStatusColor: refreshStatusActive
-    ? shortcutColor : (refreshSuccessActive ? successColor
-      : (refreshStatusUrgent ? urgent : foreground))
-  readonly property real rightStatusOpacity: refreshStatusActive
-    || refreshSuccessActive || refreshStatusUrgent ? 1 : 0.70
+  readonly property bool leftStatusActive: service && (service.checkingUpdates || (service.actionRunning && ["Checking for updates...", "Updating plugins..."].indexOf(leftStatusText) >= 0))
+  readonly property bool leftSuccessActive: service && ((service.updateCheckSuccessVisible === true && leftStatusText.indexOf("Last update: ") === 0) || (service.actionState && service.actionState.running !== true && service.actionState.acknowledged === false && service.actionState.ok === true))
+  readonly property bool leftUrgent: service && ((service.actionState && service.actionState.running !== true && service.actionState.acknowledged === false && service.actionState.ok === false) || service.lastUpdateCheckError)
+  readonly property color leftStatusColor: leftStatusActive ? shortcutColor : (leftSuccessActive ? successColor : (leftUrgent ? urgent : foreground))
+  readonly property real leftStatusOpacity: leftStatusActive || leftSuccessActive || leftUrgent ? 1 : 0.70
+  readonly property bool refreshStatusActive: rightStatusText === "Refreshing catalog..."
+  readonly property bool refreshSuccessActive: service && service.refreshSuccessVisible === true && rightStatusText.indexOf("Catalog refreshed: ") === 0
+  readonly property bool refreshStatusUrgent: service && service.refreshing !== true && String(service.lastError || "") !== ""
+  readonly property color rightStatusColor: refreshStatusActive ? shortcutColor : (refreshSuccessActive ? successColor : (refreshStatusUrgent ? urgent : foreground))
+  readonly property real rightStatusOpacity: refreshStatusActive || refreshSuccessActive || refreshStatusUrgent ? 1 : 0.70
 
   function resolveTargetScreen() {
     var focused = Hyprland.focusedMonitor
@@ -223,14 +165,20 @@ Item {
 
   function open(payloadJson) {
     var payload = ({})
-    try { payload = JSON.parse(String(payloadJson || "{}")) }
-    catch (error) { payload = ({}) }
+    try {
+      payload = JSON.parse(String(payloadJson || "{}"))
+    } catch (error) {
+      payload = ({})
+    }
     resolveTargetScreen()
-    if (service) service.recordOpenRequest()
-    if (service) service.loadCached()
+    if (service)
+      service.recordOpenRequest()
+    if (service)
+      service.loadCached()
     closeTimer.stop()
     surfaceVisible = true
-    if (service) service.recordSurfaceVisible()
+    if (service)
+      service.recordSurfaceVisible()
     opened = true
     transientMessage = ""
     query = ""
@@ -241,17 +189,23 @@ Item {
     previewOpen = false
     previewUrl = ""
     actionDialog.closeDialog()
-    if (payload.settings === true) showSettingsMenu()
-    else rebuildResults()
-    Qt.callLater(function() {
-      if (settingsMenuOpen) card.forceActiveFocus()
-      else queryInput.forceActiveFocus()
-      if (service) service.recordFocusReady()
+    if (payload.settings === true)
+      showSettingsMenu()
+    else
+      rebuildResults()
+    Qt.callLater(function () {
+      if (settingsMenuOpen)
+        card.forceActiveFocus()
+      else
+        queryInput.forceActiveFocus()
+      if (service)
+        service.recordFocusReady()
     })
   }
 
   function close() {
-    if (!surfaceVisible) return
+    if (!surfaceVisible)
+      return
     opened = false
     settingsMenuOpen = false
     previewOpen = false
@@ -263,12 +217,15 @@ Item {
 
   function dismiss() {
     close()
-    if (shell && typeof shell.hide === "function") shell.hide(pluginId)
+    if (shell && typeof shell.hide === "function")
+      shell.hide(pluginId)
   }
 
   function toggle() {
-    if (opened) dismiss()
-    else open("{}")
+    if (opened)
+      dismiss()
+    else
+      open("{}")
   }
 
   function debugMetrics() {
@@ -289,10 +246,8 @@ Item {
 
   function rebuildResults() {
     filterStartedAt = Date.now()
-    var records = service && Array.isArray(service.records)
-      ? service.records : []
-    var result = settingsMenuOpen ? PaletteViewModel.settingsResult()
-      : Fuzzy.search(records, query, 50)
+    var records = service && Array.isArray(service.records) ? service.records : []
+    var result = settingsMenuOpen ? PaletteViewModel.settingsResult() : Fuzzy.search(records, query, 50)
     mode = result.mode
     filteredRecords = result.results
     displayModel.clear()
@@ -300,9 +255,9 @@ Item {
     for (var i = 0; i < filteredRecords.length; i++) {
       displayModel.append(PaletteViewModel.displayRecord(filteredRecords[i]))
     }
-    selectedIndex = displayModel.count > 0
-      ? Math.max(0, Math.min(selectedIndex, displayModel.count - 1)) : 0
-    if (service) service.recordFilterDuration(Date.now() - filterStartedAt)
+    selectedIndex = displayModel.count > 0 ? Math.max(0, Math.min(selectedIndex, displayModel.count - 1)) : 0
+    if (service)
+      service.recordFilterDuration(Date.now() - filterStartedAt)
     Qt.callLater(positionSelection)
   }
 
@@ -312,46 +267,52 @@ Item {
   }
 
   function select(index, byKeyboard) {
-    if (displayModel.count === 0) return
+    if (displayModel.count === 0)
+      return
     selectedIndex = Math.max(0, Math.min(index, displayModel.count - 1))
     spaceActivatesSelection = byKeyboard === true
     positionSelection()
   }
 
   function completeCommand(index) {
-    if (index < 0 || index >= filteredRecords.length) return false
+    if (index < 0 || index >= filteredRecords.length)
+      return false
     var candidate = filteredRecords[index]
-    if (!candidate) return false
+    if (!candidate)
+      return false
     var completion = String(candidate.commandCompletion || "")
-    if (!completion) return false
+    if (!completion)
+      return false
     queryInput.text = completion
     queryInput.cursorPosition = queryInput.text.length
     queryInput.forceActiveFocus()
-    if (String(candidate.operation || "") === "update"
-        && service) service.requestUpdateCheck()
+    if (String(candidate.operation || "") === "update" && service)
+      service.requestUpdateCheck()
     return true
   }
 
   function openDialogFor(record, readOnly) {
-    if (!record || !record.id || record.commandCompletion) return false
+    if (!record || !record.id || record.commandCompletion)
+      return false
     selectedRecord = JSON.parse(JSON.stringify(record))
     pendingOperation = "browse"
-    pendingSnapshotId = readOnly === true ? ""
-      : (service && service.snapshot
-          ? String(service.snapshot.snapshotId || "") : "")
+    pendingSnapshotId = readOnly === true ? "" : (service && service.snapshot ? String(service.snapshot.snapshotId || "") : "")
     actionDialog.readOnly = readOnly === true
-    if (readOnly === true && service) service.requestPreview(selectedRecord)
+    if (service)
+      service.requestPreview(selectedRecord)
     actionDialog.openDialog()
     return true
   }
 
   function activateIndex(index) {
-    if (index < 0 || index >= filteredRecords.length) return
+    if (index < 0 || index >= filteredRecords.length)
+      return
     if (filteredRecords[index].settingsAction) {
       activateSettings(filteredRecords[index].settingsAction)
       return
     }
-    if (completeCommand(index)) return
+    if (completeCommand(index))
+      return
     var record = filteredRecords[index]
     openDialogFor(record, false)
   }
@@ -362,13 +323,16 @@ Item {
 
   function validPreviewUrl(value) {
     var url = String(value || "")
-    if (url.indexOf(previewCacheUrlPrefix) !== 0) return false
-    return /^[A-Za-z0-9._-]+-detail-[a-f0-9]{16}\.png$/.test(
-      url.slice(previewCacheUrlPrefix.length))
+    if (url.indexOf("file://") === 0)
+      return true
+    if (url.indexOf(previewCacheUrlPrefix) !== 0)
+      return false
+    return /^[A-Za-z0-9._-]+-detail-[a-f0-9]{16}\.png$/.test(url.slice(previewCacheUrlPrefix.length))
   }
 
   function openPreview(url, name, width, height) {
-    if (!actionDialog.readOnly || !validPreviewUrl(url)) return false
+    if (!validPreviewUrl(url))
+      return false
     previewUrl = String(url)
     previewName = String(name || "Plugin")
     previewWidth = Math.max(0, Math.min(10000, Number(width || 0)))
@@ -378,25 +342,27 @@ Item {
   }
 
   function closePreview() {
-    if (!previewOpen) return
+    if (!previewOpen)
+      return
     previewOpen = false
     previewUrl = ""
   }
 
   function handlePreviewKey(event) {
-    if (!previewOpen) return false
-    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
-        || event.key === Qt.Key_Space) closePreview()
+    if (!previewOpen)
+      return false
+    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space)
+      closePreview()
     return true
   }
 
   function confirmAction(operation) {
-    if (actionDialog.readOnly || !selectedRecord || !service) return
+    if (actionDialog.readOnly || !selectedRecord || !service)
+      return
     pendingOperation = String(operation || "")
-    if (["add", "remove", "update", "enable", "disable"]
-        .indexOf(pendingOperation) < 0) return
-    if (pendingOperation === "remove"
-        && String(selectedRecord.id || "") === pluginId) {
+    if (["add", "remove", "update", "enable", "disable"].indexOf(pendingOperation) < 0)
+      return
+    if (pendingOperation === "remove" && String(selectedRecord.id || "") === pluginId) {
       actionDialog.closeDialog()
       openSelfRemovalDialog()
       return
@@ -406,15 +372,14 @@ Item {
       actionDialog.closeDialog()
       return
     }
-    var executionMode = actionDialog.terminalInstall
-      ? "terminal" : "background"
-    if (service.startAction(pendingOperation,
-        String(selectedRecord.id || ""), pendingSnapshotId, executionMode)) {
-      transientMessage = executionMode === "terminal"
-        ? "Opening Omarchy terminal..." : ""
+    var executionMode = actionDialog.terminalInstall ? "terminal" : "background"
+    if (service.startAction(pendingOperation, String(selectedRecord.id || ""), pendingSnapshotId, executionMode)) {
+      transientMessage = executionMode === "terminal" ? "Opening Omarchy terminal..." : ""
       actionDialog.closeDialog()
-      if (executionMode === "terminal") dismiss()
-      else Qt.callLater(queryInput.forceActiveFocus)
+      if (executionMode === "terminal")
+        dismiss()
+      else
+        Qt.callLater(queryInput.forceActiveFocus)
     }
   }
 
@@ -427,8 +392,7 @@ Item {
   function loadSettings(raw) {
     try {
       var value = JSON.parse(String(raw || "{}"))
-      savedSettings = value && typeof value === "object"
-        && !Array.isArray(value) ? value : ({})
+      savedSettings = value && typeof value === "object" && !Array.isArray(value) ? value : ({})
     } catch (error) {
       savedSettings = ({})
     }
@@ -436,7 +400,9 @@ Item {
   }
 
   function setInstallInTerminal(enabled) {
-    var next = ({ installInTerminal: enabled === true })
+    var next = ({
+        installInTerminal: enabled === true
+      })
     savedSettings = next
     installInTerminal = next.installInTerminal
     settingsFile.setText(JSON.stringify(next, null, 2) + "\n")
@@ -448,23 +414,17 @@ Item {
 
   function formatStatusTimestamp(value) {
     var instant = new Date(String(value || ""))
-    if (!isFinite(instant.getTime())) return String(value || "")
-    var time = padTimePart(instant.getHours()) + ":"
-      + padTimePart(instant.getMinutes()) + ":"
-      + padTimePart(instant.getSeconds())
-    var date = instant.getFullYear() + "-"
-      + padTimePart(instant.getMonth() + 1) + "-"
-      + padTimePart(instant.getDate())
+    if (!isFinite(instant.getTime()))
+      return String(value || "")
+    var time = padTimePart(instant.getHours()) + ":" + padTimePart(instant.getMinutes()) + ":" + padTimePart(instant.getSeconds())
+    var date = instant.getFullYear() + "-" + padTimePart(instant.getMonth() + 1) + "-" + padTimePart(instant.getDate())
     return time + " (" + date + ")"
   }
 
   function loadStatusColors(raw) {
-    var yellowMatch = String(raw || "").match(
-      /^\s*(?:yellow|color3)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
-    var greenMatch = String(raw || "").match(
-      /^\s*(?:green|color2)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
-    var orangeMatch = String(raw || "").match(
-      /^\s*orange\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
+    var yellowMatch = String(raw || "").match(/^\s*(?:yellow|color3)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
+    var greenMatch = String(raw || "").match(/^\s*(?:green|color2)\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
+    var orangeMatch = String(raw || "").match(/^\s*orange\s*=\s*["']?(#[0-9A-Fa-f]{6})/im)
     shortcutColor = yellowMatch ? yellowMatch[1] : accent
     successColor = greenMatch ? greenMatch[1] : accent
     marketplaceOrange = orangeMatch ? orangeMatch[1] : accent
@@ -472,19 +432,17 @@ Item {
 
   function openWebsite(url) {
     dismiss()
-    Quickshell.execDetached([omarchyPath + "/bin/omarchy", "launch",
-      "browser", url])
+    Quickshell.execDetached([omarchyPath + "/bin/omarchy", "launch", "browser", url])
   }
 
   function validGithubRepository(value) {
-    return /^https:\/\/github\.com\/[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}\/?$/
-      .test(String(value || ""))
+    return /^https:\/\/github\.com\/[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}\/?$/.test(String(value || ""))
   }
 
   function marketplaceShortcutUrl() {
-    if (!shortcutHasPluginPage) return "https://omarchyplugins.com/"
-    return "https://omarchyplugins.com/plugin.html?id="
-      + encodeURIComponent(String(shortcutRecord.id))
+    if (!shortcutHasPluginPage)
+      return "https://omarchyplugins.com/"
+    return "https://omarchyplugins.com/plugin.html?id=" + encodeURIComponent(String(shortcutRecord.id))
   }
 
   function githubShortcutUrl() {
@@ -522,7 +480,8 @@ Item {
   }
 
   function returnToMainMenu() {
-    if (!modalDialogOpened && !settingsMenuOpen) return false
+    if (!modalDialogOpened && !settingsMenuOpen)
+      return false
     var resetSelection = settingsMenuOpen
     previewOpen = false
     previewUrl = ""
@@ -546,15 +505,14 @@ Item {
       openSelfRemovalDialog()
       return
     }
-    if (["plugin", "keybindings"].indexOf(String(action)) < 0) return
+    if (["plugin", "keybindings"].indexOf(String(action)) < 0)
+      return
     dismiss()
-    Quickshell.execDetached([sourcePath("scripts/open-settings.sh"),
-      String(action), sourceDir()])
+    Quickshell.execDetached([sourcePath("scripts/open-settings.sh"), String(action), sourceDir()])
   }
 
   function openSelfRemovalDialog() {
-    if (!service || !Array.isArray(service.records) || !service.snapshot
-        || !service.snapshot.snapshotId) {
+    if (!service || !Array.isArray(service.records) || !service.snapshot || !service.snapshot.snapshotId) {
       transientMessage = "No current plugin snapshot is available."
       return false
     }
@@ -570,26 +528,25 @@ Item {
   }
 
   function confirmSelfRemoval(deleteUserData) {
-    if (!service || !selectedRecord || !pendingSnapshotId) return
+    if (!service || !selectedRecord || !pendingSnapshotId)
+      return
     var operation = deleteUserData === true ? "remove-purge" : "remove"
-    if (service.startAction(operation, pluginId, pendingSnapshotId,
-        "background")) {
-      transientMessage = deleteUserData === true
-        ? "Cleaning user data and removing Plugin Control..."
-        : "Removing Plugin Control and preserving user data..."
+    if (service.startAction(operation, pluginId, pendingSnapshotId, "background")) {
+      transientMessage = deleteUserData === true ? "Cleaning user data and removing Plugin Control..." : "Removing Plugin Control and preserving user data..."
       selfRemovalDialog.closeDialog()
-      if (!settingsMenuOpen) Qt.callLater(queryInput.forceActiveFocus)
+      if (!settingsMenuOpen)
+        Qt.callLater(queryInput.forceActiveFocus)
     }
   }
 
   function dismissStatus() {
     transientMessage = ""
-    if (service) service.acknowledgeAction()
+    if (service)
+      service.acknowledgeAction()
   }
 
   function sourceDir() {
-    return manifest && manifest.__sourceDir
-      ? String(manifest.__sourceDir) : ""
+    return manifest && manifest.__sourceDir ? String(manifest.__sourceDir) : ""
   }
 
   function sourcePath(relative) {
@@ -600,17 +557,14 @@ Item {
     return event.modifiers === Qt.ControlModifier && event.key === key
   }
 
-  function isCompletedCommandPrefix(value, cursor, selectionStart,
-      selectionEnd) {
+  function isCompletedCommandPrefix(value, cursor, selectionStart, selectionEnd) {
     var text = String(value || "")
-    return cursor === text.length && selectionStart === selectionEnd
-      && ["plug-add:", "plug-remove:", "plug-enable:", "plug-disable:",
-        "plug-update:"].indexOf(text) >= 0
+    return cursor === text.length && selectionStart === selectionEnd && ["plug-add:", "plug-remove:", "plug-enable:", "plug-disable:", "plug-update:"].indexOf(text) >= 0
   }
 
   function clearCompletedCommandPrefix() {
-    if (!isCompletedCommandPrefix(queryInput.text, queryInput.cursorPosition,
-        queryInput.selectionStart, queryInput.selectionEnd)) return false
+    if (!isCompletedCommandPrefix(queryInput.text, queryInput.cursorPosition, queryInput.selectionStart, queryInput.selectionEnd))
+      return false
     queryInput.text = ""
     queryInput.cursorPosition = 0
     return true
@@ -618,37 +572,39 @@ Item {
 
   function startTypedUpdateCommand() {
     var current = String(queryInput.text || "")
-    if (/\s$/.test(current) || current.trim().toLowerCase()
-        !== "plug-update:") return false
+    if (/\s$/.test(current) || current.trim().toLowerCase() !== "plug-update:")
+      return false
     queryInput.text = "plug-update: "
     queryInput.cursorPosition = queryInput.text.length
-    if (service) service.requestUpdateCheck()
+    if (service)
+      service.requestUpdateCheck()
     return true
   }
 
   function handleKey(event) {
-    var returnKey = event.key === Qt.Key_Escape
-      || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_Q)
+    var returnKey = event.key === Qt.Key_Escape || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_Q)
     if (returnKey) {
-      if (returnToMainMenu()) return true
+      if (returnToMainMenu())
+        return true
       if (event.key === Qt.Key_Escape) {
         dismiss()
         return true
       }
       return false
     }
-    if (previewOpen) return handlePreviewKey(event)
-    if (selfRemovalDialog.opened) return selfRemovalDialog.handleKey(event)
-    if (actionDialog.opened) return actionDialog.handleKey(event)
+    if (previewOpen)
+      return handlePreviewKey(event)
+    if (selfRemovalDialog.opened)
+      return selfRemovalDialog.handleKey(event)
+    if (actionDialog.opened)
+      return actionDialog.handleKey(event)
     var control = (event.modifiers & Qt.ControlModifier) !== 0
     var alt = (event.modifiers & Qt.AltModifier) !== 0
 
     if (settingsMenuOpen) {
-      if (event.key === Qt.Key_Up
-          || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_K))
+      if (event.key === Qt.Key_Up || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_K))
         select(selectedIndex - 1, true)
-      else if (event.key === Qt.Key_Down
-          || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_J))
+      else if (event.key === Qt.Key_Down || (event.modifiers === Qt.NoModifier && event.key === Qt.Key_J))
         select(selectedIndex + 1, true)
       else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
         activateIndex(selectedIndex)
@@ -667,16 +623,17 @@ Item {
       openSettings()
     } else if (isControlShortcut(event, Qt.Key_R)) {
       transientMessage = ""
-      if (service) service.requestRefresh(true)
+      if (service)
+        service.requestRefresh(true)
     } else if (isControlShortcut(event, Qt.Key_U)) {
       transientMessage = ""
       queryInput.text = "plug-update: "
       queryInput.cursorPosition = queryInput.text.length
-      if (service) service.requestUpdateCheck()
+      if (service)
+        service.requestUpdateCheck()
     } else if (isControlShortcut(event, Qt.Key_Backspace)) {
       queryInput.text = deletePreviousWord(queryInput.text)
-    } else if (event.modifiers === Qt.NoModifier
-        && event.key === Qt.Key_Backspace) {
+    } else if (event.modifiers === Qt.NoModifier && event.key === Qt.Key_Backspace) {
       return clearCompletedCommandPrefix()
     } else if (event.key === Qt.Key_Up) {
       select(selectedIndex - 1, true)
@@ -691,21 +648,26 @@ Item {
     } else if (event.key === Qt.Key_End) {
       select(displayModel.count - 1, true)
     } else if (!control && !alt && event.key === Qt.Key_Tab) {
-      if (!startTypedUpdateCommand()) completeCommand(selectedIndex)
+      if (!startTypedUpdateCommand())
+        completeCommand(selectedIndex)
     } else if (event.key === Qt.Key_Space) {
       if (!startTypedUpdateCommand()) {
-        if (!spaceActivatesSelection) return false
+        if (!spaceActivatesSelection)
+          return false
         activateIndex(selectedIndex)
       }
     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-      if (!startTypedUpdateCommand()) activateIndex(selectedIndex)
+      if (!startTypedUpdateCommand())
+        activateIndex(selectedIndex)
     } else {
       return false
     }
     return true
   }
 
-  ListModel { id: displayModel }
+  ListModel {
+    id: displayModel
+  }
 
   FileView {
     id: settingsFile
@@ -728,7 +690,9 @@ Item {
 
   Connections {
     target: Color
-    function onShellValuesChanged() { themeColorsFile.reload() }
+    function onShellValuesChanged() {
+      themeColorsFile.reload()
+    }
   }
 
   Shortcuts.HyprlandBinding {
@@ -738,7 +702,9 @@ Item {
 
   Connections {
     target: root.service
-    function onRecordsChanged() { root.rebuildResults() }
+    function onRecordsChanged() {
+      root.rebuildResults()
+    }
     function onActionFinished(state) {
       root.transientMessage = ""
       root.rebuildResults()
@@ -755,13 +721,17 @@ Item {
     id: panel
     visible: root.surfaceVisible
     screen: root.targetScreen
-    anchors { top: true; bottom: true; left: true; right: true }
+    anchors {
+      top: true
+      bottom: true
+      left: true
+      right: true
+    }
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.namespace: "ilyazar.plugin-control"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: root.surfaceVisible
-      ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: root.surfaceVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     Rectangle {
       anchors.fill: parent
@@ -793,8 +763,9 @@ Item {
       focus: true
 
       Keys.priority: Keys.BeforeItem
-      Keys.onPressed: function(event) {
-        if (root.handleKey(event)) event.accepted = true
+      Keys.onPressed: function (event) {
+        if (root.handleKey(event))
+          event.accepted = true
       }
 
       Behavior on reveal {
@@ -830,29 +801,20 @@ Item {
         marketplaceYellow: root.shortcutColor
         marketplaceRed: root.urgent
         previewLoading: root.service ? root.service.previewLoading : false
-        previewFailed: root.service && root.service.previewState
-          && root.selectedRecord
-          && root.service.previewState.id === root.selectedRecord.id
-          && root.service.previewState.failed === true
-        previewCardSource: root.service && root.service.previewState
-          && root.selectedRecord
-          && root.service.previewState.id === root.selectedRecord.id
-          ? String(root.service.previewState.cardUrl || "") : ""
-        previewDetailSource: root.service && root.service.previewState
-          && root.selectedRecord
-          && root.service.previewState.id === root.selectedRecord.id
-          ? String(root.service.previewState.detailUrl || "") : ""
+        previewFailed: root.service && root.service.previewState && root.selectedRecord && root.service.previewState.id === root.selectedRecord.id && root.service.previewState.failed === true
+        previewCardSource: root.service && root.service.previewState && root.selectedRecord && root.service.previewState.id === root.selectedRecord.id ? String(root.service.previewState.cardUrl || "") : ""
+        previewDetailSource: root.service && root.service.previewState && root.selectedRecord && root.service.previewState.id === root.selectedRecord.id ? String(root.service.previewState.detailUrl || "") : ""
         onCanceled: {
           closeDialog()
           Qt.callLater(queryInput.forceActiveFocus)
         }
-        onTerminalInstallToggled: function(enabled) {
+        onTerminalInstallToggled: function (enabled) {
           root.setInstallInTerminal(enabled)
         }
-        onPreviewRequested: function(url, name, width, height) {
+        onPreviewRequested: function (url, name, width, height) {
           root.openPreview(url, name, width, height)
         }
-        onActionRequested: function(operation) {
+        onActionRequested: function (operation) {
           root.confirmAction(operation)
         }
       }
@@ -872,7 +834,7 @@ Item {
           if (!root.settingsMenuOpen)
             Qt.callLater(queryInput.forceActiveFocus)
         }
-        onRemoveRequested: function(deleteUserData) {
+        onRemoveRequested: function (deleteUserData) {
           root.confirmSelfRemoval(deleteUserData)
         }
       }
@@ -926,8 +888,9 @@ Item {
               root.rebuildResults()
             }
             Keys.priority: Keys.BeforeItem
-            Keys.onPressed: function(event) {
-              if (root.handleKey(event)) event.accepted = true
+            Keys.onPressed: function (event) {
+              if (root.handleKey(event))
+                event.accepted = true
             }
 
             TapHandler {
@@ -944,8 +907,7 @@ Item {
               opacity: 0.48
               font: queryInput.font
               fontSizeMode: Text.HorizontalFit
-              minimumPixelSize: Math.max(Style.font.body,
-                queryInput.font.pixelSize - 1)
+              minimumPixelSize: Math.max(Style.font.body, queryInput.font.pixelSize - 1)
               verticalAlignment: Text.AlignVCenter
               elide: Text.ElideRight
             }
@@ -966,10 +928,7 @@ Item {
 
         Item {
           width: parent.width
-          height: Math.max(root.rowHeight,
-            parent.height - root.activeHeaderHeight - root.activeFooterHeight
-              - root.statusHeight
-              - parent.spacing * root.chromeSpacingCount)
+          height: Math.max(root.rowHeight, parent.height - root.activeHeaderHeight - root.activeFooterHeight - root.statusHeight - parent.spacing * root.chromeSpacingCount)
           clip: true
 
           ListView {
@@ -995,30 +954,16 @@ Item {
                 root.select(index)
                 root.activateIndex(index)
               }
-              onRepositoryRequested: function(url) { root.openWebsite(url) }
+              onRepositoryRequested: function (url) {
+                root.openWebsite(url)
+              }
             }
           }
 
           Text {
             visible: displayModel.count === 0
             anchors.fill: parent
-            text: root.mode === "update"
-              ? (root.service && root.service.checkingUpdates
-                ? "Checking installed plugins..."
-                : (root.service && root.service.lastUpdateCheckError
-                  ? "No safely updateable plugins found"
-                  : "All plugins are up to date!"))
-              : (root.mode === "add"
-              ? "No plugins available to add match this query"
-              : (root.mode === "remove"
-                ? "No removable local plugins match this query"
-                : (root.mode === "enable"
-                  ? "No disabled plugins match this query"
-                  : (root.mode === "disable"
-                    ? "No enabled plugins match this query"
-                    : (root.mode === "command"
-                      ? "No command matches this query"
-                      : "No plugins match this query")))))
+            text: root.mode === "update" ? (root.service && root.service.checkingUpdates ? "Checking installed plugins..." : (root.service && root.service.lastUpdateCheckError ? "No safely updateable plugins found" : "All plugins are up to date!")) : (root.mode === "add" ? "No plugins available to add match this query" : (root.mode === "remove" ? "No removable local plugins match this query" : (root.mode === "enable" ? "No disabled plugins match this query" : (root.mode === "disable" ? "No enabled plugins match this query" : (root.mode === "command" ? "No command matches this query" : "No plugins match this query")))))
             textFormat: Text.PlainText
             color: root.foreground
             opacity: 0.62
@@ -1045,9 +990,7 @@ Item {
               id: leftStatusLabel
               anchors.left: parent.left
               anchors.verticalCenter: parent.verticalCenter
-              width: Math.min(implicitWidth, Math.max(0, parent.width
-                - (updateWarningIcon.visible
-                  ? updateWarningIcon.implicitWidth + Style.spacing.sm : 0)))
+              width: Math.min(implicitWidth, Math.max(0, parent.width - (updateWarningIcon.visible ? updateWarningIcon.implicitWidth + Style.spacing.sm : 0)))
               text: root.leftStatusText
               textFormat: Text.PlainText
               color: root.leftStatusColor
@@ -1059,16 +1002,14 @@ Item {
 
               MouseArea {
                 anchors.fill: parent
-                enabled: root.service && root.service.actionState
-                  && root.service.actionState.acknowledged === false
+                enabled: root.service && root.service.actionState && root.service.actionState.acknowledged === false
                 onClicked: root.dismissStatus()
               }
             }
 
             Text {
               id: updateWarningIcon
-              visible: root.hasUpdateWarnings
-                && !(root.service && root.service.checkingUpdates)
+              visible: root.hasUpdateWarnings && !(root.service && root.service.checkingUpdates)
               anchors.left: leftStatusLabel.right
               anchors.leftMargin: Style.spacing.sm
               anchors.verticalCenter: parent.verticalCenter
@@ -1111,10 +1052,8 @@ Item {
             Text {
               id: rightStatusLabel
               anchors.left: parent.left
-              anchors.right: refreshWarningIcon.visible
-                ? refreshWarningIcon.left : parent.right
-              anchors.rightMargin: refreshWarningIcon.visible
-                ? Style.spacing.sm : 0
+              anchors.right: refreshWarningIcon.visible ? refreshWarningIcon.left : parent.right
+              anchors.rightMargin: refreshWarningIcon.visible ? Style.spacing.sm : 0
               anchors.verticalCenter: parent.verticalCenter
               text: root.rightStatusText
               textFormat: Text.PlainText
@@ -1129,8 +1068,7 @@ Item {
 
             Text {
               id: refreshWarningIcon
-              visible: root.hasRefreshWarnings
-                && !(root.service && root.service.refreshing)
+              visible: root.hasRefreshWarnings && !(root.service && root.service.refreshing)
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
               text: "\uf071"
@@ -1211,8 +1149,7 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.topMargin: Style.spacing.md
-        width: Math.min(parent.width - Style.spacing.panelPadding * 2,
-          previewLabel.implicitWidth + Style.spacing.lg)
+        width: Math.min(parent.width - Style.spacing.panelPadding * 2, previewLabel.implicitWidth + Style.spacing.lg)
         height: Style.space(34)
         radius: Style.cornerRadius
         color: Util.alpha(root.background, 0.94)

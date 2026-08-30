@@ -13,11 +13,11 @@ Item {
   property var records: []
   property var snapshot: ({})
   property var actionState: ({
-    ok: true,
-    running: false,
-    acknowledged: true,
-    message: "No action has run."
-  })
+      ok: true,
+      running: false,
+      acknowledged: true,
+      message: "No action has run."
+    })
   property bool ready: false
   property bool refreshing: false
   property bool checkingUpdates: false
@@ -54,23 +54,18 @@ Item {
   readonly property int updateCheckSuccessDurationMs: 10000
 
   readonly property string homeDir: Quickshell.env("HOME")
-  readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
-    || homeDir + "/.config"
-  readonly property string sourceDir: manifest && manifest.__sourceDir
-    ? String(manifest.__sourceDir) : ""
-  readonly property string helperPath: sourceDir
-    ? sourceDir + "/bin/plugin-control" : ""
-  readonly property string channelConfigPath: configHome
-    + "/omarchy/ilyazar.plugin-control/channels.yaml"
-  readonly property bool actionRunning: actionStarting
-    || (actionState && actionState.running === true)
+  readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME") || homeDir + "/.config"
+  readonly property string sourceDir: manifest && manifest.__sourceDir ? String(manifest.__sourceDir) : ""
+  readonly property string helperPath: sourceDir ? sourceDir + "/bin/plugin-control" : ""
+  readonly property string channelConfigPath: configHome + "/omarchy/ilyazar.plugin-control/channels.yaml"
+  readonly property bool actionRunning: actionStarting || (actionState && actionState.running === true)
   readonly property string moduleName: "io.github.ilyazar.plugin-control"
   readonly property var updateWarnings: {
     var values = []
     for (var i = 0; i < records.length; i++) {
       var record = records[i]
-      if (String(record.updateStatus || "") !== "error"
-          || !String(record.updateReason || "")) continue
+      if (String(record.updateStatus || "") !== "error" || !String(record.updateReason || ""))
+        continue
       values.push({
         id: String(record.id || ""),
         name: String(record.name || record.id || "Unknown plugin"),
@@ -84,8 +79,7 @@ Item {
     for (var i = 0; i < updateWarnings.length; i++) {
       var warning = updateWarnings[i]
       lines.push("")
-      lines.push(warning.name + (warning.id
-        ? " (" + warning.id + ")" : ""))
+      lines.push(warning.name + (warning.id ? " (" + warning.id + ")" : ""))
       lines.push(warning.reason)
     }
     return lines.join("\n")
@@ -94,7 +88,11 @@ Item {
   signal actionFinished(var state)
 
   function parseJson(raw, fallback) {
-    try { return JSON.parse(String(raw || "")) } catch (error) { return fallback }
+    try {
+      return JSON.parse(String(raw || ""))
+    } catch (error) {
+      return fallback
+    }
   }
 
   function applyRecords(values) {
@@ -108,25 +106,27 @@ Item {
 
   function applyBootstrap(raw) {
     var parsed = parseJson(raw, {})
-    if (!parsed || !Array.isArray(parsed.plugins)) return
-    if (records.length === 0) applyRecords(parsed.plugins)
+    if (!parsed || !Array.isArray(parsed.plugins))
+      return
+    if (records.length === 0)
+      applyRecords(parsed.plugins)
   }
 
   function applyConfigStatus(raw, exitCode, revision) {
-    if (revision !== configChangeRevision || exitCode !== 0) return false
+    if (revision !== configChangeRevision || exitCode !== 0)
+      return false
     var parsed = parseJson(raw, null)
-    if (!parsed || parsed.ok !== true || parsed.usingLastGood === true
-        || !parsed.config || parsed.config.version !== 2) return false
+    if (!parsed || parsed.ok !== true || parsed.usingLastGood === true || !parsed.config || parsed.config.version !== 2)
+      return false
     var settings = parsed.config.settings
     var trayHidden = settings ? settings["tray-icon-hidden"] : undefined
     var dimBackground = settings ? settings.background_dim : undefined
-    if (typeof trayHidden !== "boolean"
-        || typeof dimBackground !== "boolean") return false
+    if (typeof trayHidden !== "boolean" || typeof dimBackground !== "boolean")
+      return false
     backgroundDim = dimBackground
-    if (!pluginRegistry
-        || typeof pluginRegistry.setBarWidget !== "function") return false
-    var error = String(pluginRegistry.setBarWidget(
-      moduleName, "trayIconHidden", trayHidden, {}) || "")
+    if (!pluginRegistry || typeof pluginRegistry.setBarWidget !== "function")
+      return false
+    var error = String(pluginRegistry.setBarWidget(moduleName, "trayIconHidden", trayHidden, {}) || "")
     if (error) {
       lastError = "Could not apply tray icon visibility."
       return false
@@ -135,7 +135,8 @@ Item {
   }
 
   function requestConfigSync() {
-    if (!helperPath) return
+    if (!helperPath)
+      return
     if (configSyncProcess.running) {
       configSyncQueued = true
       return
@@ -149,31 +150,26 @@ Item {
 
   function configProblemNotice(raw) {
     var parsed = parseJson(raw, null)
-    if (!parsed || parsed.ok !== false) return ""
+    if (!parsed || parsed.ok !== false)
+      return ""
     var field = String(parsed.field || "configuration")
     var actual = String(parsed.actual || "")
     var expected = String(parsed.expected || "")
     var detail = String(parsed.error || "Invalid Plugin Control settings.")
     if (expected) {
-      detail = actual
-        ? actual + " is not admissible for " + field
-          + ". Set it to " + expected + "."
-        : field + " is not admissible. Use " + expected + "."
+      detail = actual ? actual + " is not admissible for " + field + ". Set it to " + expected + "." : field + " is not admissible. Use " + expected + "."
     }
-    var fallback = parsed.fallback === "defaults"
-      ? "Using shipped defaults."
-      : (parsed.fallback === "last-good"
-        ? "Keeping the last valid settings."
-        : "Fix the file before it can be used.")
+    var fallback = parsed.fallback === "defaults" ? "Using shipped defaults." : (parsed.fallback === "last-good" ? "Keeping the last valid settings." : "Fix the file before it can be used.")
     return (detail + " " + fallback).slice(0, 480)
   }
 
   function notifyConfigProblem(raw, revision) {
-    if (revision !== configChangeRevision) return false
+    if (revision !== configChangeRevision)
+      return false
     var message = configProblemNotice(raw)
-    if (!message) return false
-    Quickshell.execDetached(["omarchy-notification-send", "-u", "normal",
-      "Plugin Control settings", message])
+    if (!message)
+      return false
+    Quickshell.execDetached(["omarchy-notification-send", "-u", "normal", "Plugin Control settings", message])
     return true
   }
 
@@ -189,49 +185,44 @@ Item {
 
   function applySnapshot(raw, exitCode, refreshResult, updateResult) {
     var parsed = parseJson(raw, null)
-    if (refreshResult === true) refreshing = false
-    if (updateResult === true) checkingUpdates = false
+    if (refreshResult === true)
+      refreshing = false
+    if (updateResult === true)
+      checkingUpdates = false
     if (!parsed || parsed.ok !== true || !Array.isArray(parsed.records)) {
-      if (refreshResult === true) clearRefreshSuccess()
-      if (updateResult === true) clearUpdateCheckSuccess()
+      if (refreshResult === true)
+        clearRefreshSuccess()
+      if (updateResult === true)
+        clearUpdateCheckSuccess()
       if (updateResult === true && parsed && parsed.error)
         lastUpdateCheckError = String(parsed.error)
-      else if (parsed && parsed.error) lastError = String(parsed.error)
-      else if (exitCode !== 0) lastError = "Catalog helper failed."
+      else if (parsed && parsed.error)
+        lastError = String(parsed.error)
+      else if (exitCode !== 0)
+        lastError = "Catalog helper failed."
       return false
     }
 
     snapshot = parsed
-    backgroundDim = parsed.config && parsed.config.settings
-      ? parsed.config.settings.background_dim === true : false
+    backgroundDim = parsed.config && parsed.config.settings ? parsed.config.settings.background_dim === true : false
     applyRecords(parsed.records)
-    refreshWarnings = parsed.cache && Array.isArray(parsed.cache.refreshWarnings)
-      ? parsed.cache.refreshWarnings : []
-    lastSuccessfulRefresh = parsed.cache
-      ? String(parsed.cache.lastSuccessfulRefresh || "") : ""
-    lastRefreshDurationMs = parsed.cache
-      ? Number(parsed.cache.refreshDurationMs || 0) : 0
-    lastUpdateCheckError = parsed.updates
-      ? String(parsed.updates.lastCheckError || "") : ""
-    lastUpdateCheckNotice = parsed.updates
-      ? String(parsed.updates.lastCheckNotice || "") : ""
-    lastSuccessfulUpdateCheck = parsed.updates
-      ? String(parsed.updates.lastSuccessfulCheck || "") : ""
+    refreshWarnings = parsed.cache && Array.isArray(parsed.cache.refreshWarnings) ? parsed.cache.refreshWarnings : []
+    lastSuccessfulRefresh = parsed.cache ? String(parsed.cache.lastSuccessfulRefresh || "") : ""
+    lastRefreshDurationMs = parsed.cache ? Number(parsed.cache.refreshDurationMs || 0) : 0
+    lastUpdateCheckError = parsed.updates ? String(parsed.updates.lastCheckError || "") : ""
+    lastUpdateCheckNotice = parsed.updates ? String(parsed.updates.lastCheckNotice || "") : ""
+    lastSuccessfulUpdateCheck = parsed.updates ? String(parsed.updates.lastSuccessfulCheck || "") : ""
     lastError = ""
     if (refreshResult === true) {
       clearRefreshSuccess()
-      if (exitCode === 0 && refreshWarnings.length === 0
-          && lastSuccessfulRefresh
-          && lastSuccessfulRefresh !== refreshBaselineTimestamp) {
+      if (exitCode === 0 && refreshWarnings.length === 0 && lastSuccessfulRefresh && lastSuccessfulRefresh !== refreshBaselineTimestamp) {
         refreshSuccessVisible = true
         refreshSuccessTimer.restart()
       }
     }
     if (updateResult === true) {
       clearUpdateCheckSuccess()
-      if (exitCode === 0 && !lastUpdateCheckError
-          && lastSuccessfulUpdateCheck
-          && lastSuccessfulUpdateCheck !== updateCheckBaselineTimestamp) {
+      if (exitCode === 0 && !lastUpdateCheckError && lastSuccessfulUpdateCheck && lastSuccessfulUpdateCheck !== updateCheckBaselineTimestamp) {
         updateCheckSuccessVisible = true
         updateCheckSuccessTimer.restart()
       }
@@ -240,7 +231,8 @@ Item {
   }
 
   function loadCached() {
-    if (!helperPath || cachedProcess.running) return false
+    if (!helperPath || cachedProcess.running)
+      return false
     cachedProcess.output = ""
     cachedProcess.command = [helperPath, "cached", sourceDir]
     cachedProcess.running = true
@@ -248,13 +240,15 @@ Item {
   }
 
   function startInitialLoad() {
-    if (initialLoadStarted || !helperPath) return false
+    if (initialLoadStarted || !helperPath)
+      return false
     initialLoadStarted = loadCached()
     return initialLoadStarted
   }
 
   function requestRefresh(force) {
-    if (!helperPath) return
+    if (!helperPath)
+      return
     if (refreshProcess.running) {
       refreshProcess.forceQueued = refreshProcess.forceQueued || force === true
       return
@@ -264,13 +258,15 @@ Item {
     refreshing = true
     refreshProcess.output = ""
     var command = [helperPath, "refresh", sourceDir]
-    if (force === true) command.push("--force")
+    if (force === true)
+      command.push("--force")
     refreshProcess.command = command
     refreshProcess.running = true
   }
 
   function requestUpdateCheck() {
-    if (!helperPath || updateCheckProcess.running) return false
+    if (!helperPath || updateCheckProcess.running)
+      return false
     clearUpdateCheckSuccess()
     updateCheckBaselineTimestamp = lastSuccessfulUpdateCheck
     checkingUpdates = true
@@ -281,23 +277,45 @@ Item {
   }
 
   function requestPreview(record) {
-    if (!helperPath || !record) return false
+    if (!helperPath || !record)
+      return false
     var id = String(record.id || "")
     var cardUrl = String(record.previewThumbnailUrl || "")
     var detailUrl = String(record.previewImageUrl || "")
-    if (!id || !cardUrl || !detailUrl) return false
-    if (previewState && previewState.id === id
-        && previewState.cardUrl && previewState.detailUrl) return true
+    if (!id)
+      return false
+    var localPath = configHome + "/omarchy/plugins/" + id + "/preview.png";
+    if (detailUrl.indexOf("file://") === 0 || cardUrl.indexOf("file://") === 0) {
+      previewLoading = false
+      previewState = {
+        id: id,
+        cardUrl: cardUrl || detailUrl,
+        detailUrl: detailUrl || cardUrl
+      }
+      return true
+    }
+    if (!cardUrl && !detailUrl) {
+      previewLoading = false
+      previewState = {
+        id: id,
+        cardUrl: "file://" + localPath,
+        detailUrl: "file://" + localPath
+      }
+      return true
+    }
+    if (previewState && previewState.id === id && previewState.cardUrl && previewState.detailUrl)
+      return true
     if (previewProcess.running) {
       previewQueuedRecord = JSON.parse(JSON.stringify(record))
       return true
     }
     previewLoading = true
-    previewState = ({ id: id })
+    previewState = ({
+        id: id
+      })
     previewProcess.output = ""
     previewProcess.requestedId = id
-    previewProcess.command = [helperPath, "preview", id, cardUrl, detailUrl,
-      String(record.versionUpdatedAt || record.version || "")]
+    previewProcess.command = [helperPath, "preview", id, cardUrl, detailUrl, String(record.versionUpdatedAt || record.version || "")]
     previewProcess.running = true
     return true
   }
@@ -305,9 +323,11 @@ Item {
   function acceptPreview(raw, exitCode) {
     previewLoading = false
     var parsed = parseJson(raw, null)
-    if (exitCode !== 0 || !parsed || parsed.ok !== true
-        || !parsed.id || !parsed.cardUrl || !parsed.detailUrl) {
-      previewState = ({ id: previewProcess.requestedId, failed: true })
+    if (exitCode !== 0 || !parsed || parsed.ok !== true || !parsed.id || !parsed.cardUrl || !parsed.detailUrl) {
+      previewState = ({
+          id: previewProcess.requestedId,
+          failed: true
+        })
       return false
     }
     previewState = parsed
@@ -315,7 +335,8 @@ Item {
   }
 
   function requestStatus() {
-    if (!helperPath || statusProcess.running) return
+    if (!helperPath || statusProcess.running)
+      return
     statusProcess.output = ""
     statusProcess.command = [helperPath, "status"]
     statusProcess.running = true
@@ -323,16 +344,14 @@ Item {
 
   function acceptStatus(raw) {
     var previousRunning = actionState && actionState.running === true
-    var previousAcknowledged = actionState
-      && actionState.acknowledged === false
+    var previousAcknowledged = actionState && actionState.acknowledged === false
     var previousActionId = String(actionState && actionState.actionId || "")
     var parsed = parseJson(raw, null)
-    if (!parsed || typeof parsed !== "object") return
+    if (!parsed || typeof parsed !== "object")
+      return
     actionState = parsed
-    var finishedUnacknowledged = parsed.running !== true
-      && parsed.acknowledged !== true
-    var isNewNotice = previousRunning || !previousAcknowledged
-      || previousActionId !== String(parsed.actionId || "")
+    var finishedUnacknowledged = parsed.running !== true && parsed.acknowledged !== true
+    var isNewNotice = previousRunning || !previousAcknowledged || previousActionId !== String(parsed.actionId || "")
     if (finishedUnacknowledged && isNewNotice)
       actionNoticeTimer.restart()
     if (previousRunning && parsed.running !== true) {
@@ -342,27 +361,27 @@ Item {
   }
 
   function startAction(operation, pluginId, snapshotId, executionMode) {
-    if (!helperPath || actionRunning || actionProcess.running) return false
-    if (["add", "remove", "remove-purge", "enable", "disable", "update"]
-        .indexOf(String(operation)) < 0) return false
-    if (!String(pluginId) || !String(snapshotId)) return false
+    if (!helperPath || actionRunning || actionProcess.running)
+      return false
+    if (["add", "remove", "remove-purge", "enable", "disable", "update"].indexOf(String(operation)) < 0)
+      return false
+    if (!String(pluginId) || !String(snapshotId))
+      return false
     if (["background", "terminal"].indexOf(String(executionMode)) < 0)
       return false
-    if (executionMode === "terminal" && operation !== "add") return false
+    if (executionMode === "terminal" && ["add", "remove", "remove-purge", "update"].indexOf(operation) < 0)
+      return false
     actionStarting = true
     actionState = {
       ok: true,
       running: true,
       acknowledged: false,
       operation: String(operation),
-      message: operation === "update"
-        ? "Checking for updates..." : "Working..."
+      message: operation === "update" ? "Checking for updates..." : "Working..."
     }
     actionProcess.output = ""
     actionProcess.operation = String(operation)
-    actionProcess.command = [helperPath, "action", sourceDir,
-      String(operation), String(pluginId), String(snapshotId),
-      String(executionMode)]
+    actionProcess.command = [helperPath, "action", sourceDir, String(operation), String(pluginId), String(snapshotId), String(executionMode)]
     actionProcess.running = true
     return true
   }
@@ -375,8 +394,7 @@ Item {
         ok: false,
         running: false,
         acknowledged: false,
-        message: parsed && parsed.error
-          ? String(parsed.error) : "Could not start the plugin action."
+        message: parsed && parsed.error ? String(parsed.error) : "Could not start the plugin action."
       }
       actionNoticeTimer.restart()
       actionFinished(actionState)
@@ -388,8 +406,7 @@ Item {
       acknowledged: false,
       actionId: String(parsed.actionId || ""),
       operation: actionProcess.operation,
-      message: actionProcess.operation === "update"
-        ? "Checking for updates..." : "Working..."
+      message: actionProcess.operation === "update" ? "Checking for updates..." : "Working..."
     }
     actionPoll.restart()
   }
@@ -400,7 +417,8 @@ Item {
     if (helperPath && actionId)
       Quickshell.execDetached([helperPath, "ack", actionId])
     var copy = ({})
-    for (var key in actionState) copy[key] = actionState[key]
+    for (var key in actionState)
+      copy[key] = actionState[key]
     copy.acknowledged = true
     actionState = copy
   }
@@ -426,7 +444,8 @@ Item {
 
   function cacheAgeSeconds() {
     var refreshed = Date.parse(lastSuccessfulRefresh)
-    if (!isFinite(refreshed)) return -1
+    if (!isFinite(refreshed))
+      return -1
     return Math.max(0, Math.floor((Date.now() - refreshed) / 1000))
   }
 
@@ -472,7 +491,7 @@ Item {
       waitForEnd: true
       onStreamFinished: configSyncProcess.output = text
     }
-    onExited: function(exitCode) {
+    onExited: function (exitCode) {
       root.applyConfigStatus(output, exitCode, revision)
       root.notifyConfigProblem(output, revision)
       if (root.configSyncQueued || revision !== root.configChangeRevision)
@@ -487,7 +506,7 @@ Item {
       waitForEnd: true
       onStreamFinished: updateCheckProcess.output = text
     }
-    onExited: function(exitCode) {
+    onExited: function (exitCode) {
       root.applySnapshot(output, exitCode, false, true)
     }
   }
@@ -499,7 +518,7 @@ Item {
       waitForEnd: true
       onStreamFinished: cachedProcess.output = text
     }
-    onExited: function(exitCode) {
+    onExited: function (exitCode) {
       root.applySnapshot(output, exitCode, false)
       channelConfigFile.reload()
       Qt.callLater(root.requestStatus)
@@ -514,11 +533,13 @@ Item {
       waitForEnd: true
       onStreamFinished: refreshProcess.output = text
     }
-    onExited: function(exitCode) {
+    onExited: function (exitCode) {
       root.applySnapshot(output, exitCode, true)
       if (forceQueued) {
         forceQueued = false
-        Qt.callLater(function() { root.requestRefresh(true) })
+        Qt.callLater(function () {
+          root.requestRefresh(true)
+        })
       }
     }
   }
@@ -541,12 +562,14 @@ Item {
       waitForEnd: true
       onStreamFinished: previewProcess.output = text
     }
-    onExited: function(exitCode) {
+    onExited: function (exitCode) {
       root.acceptPreview(output, exitCode)
       if (root.previewQueuedRecord) {
         var queued = root.previewQueuedRecord
         root.previewQueuedRecord = null
-        Qt.callLater(function() { root.requestPreview(queued) })
+        Qt.callLater(function () {
+          root.requestPreview(queued)
+        })
       }
     }
   }
@@ -559,7 +582,7 @@ Item {
       waitForEnd: true
       onStreamFinished: actionProcess.output = text
     }
-    onExited: function(exitCode) {
+    onExited: function (exitCode) {
       root.acceptActionStart(output, exitCode)
     }
   }
@@ -571,8 +594,7 @@ Item {
       waitForEnd: true
       onStreamFinished: {
         var parsed = root.parseJson(text, {})
-        root.animationsEnabled = parsed.int === undefined
-          ? true : Number(parsed.int) !== 0
+        root.animationsEnabled = parsed.int === undefined ? true : Number(parsed.int) !== 0
       }
     }
   }

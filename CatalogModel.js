@@ -105,10 +105,15 @@ function activityState(record, nowValue) {
 
 function marketplaceAssetUrl(value, variant) {
   var path = cleanText(value)
+  if (!path) return ""
+  if (path.indexOf("http://") === 0 || path.indexOf("https://") === 0 || path.indexOf("file://") === 0)
+    return path
   var suffix = variant === "card" ? "card" : "detail"
   var pattern = new RegExp("^assets/img/plugins/[A-Za-z0-9._-]+-"
     + suffix + "\\.webp$")
-  return pattern.test(path) ? "https://omarchyplugins.com/" + path : ""
+  if (pattern.test(path)) return "https://omarchyplugins.com/" + path
+  if (path.indexOf("assets/img/plugins/") === 0) return "https://omarchyplugins.com/" + path
+  return ""
 }
 
 function normalizeRecord(value) {
@@ -136,11 +141,16 @@ function normalizeRecord(value) {
   record.addedAt = cleanText(record.addedAt)
   record.listedAt = cleanText(record.listedAt)
   record.versionUpdatedAt = cleanText(record.versionUpdatedAt)
-  record.previewImageUrl = record.marketplaceListed
-    ? marketplaceAssetUrl(record.previewImage, "detail") : ""
-  record.previewThumbnailUrl = record.marketplaceListed
-    ? marketplaceAssetUrl(record.previewThumbnail, "card")
-      || record.previewImageUrl : ""
+  record.previewImageUrl = marketplaceAssetUrl(record.previewImage, "detail")
+  record.previewThumbnailUrl = marketplaceAssetUrl(record.previewThumbnail, "card")
+    || record.previewImageUrl
+  if (!record.previewImageUrl && !record.previewThumbnailUrl && record.id) {
+    var configBase = (typeof Quickshell !== "undefined" && Quickshell && Quickshell.env)
+      ? (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config"))
+      : "/home/harsh/.config"
+    record.previewThumbnailUrl = "file://" + configBase + "/omarchy/plugins/" + record.id + "/preview.png"
+    record.previewImageUrl = record.previewThumbnailUrl
+  }
   record.previewWidth = count(record.previewWidth)
   record.previewHeight = count(record.previewHeight)
   record.previewThumbnailWidth = count(record.previewThumbnailWidth)
