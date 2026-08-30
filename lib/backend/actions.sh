@@ -209,6 +209,28 @@ run_add_action() {
   fi
 }
 
+cleanup_plugin_data() {
+  local id="$1"
+  local short_id="${id##*.}"
+  find "$PREVIEW_CACHE" -maxdepth 1 -type f -name "$id-*" -delete 2>/dev/null || true
+  if [[ -n $short_id && $short_id != "$id" ]]; then
+    find "$PREVIEW_CACHE" -maxdepth 1 -type f -name "$short_id-*" -delete 2>/dev/null || true
+  fi
+  rm -rf "$CACHE_ROOT/$id" "$CACHE_ROOT/omarchy/$id" 2>/dev/null || true
+  if [[ -n $short_id && $short_id != "$id" ]]; then
+    rm -rf "$CACHE_ROOT/$short_id" "$CACHE_ROOT/omarchy/$short_id" 2>/dev/null || true
+  fi
+  rm -rf "$STATE_ROOT/$id" "$STATE_ROOT/omarchy/$id" 2>/dev/null || true
+  if [[ -n $short_id && $short_id != "$id" ]]; then
+    rm -rf "$STATE_ROOT/$short_id" "$STATE_ROOT/omarchy/$short_id" 2>/dev/null || true
+  fi
+  rm -rf "$CONFIG_ROOT/$id" "$CONFIG_ROOT/omarchy/$id" 2>/dev/null || true
+  if [[ -n $short_id && $short_id != "$id" ]]; then
+    rm -rf "$CONFIG_ROOT/$short_id" "$CONFIG_ROOT/omarchy/$short_id" 2>/dev/null || true
+  fi
+  rm -rf "$PLUGINS_ROOT/$id" 2>/dev/null || true
+}
+
 run_remove_action() {
   local root="$1"
   local record="$2"
@@ -233,24 +255,37 @@ run_remove_action() {
     fi
     return
   fi
-  if [[ $operation == remove-purge ]] \
-    && [[ $id != "$SELF_ID" || $execution_mode != background ]]; then
-    set_action_result false \
-      "Clean removal is supported only for Plugin Control."
-  elif [[ $operation == remove-purge ]] && ! purge_user_data "$root"; then
+
+  if [[ $execution_mode == terminal ]]; then
+    printf 'Removing plugin %s...\n' "$id"
+    if omarchy plugin remove "$id" --yes; then
+      cleanup_plugin_data "$id"
+      if [[ $id == "$SELF_ID" && $operation == remove-purge ]]; then
+        purge_user_data "$root" || true
+      fi
+      set_action_result true "$plugin_subject and its related files were removed."
+    else
+      rc=$?
+      set_action_result false "Plugin removal failed with exit code $rc."
+    fi
+    return
+  fi
+
+  if [[ $operation == remove-purge && $id == "$SELF_ID" ]] && ! purge_user_data "$root"; then
     set_action_result false \
       "Plugin Control user data could not be removed safely."
-  elif timeout --signal=TERM --kill-after=5s 300s \
+    return
+  fi
+
+  if timeout --signal=TERM --kill-after=5s 300s \
     omarchy plugin remove "$id" --yes >"$output_file" 2>&1; then
-    if [[ $operation == remove-purge ]]; then
-      set_action_result true "Plugin Control and its user data were removed."
-    else
-      set_action_result true "$plugin_subject removed."
-    fi
+    cleanup_plugin_data "$id"
+    set_action_result true "$plugin_subject and its related files were removed."
   else
     rc=$?
     if [[ $id == "$SELF_ID" && ! -e $PLUGINS_ROOT/$id
         && ! -L $PLUGINS_ROOT/$id ]]; then
+      cleanup_plugin_data "$id"
       set_action_result true \
         "$plugin_subject removed, but Omarchy reported a shell refresh error."
     else
@@ -547,8 +582,8 @@ validate_action_request() {
     json_error "unsupported action execution mode"
     return 2
   }
-  [[ $execution_mode != terminal || $operation == add ]] || {
-    json_error "terminal mode is supported only when adding plugins"
+  [[ $execution_mode != terminal || $operation == add || $operation == remove || $operation == remove-purge || $operation == update ]] || {
+    json_error "terminal mode is not supported for this operation"
     return 2
   }
   if [[ $execution_mode == terminal ]]; then

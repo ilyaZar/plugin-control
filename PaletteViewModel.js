@@ -30,9 +30,15 @@ function settingsResult() {
 
 function displayRecord(record) {
   var value = record || {}
+  var id = String(value.id || "")
+  var thumbUrl = String(value.previewThumbnailUrl || value.previewImageUrl || "")
+  var detailUrl = String(value.previewImageUrl || "")
+  if (!thumbUrl && id) {
+    thumbUrl = "file://" + (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/omarchy/plugins/" + id + "/preview.png"
+  }
   return {
     pluginName: String(value.name || value.id || ""),
-    pluginId: String(value.id || ""),
+    pluginId: id,
     description: String(value.description || ""),
     author: String(value.author || "Unknown"),
     kind: String(value.kind || value.category || "Plugin"),
@@ -43,7 +49,11 @@ function displayRecord(record) {
     releaseTag: String(value.releaseTag || ""),
     repository: String(value.repository || ""),
     separatorBefore: value.separatorBefore === true,
-    dangerous: value.dangerous === true
+    dangerous: value.dangerous === true,
+    previewThumbnailUrl: thumbUrl,
+    previewImageUrl: detailUrl,
+    installed: value.installed === true,
+    builtIn: value.builtIn === true
   }
 }
 
@@ -91,13 +101,11 @@ function actionOptions(record, readOnly) {
         ? { operation: "enable", label: "Enable", available: true }
         : { operation: "disable", label: "Disable", available: true })
     }
-    if (record.removable === true) {
-      options.push({ operation: "remove", label: "Remove",
-        available: record.dirty !== true,
-        reason: record.dirty === true
-          ? "Removal is blocked because this Git checkout has local changes."
-          : "", dangerous: true })
-    }
+    options.push({ operation: "remove", label: "Uninstall",
+      available: record.dirty !== true,
+      reason: record.dirty === true
+        ? "Removal is blocked because this Git checkout has local changes."
+        : "", dangerous: true })
     return options
   }
   if (record.installable === true)
