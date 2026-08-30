@@ -27,6 +27,12 @@ Rectangle {
   property color selectedBackground: Color.menu.selectedBackground
   property color selectedText: Color.menu.selectedText
   property color urgent: Color.urgent
+  readonly property string repositoryLabel: {
+    var value = root.repository.replace(/\/$/, "")
+    var githubPrefix = "https://github.com/"
+    return value.indexOf(githubPrefix) === 0
+      ? value.slice(githubPrefix.length) : value
+  }
 
   signal hovered()
   signal activated()
@@ -69,7 +75,7 @@ Rectangle {
 
       Text {
         width: Math.min(implicitWidth, parent.width
-          * (root.settingsMenuOpen ? 1 : 0.52))
+          * (repositoryText.visible ? 0.52 : 1))
         text: root.pluginName
         textFormat: Text.PlainText
         color: root.selected ? root.selectedText
@@ -81,22 +87,38 @@ Rectangle {
       }
 
       Text {
-        visible: !root.settingsMenuOpen
-        width: parent.width - x
-        text: root.pluginId
+        id: repositoryText
+        z: 2
+        visible: !root.settingsMenuOpen && root.repository !== ""
+        anchors.verticalCenter: parent.verticalCenter
+        width: Math.min(implicitWidth, Math.max(0, parent.width - x))
+        text: root.repositoryLabel
         textFormat: Text.PlainText
         color: root.selected ? root.selectedText : root.foreground
-        opacity: 0.60
+        opacity: repositoryMouse.containsMouse ? 0.90 : 0.48
         font.family: Style.font.family
-        font.pixelSize: Style.font.body
+        font.pixelSize: Style.font.caption
+        font.underline: repositoryMouse.containsMouse
         elide: Text.ElideRight
+
+        MouseArea {
+          id: repositoryMouse
+          anchors.fill: parent
+          acceptedButtons: Qt.LeftButton
+          hoverEnabled: true
+          cursorShape: root.pointerInteractive
+            ? Qt.PointingHandCursor : Qt.ArrowCursor
+          onEntered: if (root.pointerInteractive) root.hovered()
+          onClicked: if (root.pointerInteractive)
+            root.repositoryRequested(root.repository)
+        }
       }
     }
 
     Text {
       width: parent.width
       text: root.settingsMenuOpen ? root.description
-        : root.author + " - " + (root.description || root.kind)
+        : (root.description || root.kind)
       textFormat: Text.PlainText
       color: root.selected ? root.selectedText : root.foreground
       opacity: 0.65
@@ -104,34 +126,6 @@ Rectangle {
       font.pixelSize: Style.font.body
       elide: Text.ElideRight
       horizontalAlignment: Text.AlignLeft
-    }
-
-    Text {
-      id: repositoryText
-      z: 2
-      visible: !root.settingsMenuOpen && root.repository !== ""
-      width: parent.width
-      text: root.repository
-      textFormat: Text.PlainText
-      color: root.selected ? root.selectedText : root.foreground
-      opacity: repositoryMouse.containsMouse ? 0.90 : 0.48
-      font.family: Style.font.family
-      font.pixelSize: Style.font.caption
-      font.underline: repositoryMouse.containsMouse
-      elide: Text.ElideRight
-      horizontalAlignment: Text.AlignLeft
-
-      MouseArea {
-        id: repositoryMouse
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
-        hoverEnabled: true
-        cursorShape: root.pointerInteractive
-          ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onEntered: if (root.pointerInteractive) root.hovered()
-        onClicked: if (root.pointerInteractive)
-          root.repositoryRequested(root.repository)
-      }
     }
   }
 

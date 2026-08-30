@@ -93,6 +93,14 @@ rg -q 'commandCompletion' "$ROOT/PluginControl.qml"
 rg -q 'function clearCompletedCommandPrefix()' "$ROOT/PluginControl.qml"
 rg -Fq 'repository: String(value.repository' "$ROOT/PaletteViewModel.js"
 rg -Fq 'font.pixelSize: Style.font.caption' "$ROOT/PaletteResultRow.qml"
+if rg -Fq 'text: root.pluginId' "$ROOT/PaletteResultRow.qml"; then
+  printf 'not ok - result rows still display the redundant plugin ID\n' >&2
+  exit 1
+fi
+if rg -Fq 'root.author + " - "' "$ROOT/PaletteResultRow.qml"; then
+  printf 'not ok - result descriptions still spend space on the author\n' >&2
+  exit 1
+fi
 rg -q 'pendingSnapshotId = readOnly === true' \
   "$ROOT/PluginControl.qml"
 rg -q 'String\(selectedRecord.id || ""\), pendingSnapshotId' \

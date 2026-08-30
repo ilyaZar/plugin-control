@@ -29,6 +29,9 @@ QT_QPA_PLATFORM=offscreen "$qmltestrunner_bin" \
   -input "$TEST_DIR/tst_palette_footer.qml" -import "$ROOT" \
   -import "$TEST_DIR/fixtures/qml-imports"
 QT_QPA_PLATFORM=offscreen "$qmltestrunner_bin" \
+  -input "$TEST_DIR/tst_palette_result_row.qml" -import "$ROOT" \
+  -import "$TEST_DIR/fixtures/qml-imports"
+QT_QPA_PLATFORM=offscreen "$qmltestrunner_bin" \
   -input "$TEST_DIR/tst_action_dialog.qml" -import "$ROOT" \
   -import "$TEST_DIR/fixtures/qml-imports"
 QT_QPA_PLATFORM=offscreen "$qmltestrunner_bin" \
