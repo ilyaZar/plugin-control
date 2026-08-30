@@ -53,7 +53,7 @@ Rectangle {
   FontMetrics {
     id: detailFontMetrics
     font.family: Style.font.menuFamily
-    font.pixelSize: Style.font.body
+    font.pixelSize: Style.font.bodySmall
   }
 
   TextMetrics {
@@ -173,7 +173,7 @@ Rectangle {
         color: root.selected ? root.selectedText : root.foreground
         opacity: 0.65
         font.family: Style.font.menuFamily
-        font.pixelSize: Style.font.body
+        font.pixelSize: Style.font.bodySmall
         lineHeightMode: Text.FixedHeight
         lineHeight: root.detailLineHeight
         wrapMode: root.settingsMenuOpen ? Text.NoWrap : Text.Wrap
@@ -224,7 +224,7 @@ Rectangle {
         color: root.selected ? root.selectedText : root.foreground
         opacity: 0.55
         font.family: Style.font.menuFamily
-        font.pixelSize: Style.font.body
+        font.pixelSize: Style.font.bodySmall
         verticalAlignment: Text.AlignVCenter
         horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
@@ -241,7 +241,7 @@ Rectangle {
         textFormat: Text.PlainText
         color: root.urgent
         font.family: Style.font.menuFamily
-        font.pixelSize: Style.font.body
+        font.pixelSize: Style.font.bodySmall
         verticalAlignment: Text.AlignVCenter
         horizontalAlignment: Text.AlignRight
         elide: Text.ElideMiddle

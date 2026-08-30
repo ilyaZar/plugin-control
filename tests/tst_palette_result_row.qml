@@ -1,5 +1,6 @@
 import QtQuick
 import QtTest
+import qs.Commons
 import ".."
 
 TestCase {
@@ -123,6 +124,7 @@ TestCase {
     compare(state.font.pixelSize, name.font.pixelSize)
     compare(source.font.pixelSize, description.font.pixelSize)
     compare(warning.font.pixelSize, description.font.pixelSize)
+    compare(description.font.pixelSize, Style.font.bodySmall)
     compare(description.maximumLineCount, 2)
     compare(description.wrapMode, Text.Wrap)
 

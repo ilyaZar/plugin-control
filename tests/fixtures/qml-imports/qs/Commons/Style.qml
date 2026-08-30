@@ -7,9 +7,9 @@ QtObject {
   readonly property QtObject font: QtObject {
     property string family: "monospace"
     property string menuFamily: "sans-serif"
-    property int bodySmall: 10
+    property int bodySmall: 11
     property int body: 12
-    property int caption: 11
+    property int caption: 10
     property int subtitle: 13
     property int title: 14
     property int heading: 16
