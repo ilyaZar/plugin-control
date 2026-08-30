@@ -28,6 +28,26 @@ function settingsResult() {
   }
 }
 
+function displayWarning(value) {
+  var warning = String(value || "").trim()
+  if (!warning) return ""
+  if (warning === "Upstream changed"
+      || warning === "Validation unknown"
+      || warning === "Validation failed"
+      || warning === "Unlisted") return warning
+  if (warning === "Validation unreachable") return "Check unreachable"
+  if (warning.indexOf("Validation ") === 0) return "Check status"
+  if (warning.indexOf("Unlisted - ") === 0) {
+    var review = warning.indexOf("security-review-required") >= 0
+    var fixes = warning.indexOf("security-needs-fixes") >= 0
+    if (review && fixes) return "Unlisted: issues"
+    if (review) return "Unlisted: review"
+    if (fixes) return "Unlisted: fixes"
+    return "Unlisted warning"
+  }
+  return "Warning"
+}
+
 function displayRecord(record) {
   var value = record || {}
   return {
@@ -39,8 +59,8 @@ function displayRecord(record) {
     stateLabel: String(value.stateLabel || "Browse only"),
     sourceLabel: String(value.sourceLabel || value.sourceName || "Unknown"),
     warning: String(value.warning || ""),
+    warningLabel: displayWarning(value.warning),
     version: String(value.version || ""),
-    releaseTag: String(value.releaseTag || ""),
     repository: String(value.repository || ""),
     separatorBefore: value.separatorBefore === true,
     dangerous: value.dangerous === true

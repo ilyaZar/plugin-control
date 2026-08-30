@@ -28,9 +28,8 @@ TestCase {
       kind: "Bar widget"
       stateLabel: "Available"
       sourceLabel: "Marketplace listed"
-      warning: ""
+      warningLabel: ""
       version: "1.0.0"
-      releaseTag: ""
       repository: testCase.repositoryUrl
       separatorBefore: false
       dangerous: false
@@ -70,6 +69,15 @@ TestCase {
     return null
   }
 
+  function namedItem(value) {
+    var items = descendants(row)
+    for (var index = 0; index < items.length; index++) {
+      if (String(items[index].objectName || "") === value)
+        return items[index]
+    }
+    return null
+  }
+
   function visibleText(value) {
     var item = textItem(value)
     return item && item.visible
@@ -92,17 +100,31 @@ TestCase {
     row = null
   }
 
-  function test_twoLinePresentation() {
-    var name = textItem("Weather")
-    var repository = textItem("alice/weather")
-    var description = textItem("Forecast in the bar")
+  function test_threeLinePresentation() {
+    var name = namedItem("pluginNameText")
+    var repository = namedItem("repositoryText")
+    var description = namedItem("descriptionText")
+    var state = namedItem("stateText")
+    var source = namedItem("sourceText")
+    var warning = namedItem("warningText")
     verify(name)
     verify(repository)
     verify(description)
+    verify(state)
+    verify(source)
+    verify(warning)
     verify(repository.visible)
     verify(!visibleText("io.example.weather"))
     verify(!visibleText("Alice"))
     verify(repository.font.pixelSize < name.font.pixelSize)
+    compare(state.text, "Available 1.0.0")
+    compare(source.text, "Marketplace listed")
+    compare(warning.text, "")
+    compare(state.font.pixelSize, name.font.pixelSize)
+    compare(source.font.pixelSize, description.font.pixelSize)
+    compare(warning.font.pixelSize, description.font.pixelSize)
+    compare(description.maximumLineCount, 2)
+    compare(description.wrapMode, Text.Wrap)
 
     var namePoint = name.mapToItem(row, 0, 0)
     var repositoryPoint = repository.mapToItem(row, 0, 0)
@@ -111,6 +133,81 @@ TestCase {
     verify(Math.abs(repositoryPoint.y + repository.height / 2
       - (namePoint.y + name.height / 2)) < 1)
     verify(descriptionPoint.y > namePoint.y)
+    verify(source.y > state.y)
+    verify(warning.y > source.y)
+    compare(Math.round(state.x + state.width),
+      Math.round(source.x + source.width))
+    compare(Math.round(source.x + source.width),
+      Math.round(warning.x + warning.width))
+    verify(!source.truncated)
+  }
+
+  function test_descriptionWrapsBeforeTheFixedRightColumn() {
+    row.width = 320
+    row.description = "A deliberately long plugin description that must "
+      + "wrap onto a second line and then stop at the invisible boundary"
+    waitForRendering(row)
+
+    var description = namedItem("descriptionText")
+    var badge = namedItem("badgeColumn")
+    verify(description)
+    verify(badge)
+    compare(description.lineCount, 2)
+    verify(description.truncated)
+    verify(description.x + description.width <= badge.x)
+    compare(badge.width, row.rightColumnWidth)
+  }
+
+  function test_warningUsesTheReservedThirdLine() {
+    var state = namedItem("stateText")
+    var source = namedItem("sourceText")
+    var warning = namedItem("warningText")
+    var stateY = state.y
+    var sourceY = source.y
+
+    row.warningLabel = "Upstream changed"
+    waitForRendering(row)
+    compare(warning.text, "(Upstream changed)")
+    verify(!warning.truncated)
+    compare(state.y, stateY)
+    compare(source.y, sourceY)
+    verify(!visibleText("Marketplace listed - Upstream changed"))
+  }
+
+  function test_allCompactWarningsFitTheColumn() {
+    var warning = namedItem("warningText")
+    var labels = [
+      "Upstream changed",
+      "Validation unknown",
+      "Validation failed",
+      "Check unreachable",
+      "Check status",
+      "Unlisted",
+      "Unlisted: review",
+      "Unlisted: fixes",
+      "Unlisted: issues",
+      "Unlisted warning",
+      "Warning"
+    ]
+
+    for (var index = 0; index < labels.length; index++) {
+      row.warningLabel = labels[index]
+      waitForRendering(row)
+      compare(warning.text, "(" + labels[index] + ")")
+      verify(!warning.truncated, warning.text)
+      verify(warning.implicitWidth <= warning.width, warning.text)
+    }
+  }
+
+  function test_longestOrdinaryStateFitsTheColumn() {
+    row.stateLabel = "Browse only"
+    row.version = "0.0.0"
+    waitForRendering(row)
+
+    var state = namedItem("stateText")
+    compare(state.text, "Browse only 0.0.0")
+    verify(!state.truncated)
+    verify(state.implicitWidth <= state.width)
   }
 
   function test_repositoryLinkOwnsItsClick() {

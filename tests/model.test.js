@@ -471,6 +471,39 @@ test("palette view model keeps settings and records declarative", () => {
   assert.equal(Palette.removableRecord(records, "missing"), null);
 });
 
+test("palette displays the version without the repository release tag", () => {
+  const value = Palette.displayRecord({
+    version: "1.40.11",
+    releaseTag: "v1.40.11"
+  });
+  assert.equal(value.version, "1.40.11");
+  assert.equal(Object.hasOwn(value, "releaseTag"), false);
+});
+
+test("palette warnings stay concise without changing their source value", () => {
+  const cases = [
+    ["", ""],
+    ["Upstream changed", "Upstream changed"],
+    ["Validation unknown", "Validation unknown"],
+    ["Validation failed", "Validation failed"],
+    ["Validation unreachable", "Check unreachable"],
+    ["Validation timed-out-by-remote-service", "Check status"],
+    ["Unlisted", "Unlisted"],
+    ["Unlisted - security-review-required", "Unlisted: review"],
+    ["Unlisted - security-needs-fixes", "Unlisted: fixes"],
+    ["Unlisted - security-review-required, security-needs-fixes",
+      "Unlisted: issues"],
+    ["Unlisted - unexpected", "Unlisted warning"],
+    ["Unexpected warning", "Warning"]
+  ];
+
+  cases.forEach(([warning, expected]) => {
+    const value = Palette.displayRecord({ warning });
+    assert.equal(value.warning, warning);
+    assert.equal(value.warningLabel, expected);
+  });
+});
+
 test("shared action model follows every plugin state", () => {
   function labels(record, readOnly) {
     return Palette.actionOptions(record, readOnly)
