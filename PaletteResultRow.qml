@@ -47,6 +47,7 @@ Rectangle {
 
   MouseArea {
     anchors.fill: parent
+    acceptedButtons: Qt.LeftButton
     hoverEnabled: true
     cursorShape: root.pointerInteractive
       ? Qt.PointingHandCursor : Qt.ArrowCursor
@@ -123,6 +124,7 @@ Rectangle {
       MouseArea {
         id: repositoryMouse
         anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
         hoverEnabled: true
         cursorShape: root.pointerInteractive
           ? Qt.PointingHandCursor : Qt.ArrowCursor

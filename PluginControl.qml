@@ -7,7 +7,6 @@ import qs.Commons
 import qs.Ui
 import "Fuzzy.js" as Fuzzy
 import "PaletteViewModel.js" as PaletteViewModel
-import "lib/shortcuts" as Shortcuts
 
 Item {
   id: root
@@ -45,6 +44,11 @@ Item {
 
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.ilyazar.plugin-control"
+  readonly property string searchPrompt: (service && service.snapshot
+    && Array.isArray(service.snapshot.records)
+    ? "Search " + service.snapshot.records.length + " plugins"
+    : "Search plugins")
+    + ' (or type "plug-..." for direct plugin commands)'
   readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
     || Quickshell.env("HOME") + "/.config"
   readonly property string settingsPath: configHome
@@ -731,11 +735,6 @@ Item {
     function onShellValuesChanged() { themeColorsFile.reload() }
   }
 
-  Shortcuts.HyprlandBinding {
-    id: paletteBinding
-    actionDescription: "Plugin Control"
-  }
-
   Connections {
     target: root.service
     function onRecordsChanged() { root.rebuildResults() }
@@ -772,6 +771,8 @@ Item {
 
     MouseArea {
       anchors.fill: parent
+      acceptedButtons: Qt.LeftButton
+      enabled: !root.modalDialogOpened
       hoverEnabled: true
       cursorShape: Qt.ArrowCursor
       onClicked: root.dismiss()
@@ -807,6 +808,7 @@ Item {
 
       MouseArea {
         anchors.fill: parent
+        acceptedButtons: Qt.AllButtons
         hoverEnabled: true
         cursorShape: Qt.ArrowCursor
         onClicked: {}
@@ -908,8 +910,8 @@ Item {
             id: queryInput
             anchors.left: searchIcon.right
             anchors.leftMargin: Style.spacing.sm
-            anchors.right: shortcutLabel.left
-            anchors.rightMargin: Style.spacing.sm
+            anchors.right: parent.right
+            anchors.rightMargin: Style.spacing.md
             anchors.verticalCenter: parent.verticalCenter
             color: root.foreground
             selectionColor: root.selectedBackground
@@ -938,7 +940,7 @@ Item {
             Text {
               visible: !queryInput.text
               anchors.fill: parent
-              text: "Search plugins (or type \"plug-...\" for direct plugin commands)."
+              text: root.searchPrompt
               textFormat: Text.PlainText
               color: root.foreground
               opacity: 0.48
@@ -951,17 +953,6 @@ Item {
             }
           }
 
-          Text {
-            id: shortcutLabel
-            anchors.right: parent.right
-            anchors.rightMargin: Style.spacing.md
-            anchors.verticalCenter: parent.verticalCenter
-            text: paletteBinding.label
-            color: root.foreground
-            opacity: 0.55
-            font.family: Style.font.menuFamily
-            font.pixelSize: Style.font.body
-          }
         }
 
         Item {
@@ -1059,6 +1050,7 @@ Item {
 
               MouseArea {
                 anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
                 enabled: root.service && root.service.actionState
                   && root.service.actionState.acknowledged === false
                 onClicked: root.dismissStatus()
@@ -1081,6 +1073,7 @@ Item {
               MouseArea {
                 id: updateWarningHover
                 anchors.fill: parent
+                acceptedButtons: Qt.NoButton
                 hoverEnabled: true
                 cursorShape: Qt.ArrowCursor
               }
@@ -1142,6 +1135,7 @@ Item {
               MouseArea {
                 id: refreshWarningHover
                 anchors.fill: parent
+                acceptedButtons: Qt.NoButton
                 hoverEnabled: true
                 cursorShape: Qt.ArrowCursor
               }
@@ -1158,11 +1152,18 @@ Item {
 
         PaletteFooter {
           visible: root.paletteChromeVisible
+          enabled: !root.modalDialogOpened
           width: parent.width
           height: root.activeFooterHeight
           marketplaceLabel: root.marketplaceShortcutLabel
           foreground: root.foreground
           shortcutColor: root.shortcutColor
+          onShortcutActivated: function(shortcutKey) {
+            root.handleKey({
+              modifiers: Qt.ControlModifier,
+              key: shortcutKey
+            })
+          }
         }
       }
     }
@@ -1181,6 +1182,7 @@ Item {
 
       MouseArea {
         anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
         hoverEnabled: true
         cursorShape: Qt.ArrowCursor
         onClicked: root.closePreview()
@@ -1202,6 +1204,7 @@ Item {
           anchors.centerIn: fullPreview
           width: fullPreview.paintedWidth
           height: fullPreview.paintedHeight
+          acceptedButtons: Qt.LeftButton
           cursorShape: Qt.PointingHandCursor
           onClicked: root.closePreview()
         }

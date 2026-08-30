@@ -24,23 +24,41 @@ rg -q 'function toggle\(\)' "$ROOT/PluginControl.qml"
 rg -q 'TextInput \{' "$ROOT/PluginControl.qml"
 rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -Fq 'event.key === Qt.Key_Escape' "$ROOT/PluginControl.qml"
-rg -Fq '{ keyLabel: "[Ctrl+i]", label: "Plugin info" }' \
+rg -Fq '{ keyLabel: "[Ctrl+i]", label: "Plugin info",' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+u]", label: "Check for plugin updates" }' \
+rg -Fq '{ keyLabel: "[Ctrl+u]", label: "Check for plugin updates",' \
   "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+w]",' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+g]", label: "GitHub plugin source" }' \
+rg -Fq '{ keyLabel: "[Ctrl+g]", label: "GitHub plugin source",' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+r]", label: "Refresh cache" }' \
+rg -Fq '{ keyLabel: "[Ctrl+r]", label: "Refresh cache",' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+s]", label: "Settings" }' \
+rg -Fq '{ keyLabel: "[Ctrl+s]", label: "Settings",' \
   "$ROOT/PaletteFooter.qml"
 ctrl_u_line="$(rg -nF '{ keyLabel: "[Ctrl+u]"' \
   "$ROOT/PaletteFooter.qml" | cut -d: -f1)"
 ctrl_i_line="$(rg -nF '{ keyLabel: "[Ctrl+i]"' \
   "$ROOT/PaletteFooter.qml" | cut -d: -f1)"
 (( ctrl_u_line < ctrl_i_line ))
+rg -Fq 'signal shortcutActivated(int shortcutKey)' \
+  "$ROOT/PaletteFooter.qml"
+for shortcut_key in U I W G R S; do
+  rg -Fq "shortcutKey: Qt.Key_$shortcut_key }" "$ROOT/PaletteFooter.qml"
+done
+rg -Fq 'acceptedButtons: Qt.LeftButton' "$ROOT/PaletteFooter.qml"
+rg -Fq 'hoverEnabled: true' "$ROOT/PaletteFooter.qml"
+rg -Fq 'cursorShape: Qt.PointingHandCursor' "$ROOT/PaletteFooter.qml"
+rg -Fq 'onClicked: root.shortcutActivated(modelData.shortcutKey)' \
+  "$ROOT/PaletteFooter.qml"
+rg -Fq 'enabled: !root.modalDialogOpened' "$ROOT/PluginControl.qml"
+rg -Fq 'onShortcutActivated: function(shortcutKey)' \
+  "$ROOT/PluginControl.qml"
+rg -Fq 'modifiers: Qt.ControlModifier' "$ROOT/PluginControl.qml"
+if rg -q 'function activateFooter' "$ROOT/PluginControl.qml"; then
+  printf 'not ok - duplicate footer dispatcher remains\n' >&2
+  exit 1
+fi
 rg -Fq 'width: footerRow.width / 6' "$ROOT/PaletteFooter.qml"
 rg -Fq 'anchors.horizontalCenter: parent.horizontalCenter' \
   "$ROOT/PaletteFooter.qml"
@@ -200,10 +218,19 @@ rg -Fq 'fillMode: Image.PreserveAspectFit' "$ROOT/ActionDialog.qml"
 rg -Fq 'width: previewThumbnail.paintedWidth' "$ROOT/ActionDialog.qml"
 rg -Fq 'height: previewThumbnail.paintedHeight' "$ROOT/ActionDialog.qml"
 rg -Fq 'anchors.right: previewClickArea.right' "$ROOT/ActionDialog.qml"
-if awk 'found || /id: actionButton/ { found = 1; print }' \
-    "$ROOT/ActionDialog.qml" | rg -q 'MouseArea|cursorShape|onClicked'; then
-  fail "action footer must remain keyboard-only"
-fi
+action_button_qml="$(awk 'found || /id: actionButton/ {
+  found = 1
+  print
+}' "$ROOT/ActionDialog.qml")"
+for pointer_contract in \
+    'acceptedButtons: Qt.LeftButton' \
+    'onEntered: root.selectChoice(actionButton.index, false)' \
+    'root.selectChoice(actionButton.index, true)' \
+    'root.choose()'; do
+  if ! grep -Fq "$pointer_contract" <<< "$action_button_qml"; then
+    fail "action footer pointer contract is incomplete"
+  fi
+done
 rg -Fq 'border.color: root.marketplaceYellow' "$ROOT/ActionDialog.qml"
 rg -Fq 'font.bold: root.readOnly' "$ROOT/ActionDialog.qml"
 rg -Fq 'function returnToMainMenu()' "$ROOT/PluginControl.qml"
@@ -258,8 +285,19 @@ rg -Fq 'readonly property bool modalDialogOpened: actionDialog.opened' \
   "$ROOT/PluginControl.qml"
 rg -Fq 'pointerInteractive: !root.modalDialogOpened' \
   "$ROOT/PluginControl.qml"
-rg -Fq 'text: "Search plugins (or type \"plug-...\" for direct plugin commands)."' \
+rg -Fq 'readonly property string searchPrompt: (service && service.snapshot' \
   "$ROOT/PluginControl.qml"
+rg -Fq '? "Search " + service.snapshot.records.length + " plugins"' \
+  "$ROOT/PluginControl.qml"
+rg -Fq '+ '\'' (or type "plug-..." for direct plugin commands)'\''' \
+  "$ROOT/PluginControl.qml"
+rg -Fq 'text: root.searchPrompt' "$ROOT/PluginControl.qml"
+rg -Fq 'anchors.right: parent.right' "$ROOT/PluginControl.qml"
+if rg -q 'shortcutLabel|Shortcuts\.HyprlandBinding|import "lib/shortcuts"' \
+    "$ROOT/PluginControl.qml"; then
+  printf 'not ok - redundant header shortcut label remains\n' >&2
+  exit 1
+fi
 rg -Fq 'fontSizeMode: Text.HorizontalFit' "$ROOT/PluginControl.qml"
 rg -Fq 'visible: root.backgroundDim' "$ROOT/PluginControl.qml"
 rg -Fq 'color: root.scrim' "$ROOT/PluginControl.qml"

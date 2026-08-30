@@ -26,7 +26,7 @@ FocusScope {
   }
 
   function choose() {
-    if (busy) return
+    if (busy && selectedChoice !== 2) return
     if (selectedChoice === 0) removeRequested(false)
     else if (selectedChoice === 1) removeRequested(true)
     else canceled()
@@ -55,6 +55,13 @@ FocusScope {
   Rectangle {
     anchors.fill: parent
     color: Util.alpha(root.background, 0.88)
+
+    MouseArea {
+      anchors.fill: parent
+      acceptedButtons: Qt.AllButtons
+      cursorShape: Qt.ArrowCursor
+      onClicked: {}
+    }
 
     Rectangle {
       width: Math.min(parent.width - Style.spacing.panelPadding * 2,
@@ -96,12 +103,14 @@ FocusScope {
             id: choiceRow
             required property int index
             required property string modelData
+            readonly property bool pointerEnabled: !root.busy || index === 2
 
             width: confirmationColumn.width
             height: Style.space(40)
             radius: Style.cornerRadius
             color: root.selectedChoice === index
               ? root.selectedBackground : "transparent"
+            opacity: pointerEnabled ? 1 : 0.42
 
             Text {
               anchors.left: parent.left
@@ -118,11 +127,16 @@ FocusScope {
 
             MouseArea {
               anchors.fill: parent
-              enabled: !root.busy
+              acceptedButtons: Qt.LeftButton
+              enabled: choiceRow.pointerEnabled
               hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
+              cursorShape: enabled
+                ? Qt.PointingHandCursor : Qt.ArrowCursor
               onEntered: root.selectedChoice = choiceRow.index
-              onClicked: root.choose()
+              onClicked: {
+                root.selectedChoice = choiceRow.index
+                root.choose()
+              }
             }
           }
         }

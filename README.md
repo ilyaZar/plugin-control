@@ -93,6 +93,9 @@ yellow warning. A failed scan is red.
 | `Ctrl+s`                             | Open settings; `Escape` returns    |
 | `Escape` or `q` in any submenu       | Return directly to the plugin list |
 
+The six footer cells run these same shortcuts when clicked.
+Dialog actions use their visible button bounds; surrounding space is inert.
+
 The status row shows actions on the left and the catalog on the right. Yellow
 means work or a warning, green means recent success, and red means a failed
 action or no usable data. Hover over a warning to see the failed source and

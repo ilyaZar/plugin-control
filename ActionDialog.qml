@@ -235,6 +235,13 @@ FocusScope {
     color: root.background
     radius: Style.cornerRadius
 
+    MouseArea {
+      anchors.fill: parent
+      acceptedButtons: Qt.AllButtons
+      cursorShape: Qt.ArrowCursor
+      onClicked: {}
+    }
+
     Flickable {
       id: contentFlick
       anchors.top: parent.top
@@ -348,6 +355,7 @@ FocusScope {
           anchors.centerIn: previewThumbnail
           width: previewThumbnail.paintedWidth
           height: previewThumbnail.paintedHeight
+          acceptedButtons: Qt.LeftButton
           enabled: root.previewReady
             && previewThumbnail.status === Image.Ready
           cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
@@ -557,6 +565,7 @@ FocusScope {
             MouseArea {
               id: badgeHover
               anchors.fill: parent
+              acceptedButtons: Qt.NoButton
               hoverEnabled: true
             }
 
@@ -629,6 +638,7 @@ FocusScope {
             MouseArea {
               id: metricHover
               anchors.fill: parent
+              acceptedButtons: Qt.NoButton
               hoverEnabled: true
             }
 
@@ -797,6 +807,9 @@ FocusScope {
           id: actionButton
           required property var modelData
           required property int index
+          readonly property bool pointerEnabled: !root.busy
+            || modelData.operation === "cancel"
+            || modelData.operation === "close"
           width: (actionRow.width - actionRow.spacing
             * Math.max(0, root.actions.length - 1))
             / Math.max(1, root.actions.length)
@@ -807,8 +820,8 @@ FocusScope {
           border.width: root.readOnly && root.selectedChoice === index
             ? Math.max(1, Style.space(1)) : 0
           border.color: root.marketplaceYellow
-          opacity: modelData.available === false
-            && root.selectedChoice !== index ? 0.42 : 1
+          opacity: (!pointerEnabled || (modelData.available === false
+            && root.selectedChoice !== index)) ? 0.42 : 1
 
           Text {
             anchors.centerIn: parent
@@ -825,6 +838,19 @@ FocusScope {
             font.bold: root.readOnly
           }
 
+          MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            enabled: actionButton.pointerEnabled
+            hoverEnabled: true
+            cursorShape: enabled
+              ? Qt.PointingHandCursor : Qt.ArrowCursor
+            onEntered: root.selectChoice(actionButton.index, false)
+            onClicked: {
+              root.selectChoice(actionButton.index, true)
+              root.choose()
+            }
+          }
         }
       }
     }

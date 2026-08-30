@@ -1,0 +1,3 @@
+module qs.Ui
+PanelToolTip 1.0 PanelToolTip.qml
+ToggleSwitch 1.0 ToggleSwitch.qml

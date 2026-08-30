@@ -268,6 +268,22 @@ ShellRoot {
       var overlay = root.loadEntry("PluginControl.qml", "overlay")
       if (overlay && "service" in overlay) {
         overlay.service = root.serviceObject
+        var savedPromptSnapshot = root.serviceObject.snapshot
+        root.serviceObject.snapshot = ({})
+        if (overlay.searchPrompt !== "Search plugins (or type \"plug-...\" for direct plugin commands)")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR search prompt fallback")
+        root.serviceObject.snapshot = {
+          records: [{}, {}, {}]
+        }
+        if (overlay.searchPrompt !== "Search 3 plugins (or type \"plug-...\" for direct plugin commands)")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR cached search prompt")
+        root.serviceObject.snapshot = { records: [] }
+        if (overlay.searchPrompt !== "Search 0 plugins (or type \"plug-...\" for direct plugin commands)")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR empty search prompt")
+        root.serviceObject.snapshot = { records: "invalid" }
+        if (overlay.searchPrompt !== "Search plugins (or type \"plug-...\" for direct plugin commands)")
+          console.error("PLUGIN_CONTROL_LOAD_ERROR invalid search prompt")
+        root.serviceObject.snapshot = savedPromptSnapshot
         overlay.query = "plug-ad"
         if (overlay.mode !== "command"
             || overlay.filteredRecords.length !== 1

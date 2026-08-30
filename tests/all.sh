@@ -25,5 +25,14 @@ if [[ -x /usr/lib/qt6/bin/qmltestrunner ]]; then
 fi
 QT_QPA_PLATFORM=offscreen "$qmltestrunner_bin" \
   -input "$TEST_DIR/tst_models.qml" -import "$ROOT"
+QT_QPA_PLATFORM=offscreen "$qmltestrunner_bin" \
+  -input "$TEST_DIR/tst_palette_footer.qml" -import "$ROOT" \
+  -import "$TEST_DIR/fixtures/qml-imports"
+QT_QPA_PLATFORM=offscreen "$qmltestrunner_bin" \
+  -input "$TEST_DIR/tst_action_dialog.qml" -import "$ROOT" \
+  -import "$TEST_DIR/fixtures/qml-imports"
+QT_QPA_PLATFORM=offscreen "$qmltestrunner_bin" \
+  -input "$TEST_DIR/tst_self_removal_dialog.qml" -import "$ROOT" \
+  -import "$TEST_DIR/fixtures/qml-imports"
 
 printf 'ok - all Plugin Control tests\n'

@@ -7,6 +7,7 @@ Item {
   property string marketplaceLabel: "Marketplace"
   property color foreground: Color.menu.text
   property color shortcutColor: Color.accent
+  signal shortcutActivated(int shortcutKey)
   readonly property bool compact: width < Style.space(690)
   readonly property int footerFontSize: Math.max(9,
     Style.font.caption - (compact ? 1 : 0))
@@ -25,12 +26,18 @@ Item {
 
     Repeater {
       model: [
-        { keyLabel: "[Ctrl+u]", label: "Check for plugin updates" },
-        { keyLabel: "[Ctrl+i]", label: "Plugin info" },
-        { keyLabel: "[Ctrl+w]", label: root.marketplaceLabel },
-        { keyLabel: "[Ctrl+g]", label: "GitHub plugin source" },
-        { keyLabel: "[Ctrl+r]", label: "Refresh cache" },
-        { keyLabel: "[Ctrl+s]", label: "Settings" }
+        { keyLabel: "[Ctrl+u]", label: "Check for plugin updates",
+          shortcutKey: Qt.Key_U },
+        { keyLabel: "[Ctrl+i]", label: "Plugin info",
+          shortcutKey: Qt.Key_I },
+        { keyLabel: "[Ctrl+w]", label: root.marketplaceLabel,
+          shortcutKey: Qt.Key_W },
+        { keyLabel: "[Ctrl+g]", label: "GitHub plugin source",
+          shortcutKey: Qt.Key_G },
+        { keyLabel: "[Ctrl+r]", label: "Refresh cache",
+          shortcutKey: Qt.Key_R },
+        { keyLabel: "[Ctrl+s]", label: "Settings",
+          shortcutKey: Qt.Key_S }
       ]
 
       delegate: Item {
@@ -76,6 +83,14 @@ Item {
             fontSizeMode: Text.HorizontalFit
             minimumPixelSize: Math.max(8, root.footerFontSize - 2)
           }
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          acceptedButtons: Qt.LeftButton
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: root.shortcutActivated(modelData.shortcutKey)
         }
       }
     }
