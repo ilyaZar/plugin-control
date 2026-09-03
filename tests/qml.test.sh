@@ -347,7 +347,7 @@ if grep -Eq 'curl|git|requestRefresh' <<<"$open_body"; then
 fi
 printf 'ok - overlay open path has no network or Git action\n'
 
-shared_shortcuts="$ROOT/../_shared/shortcuts"
+shared_shortcuts="$ROOT/../oma-plug-dev-shared-shortcuts/shortcuts"
 if [[ -d $shared_shortcuts ]]; then
   cmp -s "$ROOT/lib/shortcuts/ShortcutFormat.js" \
     "$shared_shortcuts/ShortcutFormat.js"
