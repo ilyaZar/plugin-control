@@ -26,7 +26,7 @@ rg -q 'Qt.Key_P' "$ROOT/PluginControl.qml"
 rg -Fq 'event.key === Qt.Key_Escape' "$ROOT/PluginControl.qml"
 rg -Fq '{ keyLabel: "[Ctrl+i]", label: "Plugin info",' \
   "$ROOT/PaletteFooter.qml"
-rg -Fq '{ keyLabel: "[Ctrl+u]", label: "Check for plugin updates",' \
+rg -Fq '{ keyLabel: "[Ctrl+u]", label: "Check plugin updates",' \
   "$ROOT/PaletteFooter.qml"
 rg -Fq '{ keyLabel: "[Ctrl+w]",' \
   "$ROOT/PaletteFooter.qml"

@@ -53,12 +53,12 @@ Notable changes are recorded here for each published release.
 
 - Publish the first Plugin Control palette with plugin add and remove flows.
 
-[0.2.1]: https://github.com/ilyaZar/plugin-control/compare/v0.1.7...v0.2.1
-[0.1.7]: https://github.com/ilyaZar/plugin-control/compare/v0.1.6...v0.1.7
-[0.1.6]: https://github.com/ilyaZar/plugin-control/compare/v0.1.5...v0.1.6
-[0.1.5]: https://github.com/ilyaZar/plugin-control/compare/v0.1.4...v0.1.5
-[0.1.4]: https://github.com/ilyaZar/plugin-control/compare/v0.1.3...v0.1.4
-[0.1.3]: https://github.com/ilyaZar/plugin-control/compare/v0.1.2...v0.1.3
-[0.1.2]: https://github.com/ilyaZar/plugin-control/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/ilyaZar/plugin-control/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/ilyaZar/plugin-control/releases/tag/v0.1.0
+[0.2.1]: https://github.com/omarchy-QOL/plugin-control/compare/v0.1.7...v0.2.1
+[0.1.7]: https://github.com/omarchy-QOL/plugin-control/compare/v0.1.6...v0.1.7
+[0.1.6]: https://github.com/omarchy-QOL/plugin-control/compare/v0.1.5...v0.1.6
+[0.1.5]: https://github.com/omarchy-QOL/plugin-control/compare/v0.1.4...v0.1.5
+[0.1.4]: https://github.com/omarchy-QOL/plugin-control/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/omarchy-QOL/plugin-control/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/omarchy-QOL/plugin-control/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/omarchy-QOL/plugin-control/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/omarchy-QOL/plugin-control/releases/tag/v0.1.0

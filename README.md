@@ -8,7 +8,7 @@ choose what to do: add, remove, enable, disable, or update them.
 ## Install
 
 ```bash
-omarchy plugin add https://github.com/ilyaZar/plugin-control.git --enable
+omarchy plugin add https://github.com/omarchy-QOL/plugin-control.git --enable
 ```
 
 Click the bar icon to open Plugin Control. Plugin manifests cannot add global
@@ -131,7 +131,7 @@ Click either preview to play the video.
       <p><strong>Add, remove, enable, and disable</strong></p>
       <p>
         Manage the
-        <a href="https://github.com/ilyaZar/omarchy-btop-activity">btop plugin</a>
+        <a href="https://github.com/omarchy-QOL/omarchy-btop-activity">btop plugin</a>
         from one action menu.
       </p>
     </td>
